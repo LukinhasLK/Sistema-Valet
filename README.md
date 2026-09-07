@@ -15,12 +15,25 @@ Precisa de dois terminais abertos.
 
 ```bash
 cd backend
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
-Sobe em `http://localhost:8080`. Por padrão usa o banco H2 em memória e popula usuários/unidades/manobristas de teste ao iniciar (veja `DadosIniciais`).
+Sobe em `http://localhost:8080`. Por padrão (sem nenhuma configuração extra) usa o banco H2 em memória e popula usuários/unidades/manobristas de teste ao iniciar (veja `DadosIniciais`).
 
-> O `application.properties` também traz uma configuração de PostgreSQL para produção — veja a seção **Segurança** abaixo antes de subir isso para um repositório público.
+> Não há `mvnw` (Maven Wrapper) versionado neste repositório — é preciso ter o Maven instalado (`mvn -v`). Se quiser, posso adicionar o wrapper depois.
+
+Para rodar contra o PostgreSQL local (como no ambiente de desenvolvimento original), crie `backend/src/main/resources/application-local.properties` — esse arquivo é ignorado pelo git — com:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/valetgest
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.datasource.username=SEU_USUARIO
+spring.datasource.password=SUA_SENHA
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+jwt.secret=SEU_SEGREDO_JWT
+```
+
+O `application.properties` já ativa o profile `local` por padrão (`spring.profiles.active=local`) — se o arquivo acima não existir, a aplicação simplesmente usa o H2 em memória.
 
 ### Terminal 2 — Frontend
 
@@ -70,15 +83,14 @@ frontend/src/
 
 **Frontend:** React 18 · Vite 5 · React Router 6 · Axios · Tailwind CSS · GSAP (animações) · ECharts (gráficos) · Lucide React (ícones) · PWA (vite-plugin-pwa)
 
-## Segurança — atenção antes de publicar
+## Segurança — atenção
 
-- `backend/src/main/resources/application.properties` contém **usuário, senha de banco PostgreSQL e o segredo JWT em texto puro**. Adicionei um `.gitignore`, mas esse arquivo **não estava ignorado até agora** — confirme que ele nunca foi commitado (`git log --all -- backend/src/main/resources/application.properties`) e, se já tiver subido em algum push, troque a senha do banco e o `jwt.secret` imediatamente. O ideal é mover esses valores para variáveis de ambiente (`${DB_PASSWORD}`, `${JWT_SECRET}`) e manter só um `application-example.properties` versionado.
+- Credenciais reais (senha do PostgreSQL e `jwt.secret`) **não ficam mais no `application.properties` versionado** — foram movidas para `backend/src/main/resources/application-local.properties`, que está no `.gitignore` e nunca é commitado. O arquivo versionado só tem placeholders/defaults seguros (H2 em memória, segredo de dev).
 - Não há autorização por papel (`DONO` x `GERENTE`) na maior parte dos endpoints — qualquer usuário autenticado consegue criar/editar usuários, unidades e sócios pela API, mesmo que a tela esconda esses menus para o gerente. Ver detalhes na avaliação de código.
 
 ## Próximos passos (sugestões)
 
 - Restringir endpoints administrativos a `DONO` (`@PreAuthorize` ou checagem manual, como já existe em `FichaService`)
-- Externalizar credenciais/segredos do `application.properties`
 - Permitir editar fichas já criadas (hoje só cria e exclui)
 - Adicionar CI (build + testes) e cobertura de testes no frontend
-- Deploy (Railway, Render, VPS) com PostgreSQL
+- Deploy (Railway, Render, VPS) com PostgreSQL, usando variáveis de ambiente (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`) em vez de profile local
