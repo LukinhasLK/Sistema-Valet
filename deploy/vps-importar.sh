@@ -40,8 +40,9 @@ done
     || { echo "A API não subiu. Veja: journalctl -u parkflash -n 80"; exit 1; }
 
 echo "==> Importando"
-sudo -u postgres psql -d parkflash -v legado_db="$ANTIGO" -f "$AQUI/importar-hitmanpark.sql" \
-    | tee "/root/backups/importacao-$DATA.txt"
+# Pela entrada padrão: o usuário postgres não lê arquivos em /root
+sudo -u postgres psql -d parkflash -v legado_db="$ANTIGO" -f - < "$AQUI/importar-hitmanpark.sql" \
+    2>&1 | tee "/root/backups/importacao-$DATA.txt"
 
 systemctl restart parkflash
 echo
