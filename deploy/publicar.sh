@@ -25,7 +25,7 @@ cp backend/target/parkflash-api-0.1.0.jar   "$PACOTE/parkflash-pacote/parkflash-
 cp backend/migracao/importar-hitmanpark.sql "$PACOTE/parkflash-pacote/"
 cp deploy/*.sh deploy/*.conf deploy/*.service "$PACOTE/parkflash-pacote/"
 git rev-parse --short HEAD > "$PACOTE/parkflash-pacote/VERSAO" 2>/dev/null || true
-tar czf "$PACOTE/parkflash-pacote.tgz" -C "$PACOTE" parkflash-pacote
+COPYFILE_DISABLE=1 tar --no-mac-metadata --no-xattrs -czf "$PACOTE/parkflash-pacote.tgz" -C "$PACOTE" parkflash-pacote
 
 echo "==> Enviando para $VPS"
 scp "$PACOTE/parkflash-pacote.tgz" "$VPS:/root/"
