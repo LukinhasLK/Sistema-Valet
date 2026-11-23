@@ -9,9 +9,13 @@ REG=/root/backups/virada-ultima.txt
 ORIGINAL=$(sed -n 1p "$REG"); DESATIVADO=$(sed -n 3p "$REG")
 [ -e "$DESATIVADO" ] || { echo "Não achei $DESATIVADO."; exit 1; }
 
+# Religa o backend antigo (desligado depois da virada)
+if systemctl list-unit-files valetgest.service >/dev/null 2>&1; then
+    systemctl enable --now valetgest
+    for _ in $(seq 1 30); do ss -ltn | grep -q ':8080 ' && break; sleep 2; done
+fi
 rm -f /etc/nginx/sites-enabled/parkflash-producao
 mv "$DESATIVADO" "$ORIGINAL"
 nginx -t
 systemctl reload nginx
-echo "Sistema antigo restaurado em $ORIGINAL."
-echo "Se o backend antigo foi parado, religue-o como ele roda normalmente."
+echo "Sistema antigo restaurado em $ORIGINAL (backend valetgest religado)."
