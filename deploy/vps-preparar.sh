@@ -45,6 +45,8 @@ if [ ! -f "$ENV" ]; then
 # sem ele as chaves Pix salvas ficam ilegíveis.
 SPRING_PROFILES_ACTIVE=postgres
 PORT=$PORTA
+# Só o nginx (mesma máquina) acessa a API; nada exposto direto na internet
+SERVER_ADDRESS=127.0.0.1
 DB_URL=jdbc:postgresql://localhost:5432/parkflash
 DB_USUARIO=parkflash
 DB_SENHA=$SENHA_DB
