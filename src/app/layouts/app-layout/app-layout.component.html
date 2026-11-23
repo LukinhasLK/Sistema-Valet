@@ -1,0 +1,32 @@
+@if (isMobile()) {
+  <div class="shell shell--mobile">
+    <header class="topbar">
+      <pf-logo [size]="17" />
+      <div class="topbar__acoes">
+        @if (notificacoes.disponivel()) {
+          <a class="topbar__sino" routerLink="/app/notificacoes"
+            [attr.aria-label]="'Notificações' + (notificacoes.total() ? ', ' + notificacoes.total() + ' não lidas' : '')">
+            <pf-icon name="sino" [size]="20" />
+            @if (notificacoes.total(); as total) { <span aria-hidden="true">{{ total > 99 ? '99+' : total }}</span> }
+          </a>
+        }
+        @if (usuario(); as u) {
+          <a class="pf-avatar topbar__avatar" routerLink="/app/perfil" aria-label="Meu perfil" [style.background]="cor(u.nome)">{{ inicial() }}</a>
+        }
+      </div>
+    </header>
+
+    <main class="content content--mobile">
+      <router-outlet pfRouteMotion />
+    </main>
+
+    <pf-bottom-nav />
+  </div>
+} @else {
+  <div class="shell">
+    <pf-sidebar />
+    <main class="content">
+      <router-outlet pfRouteMotion />
+    </main>
+  </div>
+}

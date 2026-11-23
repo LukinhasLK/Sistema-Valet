@@ -1,0 +1,288 @@
+<div class="pf-page">
+  <pf-page-header
+    title="Fichas"
+    [subtitle]="fichas().length + (fichas().length === 1 ? ' ficha encontrada' : ' fichas encontradas')"
+  >
+    <a class="pf-btn pf-btn--primary" routerLink="/app/fichas/nova">
+      <pf-icon name="plus" [size]="17" />
+      Nova ficha
+    </a>
+  </pf-page-header>
+
+  <!-- Filtros -->
+  <div class="pf-filters">
+    <input
+      class="pf-input pf-filters__search"
+      type="search"
+      placeholder="Buscar unidade ou data..."
+      [ngModel]="busca()"
+      (ngModelChange)="busca.set($event)"
+      aria-label="Buscar fichas"
+    />
+
+    <select class="pf-select" [ngModel]="mes()" (ngModelChange)="mes.set(+$event)" aria-label="Mês">
+      <option [value]="0">Todos os meses</option>
+      @for (nome of meses; track nome; let i = $index) {
+        <option [value]="i + 1">{{ nome }}</option>
+      }
+    </select>
+
+    <select class="pf-select" [ngModel]="ano()" (ngModelChange)="ano.set(+$event)" aria-label="Ano">
+      @for (a of anos(); track a) {
+        <option [value]="a">{{ a }}</option>
+      }
+    </select>
+
+    <select class="pf-select" [ngModel]="unidadeId()" (ngModelChange)="unidadeId.set($event)" aria-label="Unidade">
+      <option [ngValue]="todas">Todas as unidades</option>
+      @for (u of unidades(); track u.id) {
+        <option [ngValue]="u.id">{{ u.nome }}</option>
+      }
+    </select>
+    <select class="pf-select" [ngModel]="manobristaId()" (ngModelChange)="manobristaId.set($event)" aria-label="Manobrista">
+      <option [ngValue]="null">Todos os manobristas</option>
+      @for (m of manobristas(); track m.id) {
+        <option [ngValue]="m.id">{{ m.nome }}</option>
+      }
+    </select>
+  </div>
+
+  @if (manobristaId() !== null) {
+    <p class="det__nota">Custo registrado de {{ nomeManobrista(manobristaId()!) }} no período: {{ custoManobrista() | currencyBr }}. Os indicadores abaixo mostram os totais das fichas filtradas.</p>
+  }
+
+  <!-- Resumo do período filtrado -->
+  <section class="pf-grid-kpi">
+    <pf-kpi-card label="Fichas" [value]="resumo().fichas | numeroBr" />
+    <pf-kpi-card label="Carros" [value]="resumo().carros | numeroBr" />
+    <pf-kpi-card label="Total bruto" [value]="resumo().bruto | currencyBr" />
+    <pf-kpi-card
+      label="Líquido"
+      [value]="resumo().liquido | currencyBr"
+      [tone]="resumo().liquido >= 0 ? 'success' : 'danger'"
+    />
+  </section>
+
+  <!-- Listagem -->
+  @if (fichas().length === 0) {
+    <div class="pf-card vazio">
+      <p class="vazio__titulo">Nenhuma ficha neste período</p>
+      <p class="vazio__texto">Ajuste os filtros ou lance a primeira ficha do mês.</p>
+      <button type="button" class="pf-btn pf-btn--ghost" (click)="limparFiltros()">Limpar filtros</button>
+    </div>
+  } @else if (isMobile()) {
+    <div class="cards">
+      @for (ficha of paginacao.visiveis(); track ficha.id) {
+        <article class="pf-card card-ficha">
+          <div class="card-ficha__info">
+            <button type="button" class="acao" (click)="abrirDetalhe(ficha)" [attr.aria-label]="'Ver ficha de ' + (ficha.data | dataBr)">
+              {{ ficha.data | dataBr }}
+            </button>
+            <p class="card-ficha__meta">{{ situacao(ficha) }}</p>
+            <p class="card-ficha__meta">{{ nomeUnidade(ficha.unidadeId) }} · {{ ficha.totalCarros | numeroBr }} carros</p>
+          </div>
+          <p class="card-ficha__valor" [class.pf-money--neg]="ficha.totalLiquido < 0" [class.pf-money--pos]="ficha.totalLiquido >= 0">
+            {{ ficha.totalLiquido | currencyBr }}
+          </p>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="pf-card tabela">
+      <div class="pf-table-wrap">
+        <table class="pf-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Unidade</th>
+              <th>Situação</th>
+              <th class="num">Carros</th>
+              <th class="num">Bruto</th>
+              <th class="num">Líquido</th>
+              <th class="actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ficha of paginacao.visiveis(); track ficha.id) {
+              <tr>
+                <td>{{ ficha.data | dataBr }}</td>
+                <td>{{ nomeUnidade(ficha.unidadeId) }}</td>
+                <td>{{ situacao(ficha) }}</td>
+                <td class="num">{{ ficha.totalCarros | numeroBr }}</td>
+                <td class="num">{{ ficha.totalBruto | currencyBr }}</td>
+                <td class="num" [class.pf-money--neg]="ficha.totalLiquido < 0" [class.pf-money--pos]="ficha.totalLiquido >= 0">
+                  {{ ficha.totalLiquido | currencyBr }}
+                </td>
+                <td class="actions">
+                  <button type="button" class="acao" (click)="abrirDetalhe(ficha)">Ver</button>
+                  @if (podeEditar() && emEdicao(ficha)) {
+                    <a class="acao" [routerLink]="['/app/fichas', ficha.id, 'editar']">Editar</a>
+                    <button type="button" class="acao acao--danger" (click)="paraExcluir.set(ficha)">Excluir</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+  <pf-paginacao [pagina]="paginacao.pagina()" [paginas]="paginacao.paginas()"
+    (selecionar)="paginacao.pagina.set($event)" />
+</div>
+
+<!-- Detalhe -->
+@if (detalhe(); as ficha) {
+  <pf-modal [wide]="true" [title]="'Ficha de ' + (ficha.data | dataBr)" (fechar)="abrirDetalhe(null)">
+    <dl class="det">
+      <div class="det__linha"><dt>Unidade</dt><dd>{{ nomeUnidade(ficha.unidadeId) }}</dd></div>
+      <div class="det__linha"><dt>Situação</dt><dd>{{ situacao(ficha) }}</dd></div>
+      @if (ficha.fechadoEm) {
+        <div class="det__linha"><dt>Fechada em</dt><dd>{{ ficha.fechadoEm | date:'dd/MM/yyyy HH:mm':'-0300' }}</dd></div>
+      }
+      @if (ficha.valorInicialCaixa != null) {
+        <div class="det__linha"><dt>Caixa inicial</dt><dd>{{ ficha.valorInicialCaixa | currencyBr }}</dd></div>
+      }
+      @if (ficha.valorFinalCaixa != null) {
+        <div class="det__linha"><dt>Caixa final</dt><dd>{{ ficha.valorFinalCaixa | currencyBr }}</dd></div>
+      }
+      <div class="det__linha"><dt>Turno</dt><dd>{{ ficha.turno === 'dia' ? 'Dia' : 'Noite' }}</dd></div>
+      <div class="det__linha">
+        <dt>Carros</dt>
+        <dd>{{ ficha.totalCarros | numeroBr }} <span class="det__nota">({{ ficha.fichaInicio }} → {{ ficha.fichaFim }}, {{ ficha.fichasCanceladas }} canceladas)</span></dd>
+      </div>
+
+      <div class="det__sep"></div>
+
+      <div class="det__linha"><dt>Dinheiro</dt><dd>{{ ficha.valorDinheiro | currencyBr }}</dd></div>
+      <div class="det__linha"><dt>Cartão</dt><dd>{{ ficha.valorCartao | currencyBr }}</dd></div>
+      <div class="det__linha"><dt>Pix</dt><dd>{{ ficha.valorPix ?? 0 | currencyBr }}</dd></div>
+      @if (detalheCalculos(); as c) {
+        <div class="det__linha det__linha--neg"><dt>Taxa da maquininha ({{ ficha.taxaMaquininha }}%)</dt><dd>− {{ c.taxaDescontada | currencyBr }}</dd></div>
+        <div class="det__linha det__linha--neg"><dt>Custo da equipe ({{ ficha.manobristas.length }})</dt><dd>− {{ c.totalDiarias | currencyBr }}</dd></div>
+        <div class="det__linha det__linha--neg"><dt>Despesas adicionais</dt><dd>− {{ c.totalDespesas | currencyBr }}</dd></div>
+      }
+
+      <div class="det__sep"></div>
+
+      <div class="det__linha det__linha--total">
+        <dt>Saldo final</dt>
+        <dd [class.pf-money--neg]="ficha.totalLiquido < 0" [class.pf-money--pos]="ficha.totalLiquido >= 0">
+          {{ ficha.totalLiquido | currencyBr }}
+        </dd>
+      </div>
+    </dl>
+
+    @if (ficha.manobristas.length) {
+      <p class="det__titulo">Equipe</p>
+      <ul class="det__lista">
+        @for (m of ficha.manobristas; track m.manobristaId) {
+          <li>
+          <div>{{ nomeManobrista(m.manobristaId) }}<p class="det__nota">{{ modalidades[m.modalidade ?? 'DIARIA_FIXA'] }}</p></div>
+          <span>{{ m.diaria | currencyBr }}</span>
+        </li>
+        }
+      </ul>
+    }
+
+    @if (ficha.despesasAdicionais.length) {
+      <p class="det__titulo">Despesas adicionais</p>
+      <ul class="det__lista">
+        @for (d of ficha.despesasAdicionais; track d.descricao) {
+          <li><span>{{ d.descricao }}</span><span>{{ d.valor | currencyBr }}</span></li>
+        }
+      </ul>
+    }
+
+    @if (ficha.observacoes) {
+      <p class="det__titulo">Observações</p>
+      <p>{{ ficha.observacoes }}</p>
+    }
+
+    @if (historico(); as registros) {
+      <p class="det__titulo">Histórico</p>
+      <ul class="det__lista">
+        @for (r of registros; track $index) {
+          <li>
+            <span>{{ r.ator }} · {{ eventos[r.acao] }} @if (r.justificativa) { ({{ r.justificativa }}) }</span>
+            <span>{{ r.registradoEm | date:'dd/MM/yyyy HH:mm':'-0300' }}</span>
+          </li>
+        } @empty {
+          <li>Sem alterações registradas.</li>
+        }
+      </ul>
+    } @else {
+      <button type="button" class="pf-btn pf-btn--ghost" [disabled]="consultandoHistorico()" (click)="consultarHistorico()">
+        {{ consultandoHistorico() ? 'Carregando…' : 'Ver histórico' }}
+      </button>
+    }
+
+    @if (indicandoDivergencia()) {
+      <div class="pf-field det__etapa">
+        <label class="pf-label" for="motivo-divergencia">Descreva a divergência encontrada</label>
+        <textarea #focoEtapa class="pf-input" id="motivo-divergencia" rows="3" maxlength="500" required
+          [ngModel]="justificativa()" (ngModelChange)="justificativa.set($event)"></textarea>
+        <p>A gestão autorizada receberá um alerta. Os valores da ficha serão preservados.</p>
+      </div>
+    } @else if (acao()) {
+      <div class="pf-field det__etapa">
+        <h3 #focoEtapa tabindex="-1" class="det__titulo">{{ rotulos[acao()!] }}</h3>
+        @if (acao() === 'DEVOLVER' || acao() === 'REABRIR') {
+          <label class="pf-label" for="motivo-ficha">Motivo da correção</label>
+          <textarea class="pf-input" id="motivo-ficha" rows="3" maxlength="500" required
+            [ngModel]="justificativa()" (ngModelChange)="justificativa.set($event)"></textarea>
+        } @else if (acao() === 'FECHAR') {
+          @if (ficha.totalLiquido < 0) {
+            <p class="det__saldo-alerta">A ficha tem saldo negativo de {{ ficha.totalLiquido | currencyBr }}. Confira os recebimentos e os custos antes de fechar.</p>
+          }
+          <p>O fechamento bloqueia alterações até que a ficha seja reaberta.</p>
+        } @else {
+          <p>A ficha ficará disponível para a conferência da gestão.</p>
+        }
+      </div>
+    }
+
+    @if (podeEditar() || emEdicao(ficha)) {
+      <div pfModalFooter #acoesDaFicha class="det__acoes" tabindex="-1" role="group" aria-label="Ações da ficha">
+        @if (indicandoDivergencia()) {
+          <button type="button" class="pf-btn pf-btn--ghost" [disabled]="alterando()"
+            (click)="prepararAcao(null)">Voltar</button>
+          <button type="button" class="pf-btn pf-btn--primary" (click)="sinalizarDivergencia()"
+            [disabled]="alterando() || !justificativa().trim()">Sinalizar divergência</button>
+        } @else if (acao()) {
+          <button type="button" class="pf-btn pf-btn--ghost" [disabled]="alterando()" (click)="prepararAcao(null)">Voltar</button>
+          <button type="button" class="pf-btn pf-btn--primary" (click)="registrarTransicao()"
+            [disabled]="alterando() || ((acao() === 'DEVOLVER' || acao() === 'REABRIR') && !justificativa().trim())">
+            {{ alterando() ? 'Salvando…' : 'Confirmar' }}
+          </button>
+        } @else {
+          @if (podeEditar()) {
+            <button type="button" class="pf-btn pf-btn--ghost" (click)="prepararAcao('DIVERGENCIA')">Sinalizar divergência</button>
+          }
+          @if (emEdicao(ficha)) {
+            @if (podeEditar()) {
+              <button type="button" class="pf-btn pf-btn--ghost" (click)="paraExcluir.set(ficha); abrirDetalhe(null)">Cancelar ficha</button>
+              <a class="pf-btn pf-btn--ghost" [routerLink]="['/app/fichas', ficha.id, 'editar']">Editar</a>
+            }
+            <button type="button" class="pf-btn pf-btn--primary" (click)="prepararAcao('ENVIAR')">Enviar para conferência</button>
+          } @else if (podeEditar() && ficha.situacao === 'PRONTA') {
+            <button type="button" class="pf-btn pf-btn--ghost" (click)="prepararAcao('DEVOLVER')">Devolver para edição</button>
+            <button type="button" class="pf-btn pf-btn--primary" (click)="prepararAcao('FECHAR')">Confirmar fechamento</button>
+          } @else if (podeEditar() && ficha.situacao === 'FECHADA') {
+            <button type="button" class="pf-btn pf-btn--ghost" (click)="prepararAcao('REABRIR')">Reabrir ficha</button>
+          }
+        }
+      </div>
+    }
+  </pf-modal>
+}
+
+<!-- Exclusão -->
+@if (paraExcluir(); as ficha) {
+  <pf-confirm
+    title="Cancelar ficha" confirmLabel="Cancelar ficha"
+    [message]="'A ficha de ' + (ficha.data | dataBr) + ' (' + nomeUnidade(ficha.unidadeId) + ') ficará no histórico com a situação Cancelada.'"
+    (confirmar)="confirmarExclusao()"
+    (cancelar)="paraExcluir.set(null)"
+  />
+}

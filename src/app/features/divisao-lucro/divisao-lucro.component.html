@@ -1,0 +1,127 @@
+<div class="pf-page">
+  <pf-page-header
+    title="Divisão de Lucro"
+    subtitle="Resultado da unidade (lucro das fichas − despesas fixas) dividido entre os sócios"
+  />
+
+  <div class="pf-filters">
+    <select class="pf-select" [ngModel]="mes()" (ngModelChange)="mes.set(+$event)" aria-label="Mês">
+      @for (nome of meses; track nome; let i = $index) {
+        <option [value]="i + 1">{{ nome }}</option>
+      }
+    </select>
+
+    <select class="pf-select" [ngModel]="ano()" (ngModelChange)="ano.set(+$event)" aria-label="Ano">
+      @for (a of anos(); track a) { <option [value]="a">{{ a }}</option> }
+    </select>
+
+    <select class="pf-select" [ngModel]="unidadeId()" (ngModelChange)="unidadeId.set($event)" aria-label="Unidade">
+      @for (u of unidades(); track u.id) { <option [ngValue]="u.id">{{ u.nome }}</option> }
+    </select>
+  </div>
+
+  @let dados = rateio();
+  @if (!unidadeId()) {
+    <p class="pf-card vazio">Cadastre uma unidade para consultar a divisão de lucro.</p>
+  } @else if (erro()) {
+    <p class="pf-card vazio pf-error" role="alert">{{ erro() }}</p>
+  } @else if (dados) {
+  <section class="cards-resumo">
+    <pf-kpi-card
+      label="Lucro das fichas"
+      [value]="dados.lucroFichas | currencyBr"
+      [hint]="dados.quantidadeFichas + ' fichas · ' + periodoLabel()"
+    />
+    <pf-kpi-card label="(−) Despesas fixas" [value]="dados.despesasFixas | currencyBr" [hint]="unidadeLabel()" tone="danger" />
+    <pf-kpi-card
+      label="= Resultado a dividir"
+      [value]="resultado() | currencyBr"
+      [hint]="partes().length + ' sócio(s)'"
+      [tone]="resultado() >= 0 ? 'success' : 'danger'"
+    />
+  </section>
+
+  @if (partes().length === 0) {
+    <div class="pf-card vazio">
+      <p class="vazio__titulo">Sem rateio configurado</p>
+      <p class="vazio__texto">
+        Configure uma distribuição de 100% para {{ unidadeLabel() }} no mês selecionado.
+      </p>
+    </div>
+  } @else {
+    <section class="painel">
+      <!-- Distribuição -->
+      <article class="pf-card">
+        <div class="pf-card__head">
+          <h2 class="pf-card__title">Distribuição por sócio</h2>
+          <p class="pf-card__subtitle">{{ unidadeLabel() }} — {{ periodoLabel() }}</p>
+        </div>
+
+        <div class="pf-card__body">
+          @if (saldoNegativo()) {
+            <p class="negativo">
+              O período fechou com prejuízo de {{ resultado() | currencyBr }}. O gráfico de proporção
+              fica oculto porque não há lucro a distribuir — o rateio abaixo mostra a parte de cada sócio no prejuízo.
+            </p>
+          } @else {
+            <pf-chart
+              [config]="grafico()"
+              [height]="isMobile() ? 210 : 260"
+              ariaLabel="Participação percentual de cada sócio no valor líquido"
+            />
+          }
+
+          <ul class="legenda">
+            @for (fatia of fatias(); track fatia.nome) {
+              <li>
+                <span class="legenda__cor" [style.background]="fatia.cor" aria-hidden="true"></span>
+                <span class="legenda__nome">{{ fatia.nome }}</span>
+                <span class="legenda__pct">{{ fatia.percentual.toFixed(1) }}%</span>
+              </li>
+            }
+          </ul>
+        </div>
+      </article>
+
+      <!-- Detalhamento -->
+      <article class="pf-card">
+        <div class="pf-card__head">
+          <h2 class="pf-card__title">Detalhamento</h2>
+          <p class="pf-card__subtitle">Valor líquido por sócio</p>
+        </div>
+
+        <div class="pf-card__body">
+          <ul class="detalhe">
+            @for (parte of partes(); track parte.nome; let i = $index) {
+              <li class="detalhe__item">
+                <div class="detalhe__topo">
+                  <span class="detalhe__nome">{{ parte.nome }}</span>
+                  <span
+                    class="detalhe__valor"
+                    [class.pf-money--neg]="parte.valor < 0"
+                  >{{ parte.valor | currencyBr }}</span>
+                </div>
+                <div class="detalhe__barra">
+                  <span
+                    class="detalhe__preenchimento"
+                    [style.width.%]="largura(parte.percentual)"
+                    [style.background]="corDoSocio(i)"
+                  ></span>
+                </div>
+                <span class="detalhe__pct">{{ parte.percentual }}% de participação</span>
+              </li>
+            }
+          </ul>
+
+          <div class="detalhe__rodape">
+            <span>Total calculado</span>
+            <strong [class.pf-money--neg]="totalDistribuido() < 0">{{ totalDistribuido() | currencyBr }}</strong>
+          </div>
+        </div>
+      </article>
+    </section>
+  }
+  } @else {
+    <p class="pf-card vazio" role="status">Consultando a divisão de lucro…</p>
+  }
+</div>

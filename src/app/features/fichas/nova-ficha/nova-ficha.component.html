@@ -1,0 +1,421 @@
+<form class="pf-page nova" [formGroup]="form" (ngSubmit)="lancar()" novalidate>
+
+  @if (!isMobile()) {
+    <pf-page-header
+      [title]="emEdicao() ? 'Editar ficha' : 'Nova ficha'"
+      [subtitle]="emEdicao() ? 'Corrija os dados do fechamento' : 'Lance o fechamento do dia'"
+    />
+  } @else {
+    <!-- Stepper mobile -->
+    <div class="stepper">
+      <div class="stepper__barra" role="progressbar" [attr.aria-valuenow]="etapa() + 1" aria-valuemin="1" [attr.aria-valuemax]="etapas.length">
+        @for (e of etapas; track e.titulo; let i = $index) {
+          <span class="stepper__seg" [class.stepper__seg--ativo]="i <= etapa()"></span>
+        }
+      </div>
+      <p class="stepper__contador">Etapa {{ etapa() + 1 }} de {{ etapas.length }}</p>
+      <h1 class="stepper__titulo">{{ etapas[etapa()].titulo }}</h1>
+      <p class="stepper__sub">{{ etapas[etapa()].subtitulo }}</p>
+    </div>
+  }
+
+  <div class="nova__corpo">
+    <div class="nova__principal">
+
+      <!-- 1. Identificação -->
+      @if (!isMobile() || etapa() === 0) {
+        <section class="pf-card secao">
+          @if (!isMobile()) { <h2 class="secao__titulo">1. Identificação</h2> }
+
+          <div class="grid grid--3">
+            <div class="pf-field">
+              <label class="pf-label" for="unidade">Unidade</label>
+              <select id="unidade" class="pf-select" formControlName="unidadeId">
+                <option [ngValue]="null" disabled>Selecione a unidade</option>
+                @for (u of unidades(); track u.id) {
+                  <option [ngValue]="u.id">{{ u.nome }}</option>
+                }
+              </select>
+              @if (invalido('unidadeId')) { <span class="pf-error">Escolha a unidade.</span> }
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label" for="data">Data</label>
+              <pf-calendario><input id="data" class="pf-input" type="date" formControlName="data" /></pf-calendario>
+              @if (invalido('data')) { <span class="pf-error">Informe a data.</span> }
+            </div>
+
+            <div class="pf-field">
+              <span class="pf-label">Turno</span>
+              <div class="pf-radio-group">
+                <label class="pf-radio" [class.pf-radio--checked]="form.controls.turno.value === 'dia'">
+                  <input type="radio" value="dia" formControlName="turno" />
+                  Dia
+                </label>
+                <label class="pf-radio" [class.pf-radio--checked]="form.controls.turno.value === 'noite'">
+                  <input type="radio" value="noite" formControlName="turno" />
+                  Noite
+                </label>
+              </div>
+            </div>
+          </div>
+
+          @if (erroDuplicada()) {
+            <p class="pf-error secao__aviso">Já existe uma ficha desta unidade para esta data e turno.</p>
+          }
+        </section>
+      }
+
+      <!-- 2. Controle de carros -->
+      @if (!isMobile() || etapa() === 1) {
+        <section class="pf-card secao">
+          @if (!isMobile()) { <h2 class="secao__titulo">2. Controle de Carros</h2> }
+
+          <div class="grid grid--4">
+            <div class="pf-field">
+              <label class="pf-label" for="fichaInicio">Ticket inicial</label>
+              <input id="fichaInicio" class="pf-input" type="number" min="0" inputmode="numeric" placeholder="0" formControlName="fichaInicio" />
+              @if (invalido('fichaInicio')) { <span class="pf-error">Informe a ficha inicial.</span> }
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label" for="fichaFim">Ticket final</label>
+              <input id="fichaFim" class="pf-input" type="number" min="0" inputmode="numeric" placeholder="0" formControlName="fichaFim" />
+              @if (invalido('fichaFim')) { <span class="pf-error">Informe a ficha final.</span> }
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label" for="canceladas">Fichas canceladas</label>
+              <input id="canceladas" class="pf-input" type="number" min="0" inputmode="numeric" placeholder="0" formControlName="fichasCanceladas" />
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label" for="totalCarros">Total real de carros</label>
+              <input id="totalCarros" class="pf-input" type="text" readonly [value]="totalCarros()" />
+            </div>
+          </div>
+
+          @if (sequenciaInvalida) {
+            <p class="pf-error secao__aviso">A ficha final precisa ser maior que a inicial somada às canceladas.</p>
+          }
+        </section>
+      }
+
+      <!-- 3. Manobristas -->
+      @if (!isMobile() || etapa() === 2) {
+        <section class="pf-card secao" formArrayName="manobristas">
+          @if (!isMobile()) { <h2 class="secao__titulo">3. Manobristas</h2> }
+
+          <p class="secao__vazio equipe__orientacao">Escolha a modalidade e informe o custo em reais.</p>
+
+          @for (grupo of manobristas.controls; track $index; let i = $index) {
+            <div class="linha linha--equipe" [formGroupName]="i">
+              <div class="pf-field linha__principal">
+                <span class="pf-label">Manobrista</span>
+                <select class="pf-select" formControlName="manobristaId" aria-label="Manobrista">
+                  <option [ngValue]="null" disabled>Selecione</option>
+                  @for (m of opcoesManobrista(i); track m.id) {
+                    <option [ngValue]="m.id">{{ m.nome }}</option>
+                  }
+                </select>
+                @if (invalido('manobristas.' + i + '.manobristaId')) { <span class="pf-error">Escolha o manobrista.</span> }
+              </div>
+
+              <label class="pf-field linha__modalidade">
+                <span class="pf-label">Modalidade de custo</span>
+                <select class="pf-select" formControlName="modalidade">
+                  @for (modalidade of modalidades; track modalidade[0]) {
+                    <option [value]="modalidade[0]">{{ modalidade[1] }}</option>
+                  }
+                </select>
+              </label>
+
+              <label class="pf-field linha__valor">
+                <span class="pf-label">Custo informado (R$)</span>
+                <input class="pf-input" type="number" min="0" step="0.01" inputmode="decimal" formControlName="diaria" />
+              </label>
+
+              @if (!emEdicao() && grupo.get('diaria')?.value > 0) {
+                <label class="pf-field linha__pagamento">
+                  <span class="pf-label">Situação do pagamento</span>
+                  <select class="pf-select" formControlName="pagamento">
+                    <option value="" disabled>Selecione a situação</option>
+                    <option value="PENDENTE">Falta pagar</option>
+                    @if (podeConfirmar()) {
+                      <option value="PIX">Pago no dia · Pix</option>
+                      <option value="DINHEIRO">Pago no dia · Dinheiro</option>
+                      <option value="TRANSFERENCIA">Pago no dia · Transferência</option>
+                      <option value="OUTRA">Pago no dia · Outra forma</option>
+                    }
+                    <option value="CONFERIR">Deixar para conferência</option>
+                  </select>
+                  @if (grupo.hasError('pagamentoObrigatorio') && (grupo.touched || enviado())) {
+                    <span class="pf-error">Informe se o custo foi pago.</span>
+                  }
+                </label>
+              }
+              <button
+                type="button"
+                class="linha__remover linha__remover--equipe"
+                aria-label="Remover manobrista"
+                [disabled]="manobristas.length === 1"
+                (click)="removerManobrista(i)"
+              >
+                <pf-icon name="excluir" [size]="17" />
+              </button>
+            </div>
+          }
+
+          @if (manobristas.errors?.['manobristaRepetido']) {
+            <p class="pf-error secao__aviso">O mesmo manobrista foi escolhido mais de uma vez.</p>
+          }
+
+          <div class="secao__links">
+            <button type="button" class="pf-link-btn" (click)="adicionarManobrista()">+ Adicionar Manobrista</button>
+            <button type="button" class="pf-link-btn" (click)="novoManobristaAberto.set(true)">+ Novo Manobrista</button>
+          </div>
+
+          <p class="secao__total">Custo total da equipe: <strong>{{ totalDiarias() | currencyBr }}</strong></p>
+        </section>
+      }
+
+      <!-- 4 e 5. Pagamentos + despesas -->
+      @if (!isMobile() || etapa() === 3) {
+        <section class="pf-card secao">
+          @if (!isMobile()) { <h2 class="secao__titulo">4. Recebimentos</h2> }
+
+          <div class="grid grid--3">
+            <div class="pf-field">
+              <label class="pf-label" for="dinheiro">Valor em Dinheiro (R$)</label>
+              <input id="dinheiro" class="pf-input" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" formControlName="valorDinheiro" />
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label" for="cartao">Valor em Cartão (R$)</label>
+              <input id="cartao" class="pf-input" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" formControlName="valorCartao" />
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label" for="recebimento-pix">Valor em Pix (R$)</label>
+              <input id="recebimento-pix" class="pf-input" type="number" min="0" step="0.01"
+                inputmode="decimal" placeholder="0,00" formControlName="valorPix"
+                [attr.aria-invalid]="form.controls.valorPix.touched && form.controls.valorPix.invalid"
+                [attr.aria-describedby]="form.controls.valorPix.touched && form.controls.valorPix.invalid ? 'recebimento-pix-erro' : null" />
+              @if (form.controls.valorPix.touched && form.controls.valorPix.invalid) {
+                <span id="recebimento-pix-erro" class="pf-error">Informe um valor entre zero e R$ 9.999.999.999,99 com até dois decimais.</span>
+              }
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label" for="taxa">Taxa da maquininha (%)</label>
+              <input id="taxa" class="pf-input" type="number" min="0" max="100" step="0.01" inputmode="decimal" formControlName="taxaMaquininha" />
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label" for="taxaDesc">Taxa descontada</label>
+              <input id="taxaDesc" class="pf-input" type="text" readonly [value]="taxaDescontada() | currencyBr" />
+            </div>
+
+            <div class="pf-field">
+              <label class="pf-label" for="liqCartao">Valor líquido cartão</label>
+              <input id="liqCartao" class="pf-input" type="text" readonly [value]="liquidoCartao() | currencyBr" />
+            </div>
+          </div>
+        </section>
+
+        <section class="pf-card secao">
+          <h2 class="secao__titulo">Conferência de caixa</h2>
+          <div class="grid grid--3">
+            <div class="pf-field">
+              <label class="pf-label" for="abertura-caixa">Caixa inicial (R$, opcional)</label>
+              <input class="pf-input" id="abertura-caixa" type="number" min="0" step="0.01"
+                inputmode="decimal" formControlName="valorInicialCaixa" />
+              @if (invalido('valorInicialCaixa')) { <span class="pf-error">Informe um valor válido com até dois decimais.</span> }
+            </div>
+            <div class="pf-field">
+              <label class="pf-label" for="fechamento-caixa">Caixa final (R$, opcional)</label>
+              <input class="pf-input" id="fechamento-caixa" type="number" min="0" step="0.01"
+                inputmode="decimal" formControlName="valorFinalCaixa" />
+              @if (invalido('valorFinalCaixa')) { <span class="pf-error">Informe um valor válido com até dois decimais.</span> }
+            </div>
+          </div>
+          <p class="secao__vazio">Os valores de caixa servem para conferência. A receita soma dinheiro, cartão e Pix.</p>
+          <div class="pf-field">
+            <label class="pf-label" for="ficha-observacoes">Observações</label>
+            <textarea class="pf-input" id="ficha-observacoes" maxlength="500" rows="3" formControlName="observacoes"></textarea>
+          </div>
+        </section>
+
+        <section class="pf-card secao" formArrayName="despesasAdicionais">
+          @if (!isMobile()) { <h2 class="secao__titulo">5. Despesas Adicionais</h2> }
+          @if (isMobile()) { <h2 class="secao__titulo secao__titulo--sub">Despesas adicionais</h2> }
+
+          @if (despesas.length === 0) {
+            <p class="secao__vazio">Nenhuma despesa lançada neste dia.</p>
+          }
+
+          @for (grupo of despesas.controls; track $index; let i = $index) {
+            <div class="linha" [formGroupName]="i">
+              <div class="pf-field linha__principal">
+                @if (i === 0) { <span class="pf-label">Descrição</span> }
+                <input class="pf-input" type="text" placeholder="Ex.: lavagem da calçada" formControlName="descricao" aria-label="Descrição" />
+              </div>
+
+              <div class="pf-field linha__valor">
+                @if (i === 0) { <span class="pf-label">Valor (R$)</span> }
+                <input class="pf-input" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" formControlName="valor" aria-label="Valor" />
+              </div>
+
+              <button
+                type="button"
+                class="linha__remover"
+                [class.linha__remover--alinhado]="i === 0"
+                aria-label="Remover despesa"
+                (click)="removerDespesa(i)"
+              >
+                <pf-icon name="excluir" [size]="17" />
+              </button>
+            </div>
+          }
+
+          <div class="secao__links">
+            <button type="button" class="pf-link-btn" (click)="adicionarDespesa()">+ Adicionar Despesa</button>
+          </div>
+        </section>
+      }
+
+      <!-- Etapa 5 (só mobile): resumo -->
+      @if (isMobile() && etapa() === 4) {
+        <section class="pf-card secao">
+          <ul class="checklist">
+            @for (e of etapas; track e.titulo; let i = $index) {
+              @if (i < 4) {
+                <li class="checklist__item" [class.checklist__item--pendente]="!etapaValida(i)">
+                  <pf-icon [name]="etapaValida(i) ? 'check' : 'alerta'" [size]="16" />
+                  <span>{{ e.titulo }}</span>
+                  <button type="button" class="pf-link-btn" (click)="irPara(i)">Revisar</button>
+                </li>
+              }
+            }
+          </ul>
+        </section>
+      }
+    </div>
+
+    <!-- Resumo: coluna lateral no desktop, etapa 5 no mobile -->
+    @if (!isMobile() || etapa() === 4) {
+      <aside class="resumo" [class.resumo--mobile]="isMobile()">
+        <div class="pf-card resumo__card">
+          <h2 class="resumo__titulo">Resumo Final</h2>
+
+          <dl class="resumo__lista">
+            <div><dt>Total Dinheiro</dt><dd>{{ form.controls.valorDinheiro.value ?? 0 | currencyBr }}</dd></div>
+            <div><dt>Total Cartão líquido</dt><dd>{{ liquidoCartao() | currencyBr }}</dd></div>
+            <div><dt>Total Pix</dt><dd>{{ form.controls.valorPix.value ?? 0 | currencyBr }}</dd></div>
+            <div class="neg"><dt>(−) Custo da equipe</dt><dd>− {{ totalDiarias() | currencyBr }}</dd></div>
+            <div class="neg"><dt>(−) Total Despesas</dt><dd>− {{ totalDespesas() | currencyBr }}</dd></div>
+          </dl>
+
+          <div class="resumo__sep"></div>
+
+          <div class="resumo__saldo">
+            <span>= Saldo final</span>
+            <strong [class.pf-money--neg]="saldoFinal() < 0" [class.pf-money--pos]="saldoFinal() >= 0">
+              {{ saldoFinal() | currencyBr }}
+            </strong>
+          </div>
+
+          @if (divisao().length) {
+            <p class="resumo__subtitulo">Participação no saldo desta ficha</p>
+            <p class="resumo__aviso">Prévia sem despesas fixas; o rateio do mês fica em Divisão de Lucro.</p>
+            <ul class="resumo__socios">
+              @for (parte of divisao(); track parte.nome) {
+                <li>
+                  <span>{{ parte.nome }} ({{ parte.percentual }}%)</span>
+                  <span>{{ parte.valor | currencyBr }}</span>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (!isMobile()) {
+            <button type="submit" class="pf-btn pf-btn--primary pf-btn--block resumo__acao" [disabled]="salvando()">
+              {{ emEdicao() ? 'Salvar alterações' : 'Lançar Ficha' }}
+            </button>
+            @if (enviado() && (!podeLancar() || erroDuplicada())) {
+              <p class="pf-error resumo__erro">Revise os campos destacados antes de lançar.</p>
+            }
+          }
+        </div>
+      </aside>
+    }
+  </div>
+
+  <!-- Navegação do stepper -->
+  @if (isMobile()) {
+    <div class="nav-etapas">
+      @if (etapa() > 0) {
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="voltar()">
+          <pf-icon name="voltar" [size]="16" />
+          Voltar
+        </button>
+      }
+
+      @if (etapa() < etapas.length - 1) {
+        <button type="button" class="pf-btn pf-btn--primary nav-etapas__principal" (click)="avancar()">
+          Continuar
+          <pf-icon name="avancar" [size]="16" />
+        </button>
+      } @else {
+        <button type="submit" class="pf-btn pf-btn--primary nav-etapas__principal" [disabled]="salvando()">
+          {{ emEdicao() ? 'Salvar' : 'Lançar ficha' }}
+          <pf-icon name="check" [size]="16" />
+        </button>
+      }
+    </div>
+  }
+</form>
+
+<!-- Cadastro rápido de manobrista -->
+@if (novoManobristaAberto()) {
+  <pf-modal title="Novo manobrista" (fechar)="novoManobristaAberto.set(false)">
+    <form class="modal-form" [formGroup]="novoManobristaForm" (ngSubmit)="salvarNovoManobrista()" novalidate>
+      <div class="pf-field">
+        <label class="pf-label" for="nm-nome">Nome</label>
+        <input id="nm-nome" class="pf-input" type="text" formControlName="nome" />
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="nm-telefone">Telefone</label>
+        <input id="nm-telefone" class="pf-input" type="tel" pfMascara="telefone" placeholder="(11) 90000-0000" formControlName="telefone" />
+        @if (novoManobristaForm.controls.telefone.invalid && novoManobristaForm.controls.telefone.touched) {
+          <span class="pf-error">Telefone com DDD (10 ou 11 dígitos).</span>
+        }
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="nm-cpf">CPF</label>
+        <input id="nm-cpf" class="pf-input" type="text" inputmode="numeric" pfMascara="cpf" placeholder="000.000.000-00" formControlName="cpf" />
+        @if (novoManobristaForm.controls.cpf.invalid && novoManobristaForm.controls.cpf.touched) {
+          <span class="pf-error">CPF inválido.</span>
+        }
+      </div>
+
+      @if (podeCadastrarPix()) {
+      <label class="pf-field"><span class="pf-label">Tipo de chave Pix</span>
+        <select class="pf-select" formControlName="tipoPix">
+          <option value="CPF">CPF</option><option value="CNPJ">CNPJ</option><option value="TELEFONE">Telefone</option>
+          <option value="EMAIL">E-mail</option><option value="ALEATORIA">Chave aleatória</option>
+        </select>
+      </label>
+      <label class="pf-field"><span class="pf-label">Chave Pix (opcional)</span>
+        <input class="pf-input" formControlName="chavePix" maxlength="254" autocomplete="off" spellcheck="false" />
+      </label>
+      }
+      <div class="modal-form__acoes">
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="novoManobristaAberto.set(false)">Cancelar</button>
+        <button type="submit" class="pf-btn pf-btn--primary">Salvar</button>
+      </div>
+    </form>
+  </pf-modal>
+}

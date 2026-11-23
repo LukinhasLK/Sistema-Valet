@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/parkflash}
+    username: ${DB_USUARIO:parkflash}
+    password: ${DB_SENHA:parkflash}
+
+  flyway:
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration}
+
+parkflash:
+  pix-segredo: ${PIX_SEGREDO:}
+  jwt:
+    # Fora do ambiente de desenvolvimento o segredo é obrigatório (sem valor padrão).
+    segredo: ${JWT_SEGREDO}

@@ -1,0 +1,43 @@
+@if (maisAberto()) {
+  <div class="mais-backdrop" (click)="fecharMais()">
+    <div class="mais" role="dialog" aria-modal="true" aria-label="Mais opções" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()">
+      <div class="mais__handle" aria-hidden="true"></div>
+      <p class="mais__title">Mais opções</p>
+      <div class="mais__grid">
+        @for (item of maisItens(); track item.rota) {
+          <a class="mais__item" [routerLink]="item.rota" (click)="fecharMais()">
+            <pf-icon [name]="item.icone" [size]="20" />
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </div>
+      <button type="button" class="mais__sair" (click)="sair()">
+        <pf-icon name="sair" [size]="18" />
+        <span>Sair da conta</span>
+      </button>
+    </div>
+  </div>
+}
+
+<nav class="bottom-nav" aria-label="Navegação">
+  @for (item of itens(); track item.rota) {
+    <a
+      class="bn-item"
+      [routerLink]="item.rota"
+      routerLinkActive="bn-item--active"
+      (click)="fecharMais()"
+    >
+      <span class="bn-item__pill">
+        <pf-icon [name]="item.icone" [size]="19" />
+      </span>
+      <span class="bn-item__label">{{ item.label }}</span>
+    </a>
+  }
+
+  <button type="button" class="bn-item" [class.bn-item--active]="maisAberto()" (click)="alternarMais()">
+    <span class="bn-item__pill">
+      <pf-icon name="mais" [size]="19" />
+    </span>
+    <span class="bn-item__label">Mais</span>
+  </button>
+</nav>

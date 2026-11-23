@@ -1,0 +1,109 @@
+<div class="pf-page">
+  <pf-page-header title="Unidades" subtitle="Cadastre os locais onde o serviço é prestado">
+    <button type="button" class="pf-btn pf-btn--primary" (click)="abrir()">
+      <pf-icon name="plus" [size]="17" />
+      Nova unidade
+    </button>
+  </pf-page-header>
+
+  @if (unidades().length === 0) {
+    <div class="pf-card vazio">
+      <p class="vazio__titulo">Nenhuma unidade cadastrada</p>
+      <p class="vazio__texto">Cadastre a primeira unidade para começar a lançar fichas.</p>
+    </div>
+  } @else if (isMobile()) {
+    <div class="cards">
+      @for (u of unidades(); track u.id) {
+        <article class="pf-card card-unidade">
+          <span class="card-unidade__icone"><pf-icon name="local" [size]="20" /></span>
+          <div class="card-unidade__info">
+            <p class="card-unidade__nome">{{ u.nome }}</p>
+            @if (u.ativa === false) { <span class="pf-badge pf-badge--gray">Inativa</span> }
+            <p class="card-unidade__endereco">{{ u.endereco }}</p>
+            @if (u.telefone) { <p class="card-unidade__tel">{{ u.telefone }}</p> }
+            <pf-historico-administrativo tipo="unidades" [id]="u.id" [nome]="u.nome" />
+          </div>
+          <button type="button" class="card-unidade__editar" (click)="abrir(u)" [attr.aria-label]="'Editar ' + u.nome">
+            <pf-icon name="editar" [size]="18" />
+          </button>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="pf-card tabela">
+      <div class="pf-table-wrap">
+        <table class="pf-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Endereço</th>
+              <th>Telefone</th>
+              <th>Situação</th>
+              <th class="actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of unidades(); track u.id) {
+              <tr>
+                <td class="forte">{{ u.nome }}</td>
+                <td>{{ u.endereco || '—' }}</td>
+                <td>{{ u.telefone || '—' }}</td>
+                <td>{{ u.ativa === false ? 'Inativa' : 'Ativa' }}</td>
+                <td class="actions">
+                  <pf-historico-administrativo tipo="unidades" [id]="u.id" [nome]="u.nome" />
+                  <button type="button" class="acao" (click)="abrir(u)">Editar</button>
+                  @if (u.ativa !== false) {
+                    <button type="button" class="acao acao--danger" (click)="paraDesativar.set(u)">Desativar</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
+
+@if (formAberto()) {
+  <pf-modal [title]="editando() ? 'Editar unidade' : 'Nova unidade'" (fechar)="formAberto.set(false)">
+    <form class="modal-form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+      <div class="pf-field">
+        <label class="pf-label" for="u-nome">Nome</label>
+        <input id="u-nome" class="pf-input" type="text" formControlName="nome" />
+        @if (invalido('nome')) { <span class="pf-error">Informe o nome da unidade.</span> }
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="u-endereco">Endereço</label>
+        <input id="u-endereco" class="pf-input" type="text" placeholder="Rua, número" formControlName="endereco" />
+        @if (invalido('endereco')) { <span class="pf-error">Informe o endereço.</span> }
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="u-telefone">Telefone</label>
+        <input id="u-telefone" class="pf-input" type="tel" pfMascara="telefone" placeholder="(11) 0000-0000" formControlName="telefone" />
+        @if (invalido('telefone')) { <span class="pf-error">Telefone com DDD (10 ou 11 dígitos).</span> }
+      </div>
+
+      @if (editando()) {
+        <label class="pf-label">
+          <input type="checkbox" formControlName="ativa" /> Unidade ativa
+        </label>
+        <p class="vazio__texto">Unidades inativas permanecem no histórico e não recebem novos lançamentos.</p>
+      }
+      <div class="modal-form__acoes">
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="formAberto.set(false)">Cancelar</button>
+        <button type="submit" class="pf-btn pf-btn--primary">Salvar</button>
+      </div>
+    </form>
+  </pf-modal>
+}
+
+@if (paraDesativar(); as u) {
+  <pf-confirm
+    [message]="u.nome + ' ficará indisponível para novos lançamentos. O histórico será preservado.'"
+    (confirmar)="confirmarDesativacao()"
+    (cancelar)="paraDesativar.set(null)"
+  />
+}

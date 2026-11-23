@@ -1,0 +1,81 @@
+<div class="login" [class.login--mobile]="isMobile()">
+  <!-- Painel de marca: coluna esquerda no desktop, topo no mobile -->
+  <section class="brand">
+    @if (!isMobile()) {
+      <div class="brand__scene" aria-hidden="true">
+        @if (movimentoReduzido() || usarImagem()) {
+          <img src="login/manobra-final.png" width="960" height="600" alt="" />
+        } @else {
+          <video #manobra src="login/manobra-3d.mp4" width="960" height="600"
+            autoplay muted [muted]="true" playsinline disablepictureinpicture tabindex="-1"
+            (canplay)="iniciarManobra(manobra)" (error)="usarImagem.set(true)"></video>
+        }
+      </div>
+    }
+    <div class="brand__inner">
+      <pf-logo [onDark]="true" [size]="isMobile() ? 22 : 26" />
+      <h1 class="brand__headline">Gerencie seu estacionamento com agilidade</h1>
+      @if (!isMobile()) {
+        <p class="brand__sub">Park Flash — rapidez e controle na palma da sua mão.</p>
+      }
+    </div>
+  </section>
+
+  <!-- Formulário -->
+  <section class="painel">
+    <form class="card" [pfAppear]="4" [formGroup]="form" (ngSubmit)="entrar()" novalidate>
+      <div class="card__brand">
+        <pf-logo [size]="17" />
+      </div>
+
+      <h2 class="card__title">Bem-vindo ao Park Flash</h2>
+      <p class="card__sub">Faça login para continuar</p>
+
+      <div class="pf-field">
+        <label class="pf-label" for="identificador">E-mail ou usuário</label>
+        <input
+          id="identificador"
+          class="pf-input"
+          type="text"
+          autocomplete="username"
+          placeholder="seu@email.com"
+          formControlName="identificador"
+        />
+        @if (campoInvalido('identificador')) {
+          <span class="pf-error">Informe seu e-mail ou usuário.</span>
+        }
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="senha">Senha</label>
+        <input
+          id="senha"
+          class="pf-input"
+          type="password"
+          autocomplete="current-password"
+          placeholder="••••••••"
+          formControlName="senha"
+        />
+        @if (campoInvalido('senha')) {
+          <span class="pf-error">A senha precisa ter ao menos 4 caracteres.</span>
+        }
+      </div>
+
+      @if (erro()) {
+        <p class="card__erro">{{ erro() }}</p>
+      }
+
+      <button type="submit" class="pf-btn pf-btn--primary pf-btn--block" [disabled]="entrando()">{{ entrando() ? 'Entrando…' : 'Entrar' }}</button>
+
+      <button type="button" class="pf-link-btn card__esqueci" (click)="ajudaSenha.set(!ajudaSenha())" [attr.aria-expanded]="ajudaSenha()">
+        Esqueci minha senha
+      </button>
+      @if (ajudaSenha()) {
+        <p class="card__ajuda">
+          Peça ao proprietário para definir uma nova senha em <strong>Usuários</strong>.
+          Na demonstração, todos os usuários usam a senha <strong>{{ senhaDemo }}</strong>.
+        </p>
+      }
+    </form>
+  </section>
+</div>

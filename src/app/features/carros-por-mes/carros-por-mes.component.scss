@@ -1,0 +1,48 @@
+.grafico { margin-top: 16px; }
+.tabela { margin-top: 16px; overflow: hidden; }
+.cards { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+.card-mes {
+  padding: 14px 16px;
+
+  &__topo {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--pf-border);
+  }
+
+  &__nome { font-size: 15px; font-weight: 700; }
+  &__carros { font-size: 13px; font-weight: 600; color: var(--pf-text-muted); }
+
+  &__linha {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--pf-text-muted);
+    padding: 3px 0;
+
+    &--forte {
+      color: var(--pf-text);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+  }
+}
+
+.vazio {
+  margin-top: 16px;
+  padding: 48px 24px;
+  text-align: center;
+
+  &__titulo { font-size: 15px; font-weight: 600; }
+  &__texto { font-size: 13px; color: var(--pf-text-muted); margin-top: 4px; }
+}
+
+@media (max-width: 767px) {
+  .grafico { margin-top: 12px; }
+}

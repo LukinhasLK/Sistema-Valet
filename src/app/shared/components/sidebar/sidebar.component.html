@@ -1,0 +1,37 @@
+<aside class="sidebar">
+  <div class="sidebar__brand">
+    <pf-logo [onDark]="true" [size]="19" />
+  </div>
+
+  <nav class="sidebar__nav" aria-label="Navegação principal">
+    @for (item of itens(); track item.rota) {
+      <a
+        class="nav-item"
+        [routerLink]="item.rota"
+        routerLinkActive="nav-item--active"
+        [routerLinkActiveOptions]="{ exact: false }"
+      >
+        <pf-icon [name]="item.icone" [size]="18" />
+        <span>{{ item.label }}</span>
+        @if (item.rota === '/app/notificacoes' && naoLidas(); as total) {
+          <span class="nav-item__contador" [attr.aria-label]="total + ' não lidas'">{{ total > 99 ? '99+' : total }}</span>
+        }
+      </a>
+    }
+  </nav>
+
+  @if (usuario(); as u) {
+    <footer class="sidebar__user">
+      <a class="sidebar__user-link" routerLink="/app/perfil" title="Meu perfil">
+        <span class="pf-avatar" [style.background]="cor(u.nome)">{{ inicial() }}</span>
+        <span class="sidebar__user-info">
+          <span class="sidebar__user-name">{{ u.nome }}</span>
+          <span class="sidebar__user-role">{{ u.nivel }}</span>
+        </span>
+      </a>
+      <button type="button" class="sidebar__logout" aria-label="Sair" title="Sair" (click)="sair()">
+        <pf-icon name="sair" [size]="17" />
+      </button>
+    </footer>
+  }
+</aside>

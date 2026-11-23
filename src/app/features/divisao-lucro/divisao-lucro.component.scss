@@ -1,0 +1,133 @@
+.cards-resumo {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.painel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+/* Legenda ----------------------------------------------------------------- */
+.legenda {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  &__cor {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  &__nome { flex: 1; color: var(--pf-text); }
+  &__pct { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pf-text); }
+}
+
+.negativo {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #b91c1c;
+  background: var(--pf-danger-soft);
+  border-radius: var(--pf-radius-sm);
+  padding: 14px 16px;
+}
+
+/* Detalhamento ------------------------------------------------------------ */
+.detalhe {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.detalhe__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.detalhe__nome { font-size: 14px; font-weight: 600; }
+
+.detalhe__valor {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalhe__barra {
+  height: 8px;
+  border-radius: 999px;
+  background: #eef0f3;
+  overflow: hidden;
+}
+
+.detalhe__preenchimento {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width .3s ease;
+}
+
+.detalhe__pct {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--pf-text-muted);
+}
+
+.detalhe__rodape {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--pf-border);
+  font-size: 13px;
+  color: var(--pf-text-muted);
+
+  strong {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--pf-text);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.vazio {
+  margin-top: 16px;
+  padding: 48px 24px;
+  text-align: center;
+
+  &__titulo { font-size: 15px; font-weight: 600; }
+  &__texto { font-size: 13px; color: var(--pf-text-muted); margin-top: 4px; }
+}
+
+@media (max-width: 1000px) {
+  .painel { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 767px) {
+  .cards-resumo { grid-template-columns: 1fr; gap: 12px; }
+  .painel { gap: 12px; margin-top: 12px; }
+}
