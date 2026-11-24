@@ -43,7 +43,7 @@ const RECURSOS = [
   { icone: 'carros', titulo: 'Controle de veículos', texto: 'Carros por turno a partir da numeração dos tickets, com cancelamentos e totais por dia, por mês e por unidade.' },
   { icone: 'relatorios', titulo: 'Relatórios em PDF e Excel', texto: 'Receita, custos das fichas, despesas fixas e resultado do período, com o detalhamento de carros por dia.' },
   { icone: 'lucro', titulo: 'Divisão de lucro', texto: 'O resultado de cada unidade dividido entre os sócios conforme a participação configurada.' },
-  { icone: 'eventos', titulo: 'Calendário de eventos', texto: 'Veja quantos eventos há em cada dia, planeje a operação e organize as escalas da equipe.' },
+  { icone: 'eventos', titulo: 'Calendário de eventos', texto: 'Veja quantos eventos há em cada dia, planeje a operação e organize as escalas da equipe. Tudo aparece também no seu Google Calendar.' },
   { icone: 'sinoAtivo', titulo: 'Notificações', texto: 'Avisos de fichas para conferir e pagamentos pendentes, também no celular quando ativados.' },
   { icone: 'busca', titulo: 'Busca rápida', texto: 'Pressione ⌘K ou Ctrl+K para ir a qualquer tela ou encontrar uma ficha pela data ou unidade.' },
   { icone: 'filtro', titulo: 'Filtros que viram link', texto: 'Mês, unidade e situação ficam no endereço da página: compartilhe e a outra pessoa vê a mesma lista.' },
@@ -65,11 +65,29 @@ const SEGURANCA = [
   { icone: 'unidades', titulo: 'Acesso por unidade', texto: 'Gerentes e operadores só enxergam as unidades liberadas para eles.' },
 ];
 
+/** Como ligar a agenda: é mesmo uma sequência, por isso numerada. */
+const PASSOS_AGENDA = [
+  { titulo: 'Gere o link no seu Perfil', texto: 'Um clique em “Gerar link da agenda”. Cada pessoa tem o seu, e dá para desativar quando quiser.' },
+  { titulo: 'Cole no Google Calendar', texto: 'O botão abre a tela “Adicionar agenda por URL”. Cole o link, e a agenda Park Flash aparece no computador e no celular.' },
+  { titulo: 'Pronto: a operação na sua agenda', texto: 'Eventos e escalas das suas unidades, com local, contratante e equipe. O que muda no Park Flash chega lá sozinho.' },
+];
+
+/** Exemplo de uma semana na agenda: eventos (confirmados ou provisórios) e escalas. */
+const SEMANA_AGENDA = [
+  { dia: 'Sex 12', itens: [{ tipo: 'evento', titulo: 'Casamento Silva', hora: '18:00–23:30', local: 'Optum' }] },
+  { dia: 'Sáb 13', itens: [
+    { tipo: 'escala', titulo: 'Escala · Festa Lima', hora: '17:00–00:00', local: '6 manobristas' },
+    { tipo: 'provisorio', titulo: 'Festa Lima', hora: '19:00–23:00', local: 'Manifesto · a confirmar' },
+  ] },
+  { dia: 'Dom 14', itens: [{ tipo: 'evento', titulo: 'Formatura Beef', hora: '20:00–02:00', local: 'Beef' }] },
+];
+
 const PERGUNTAS = [
   { p: 'Preciso instalar alguma coisa?', r: 'Não. O Park Flash funciona no navegador do computador e do celular. Se quiser, dá para instalar na tela inicial como um aplicativo.' },
   { p: 'Funciona no iPhone e no Android?', r: 'Sim. No iPhone (iOS 16.4 ou mais novo), as notificações exigem adicionar o Park Flash à Tela de Início.' },
   { p: 'O sistema faz a transferência para os manobristas?', r: 'Não. O Park Flash mostra o valor e a chave Pix; o pagamento é feito pelo seu banco e você confirma no sistema, que atualiza a situação e o histórico.' },
   { p: 'Posso ter mais de uma unidade?', r: 'Sim. Cada unidade tem suas fichas, despesas e relatórios, e você define quem acessa cada uma.' },
+  { p: 'Funciona com o Google Calendar?', r: 'Sim. Gerentes e proprietários geram, no Perfil, um link da agenda e colam no Google Calendar. Os eventos e as escalas das unidades de cada um aparecem lá e se atualizam sozinhos, em algumas horas. Também funciona no calendário do iPhone e no Outlook.' },
   { p: 'E se a internet cair no meio da ficha?', r: 'O que já foi digitado fica salvo no aparelho. Ao voltar para a tela, o sistema oferece continuar de onde parou.' },
 ];
 
@@ -213,6 +231,51 @@ export default function Conheca() {
                 </article>
               ))}
             </div>
+          </section>
+
+          <section id="agenda" className="secao agenda" data-revelar>
+            <div className="agenda__texto">
+              <div className="secao__cabeca" data-item>
+                <p className="sobre">Google Calendar</p>
+                <h2>A agenda da operação no seu Google Calendar</h2>
+                <p>Eventos e escalas aparecem junto com os seus compromissos, no computador e no celular, sem digitar nada duas vezes.</p>
+              </div>
+              <ol className="agenda__passos">
+                {PASSOS_AGENDA.map((passo, i) => (
+                  <li key={passo.titulo} data-item>
+                    <span className="agenda__numero">{i + 1}</span>
+                    <div><h3>{passo.titulo}</h3><p>{passo.texto}</p></div>
+                  </li>
+                ))}
+              </ol>
+              <p className="agenda__nota" data-item>Também funciona no calendário do iPhone e no Outlook. Operadores não recebem o link.</p>
+            </div>
+
+            <figure className="agenda__exemplo" data-item aria-label="Exemplo de como os eventos e as escalas aparecem na agenda">
+              <figcaption className="agenda__exemplo-topo">
+                <Icone nome="eventos" tamanho={16} />
+                <span>Agenda Park Flash</span>
+              </figcaption>
+              <div className="agenda__semana">
+                {SEMANA_AGENDA.map((d) => (
+                  <div key={d.dia} className="agenda__dia">
+                    <p className="agenda__dia-nome">{d.dia}</p>
+                    {d.itens.map((item) => (
+                      <div key={item.titulo} className={`agenda__item agenda__item--${item.tipo}`}>
+                        <strong>{item.titulo}</strong>
+                        <span>{item.hora}</span>
+                        <span>{item.local}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <p className="agenda__legenda">
+                <span className="agenda__chave agenda__chave--evento" />Confirmado
+                <span className="agenda__chave agenda__chave--provisorio" />Provisório
+                <span className="agenda__chave agenda__chave--escala" />Escala
+              </p>
+            </figure>
           </section>
 
           <section id="celular" className="secao celular" data-revelar>

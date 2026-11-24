@@ -7,11 +7,13 @@ import { TRANSICAO } from '../../compartilhado/movimento';
 import { useAuth } from '../../nucleo/estado/auth';
 import { rotaInicial } from '../../nucleo/servicos/permissoes';
 
+/** Seções da apresentação. Ela mora em /conheca: a raiz do site leva ao login. */
 const LINKS = [
-  { rotulo: 'Como funciona', para: '/#como-funciona' },
-  { rotulo: 'Recursos', para: '/#recursos' },
-  { rotulo: 'No celular', para: '/#celular' },
-  { rotulo: 'Segurança', para: '/#seguranca' },
+  { rotulo: 'Como funciona', para: '/conheca#como-funciona' },
+  { rotulo: 'Recursos', para: '/conheca#recursos' },
+  { rotulo: 'Google Calendar', para: '/conheca#agenda' },
+  { rotulo: 'No celular', para: '/conheca#celular' },
+  { rotulo: 'Segurança', para: '/conheca#seguranca' },
 ];
 
 /** Barra superior das páginas públicas (apresentação e planos), com menu no celular. */
@@ -21,7 +23,7 @@ export function TopoPublico() {
   const destino = nivel ? rotaInicial(nivel) : '/login';
   return (
     <header className="topo">
-      <Link to="/" onClick={() => setAberto(false)}><Logo tamanho={19} /></Link>
+      <Link to="/conheca" onClick={() => setAberto(false)} aria-label="Park Flash, apresentação"><Logo tamanho={19} /></Link>
       <nav className="topo__nav" aria-label="Seções">
         {LINKS.map((l) => <Link key={l.para} to={l.para}>{l.rotulo}</Link>)}
         <NavLink to="/planos" className={({ isActive }) => (isActive ? 'ativo' : undefined)}>Planos</NavLink>

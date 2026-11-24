@@ -144,6 +144,9 @@ try {
   ok('Sem login, o site abre no login', new URL(inicio.url()).pathname === '/login', inicio.url());
   await inicio.goto(`${BASE}/conheca`, { waitUntil: 'networkidle0' });
   ok('A apresentação continua em /conheca', !!(await inicio.$('pf-conheca .heroi')));
+  ok('Apresentação mostra o Google Calendar', !!(await inicio.$('#agenda .agenda__exemplo')));
+  const linksTopo = await inicio.$$eval('.topo__nav a', (l) => l.map((x) => x.getAttribute('href')));
+  ok('Menu da apresentação fica em /conheca', linksTopo.includes('/conheca#agenda') && !linksTopo.some((h) => h?.startsWith('/#')), linksTopo.join(' '));
   ok('Navegação da apresentação tem Planos', await inicio.evaluate(() => [...document.querySelectorAll('.topo__nav a')].some((a) => a.textContent === 'Planos')));
   await inicio.goto(`${BASE}/planos`, { waitUntil: 'networkidle0' });
   const planos = await inicio.$$eval('.plano h2', (l) => l.map((x) => x.textContent));
