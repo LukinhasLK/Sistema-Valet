@@ -11,7 +11,6 @@ import { rotaInicial } from '../../nucleo/servicos/permissoes';
 const LINKS = [
   { rotulo: 'Como funciona', para: '/conheca#como-funciona' },
   { rotulo: 'Recursos', para: '/conheca#recursos' },
-  { rotulo: 'Google Calendar', para: '/conheca#agenda' },
   { rotulo: 'No celular', para: '/conheca#celular' },
   { rotulo: 'Segurança', para: '/conheca#seguranca' },
 ];
@@ -26,6 +25,7 @@ export function TopoPublico() {
       <Link to="/conheca" onClick={() => setAberto(false)}><Logo tamanho={19} /></Link>
       <nav className="topo__nav" aria-label="Seções">
         {LINKS.map((l) => <Link key={l.para} to={l.para}>{l.rotulo}</Link>)}
+        <NavLink to="/google-calendar" className={({ isActive }) => (isActive ? 'ativo' : undefined)}>Google Calendar</NavLink>
         <NavLink to="/planos" className={({ isActive }) => (isActive ? 'ativo' : undefined)}>Planos</NavLink>
       </nav>
       <div className="topo__acoes">
@@ -38,6 +38,7 @@ export function TopoPublico() {
         {aberto && (
           <motion.nav className="topo__gaveta" aria-label="Menu" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={TRANSICAO.rapida}>
             {LINKS.map((l) => <Link key={l.para} to={l.para} onClick={() => setAberto(false)}>{l.rotulo}</Link>)}
+            <Link to="/google-calendar" onClick={() => setAberto(false)}>Google Calendar</Link>
             <Link to="/planos" onClick={() => setAberto(false)}>Planos</Link>
           </motion.nav>
         )}

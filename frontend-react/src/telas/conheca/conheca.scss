@@ -494,6 +494,103 @@ pf-conheca {
   .rodape nav { display: flex; gap: 18px; a { color: var(--pf-text-muted); text-decoration: none; font-weight: 600; &:hover { color: var(--pf-blue); } } }
 
   /* Planos -------------------------------------------------------------------- */
+  /* Página do Google Calendar ------------------------------------------------- */
+  .gc { width: var(--largura); margin: 0 auto; padding: 56px 0 40px; }
+
+  .gc__heroi {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 56px;
+    align-items: center;
+    padding-bottom: 32px;
+    h1 { margin-top: 12px; font-size: clamp(32px, 4.2vw, 50px); font-weight: 800; letter-spacing: -.035em; line-height: 1.06; max-width: 15ch; }
+  }
+  .gc__sub { margin-top: 18px; font-size: 17px; line-height: 1.6; color: var(--pf-text-muted); max-width: 54ch; }
+  .gc__acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+
+  .gc__bloco { padding: 72px 0 0; scroll-margin-top: 72px; }
+
+  .gc__conteudo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .gc__lista {
+    display: grid;
+    gap: 8px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+    li { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: #3c4a58; }
+    svg { flex: none; margin-top: 3px; color: var(--pf-success); }
+  }
+
+  /* O detalhe de um evento como ele aparece ao abrir na agenda. */
+  .gc__detalhe {
+    padding: 22px;
+    border-radius: 16px;
+    background: #10283f;
+    color: #e8eef4;
+    box-shadow: 0 30px 60px rgba(16, 40, 63, .22);
+    dl { display: grid; gap: 7px; margin: 16px 0 0; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .14); }
+    dl div { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; }
+    dt { color: #9fb3c6; }
+    dd { margin: 0; font-weight: 600; }
+  }
+  .gc__detalhe-titulo { font-family: var(--pf-font-display); font-size: 18px; font-weight: 700; color: #fff; }
+  .gc__detalhe-quando { margin-top: 4px; font-size: 14px; color: #c9d6e2; }
+  .gc__detalhe-onde { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13.5px; color: #c9d6e2; }
+
+  .gc__apps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .gc__app {
+    padding: 24px;
+    border: 1px solid var(--pf-border);
+    border-radius: 16px;
+    background: #fff;
+    h3 { font-size: 18px; font-weight: 700; }
+    ol { display: grid; gap: 10px; margin: 16px 0 0; padding-left: 20px; font-size: 14.5px; line-height: 1.55; color: #3c4a58; }
+    li::marker { color: var(--pf-blue); font-weight: 700; }
+  }
+  .gc__app-onde { margin-top: 2px; font-size: 13px; color: var(--pf-text-muted); }
+
+  .gc__perfis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .gc__perfil {
+    display: flex;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 14px;
+    background: var(--pf-bg);
+    color: var(--pf-text-muted);
+    div { display: grid; gap: 4px; }
+    strong { color: #10283f; font-size: 15px; }
+    span { font-size: 13.5px; line-height: 1.5; }
+    svg { flex: none; margin-top: 2px; }
+    &--sim { background: var(--pf-blue-soft); svg { color: var(--pf-blue); } }
+  }
+
+  .agenda__mais { margin-top: 18px; }
+
+  @media (max-width: 960px) {
+    .gc__heroi { grid-template-columns: 1fr; gap: 36px; }
+    .gc__conteudo { grid-template-columns: 1fr 1fr; }
+    .gc__detalhe { grid-column: 1 / -1; }
+    .gc__apps { grid-template-columns: 1fr; }
+    .gc__perfis { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 640px) {
+    .gc { padding-top: 32px; }
+    .gc__bloco { padding-top: 56px; }
+    .gc__conteudo, .gc__perfis { grid-template-columns: 1fr; }
+  }
+
   .planos { width: var(--largura); margin: 0 auto; padding: 64px 0 40px; }
   .planos__cabeca {
     max-width: 680px;

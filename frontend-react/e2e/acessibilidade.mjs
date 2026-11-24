@@ -6,7 +6,7 @@ import puppeteer from 'puppeteer-core';
 
 const BASE = process.argv[2] ?? 'http://localhost:4300';
 const axe = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
-const ROTAS_PUBLICAS = ['/conheca', '/planos', '/login'];
+const ROTAS_PUBLICAS = ['/conheca', '/google-calendar', '/planos', '/login'];
 const ROTAS = ['/app/dashboard', '/app/fichas', '/app/fichas/nova', '/app/carros-por-mes', '/app/pagamentos-manobristas',
   '/app/despesas', '/app/relatorios', '/app/eventos', '/app/manobristas', '/app/notificacoes', '/app/sociedade', '/app/perfil'];
 

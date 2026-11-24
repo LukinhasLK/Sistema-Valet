@@ -146,7 +146,11 @@ try {
   ok('A apresentação continua em /conheca', !!(await inicio.$('pf-conheca .heroi')));
   ok('Apresentação mostra o Google Calendar', !!(await inicio.$('#agenda .agenda__exemplo')));
   const linksTopo = await inicio.$$eval('.topo__nav a', (l) => l.map((x) => x.getAttribute('href')));
-  ok('Menu da apresentação fica em /conheca', linksTopo.includes('/conheca#agenda') && !linksTopo.some((h) => h?.startsWith('/#')), linksTopo.join(' '));
+  ok('Menu da apresentação sem links para a raiz', linksTopo.includes('/google-calendar') && !linksTopo.some((h) => h?.startsWith('/#')), linksTopo.join(' '));
+  await inicio.goto(`${BASE}/google-calendar`, { waitUntil: 'networkidle0' });
+  const tituloGc = await inicio.$eval('h1', (e) => e.textContent).catch(() => '');
+  ok('Página do Google Calendar', tituloGc.includes('agenda da operação'), tituloGc);
+  ok('Página do Google Calendar explica iPhone e Outlook', await inicio.evaluate(() => [...document.querySelectorAll('.gc__app h3')].map((h) => h.textContent).join(',') === 'Google Calendar,iPhone,Outlook'));
   ok('Navegação da apresentação tem Planos', await inicio.evaluate(() => [...document.querySelectorAll('.topo__nav a')].some((a) => a.textContent === 'Planos')));
   await inicio.goto(`${BASE}/planos`, { waitUntil: 'networkidle0' });
   const planos = await inicio.$$eval('.plano h2', (l) => l.map((x) => x.textContent));

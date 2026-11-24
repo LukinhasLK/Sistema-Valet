@@ -23,6 +23,7 @@ const Perfil = lazy(() => import('./telas/perfil/Perfil'));
 const Sociedade = lazy(() => import('./telas/sociedade/Sociedade'));
 const Conheca = lazy(() => import('./telas/conheca/Conheca'));
 const Planos = lazy(() => import('./telas/conheca/Planos'));
+const GoogleCalendar = lazy(() => import('./telas/conheca/GoogleCalendar'));
 
 /** Exige login (antigo authGuard). */
 function ComSessao({ children }: { children: ReactNode }) {
@@ -61,6 +62,7 @@ export const rotas = createBrowserRouter([
   // Apresentação pública do produto (não substitui a entrada do sistema).
   { path: '/conheca', element: <Conheca /> },
   { path: '/planos', element: <Planos /> },
+  { path: '/google-calendar', element: <GoogleCalendar /> },
   {
     path: '/app',
     element: <ComSessao><LayoutApp /></ComSessao>,

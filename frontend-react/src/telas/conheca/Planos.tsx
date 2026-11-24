@@ -107,7 +107,7 @@ export default function Planos() {
         </main>
         <footer className="rodape">
           <Logo tamanho={15} />
-          <nav aria-label="Rodapé"><Link to="/conheca">Apresentação</Link><Link to="/login">Entrar</Link></nav>
+          <nav aria-label="Rodapé"><Link to="/conheca">Apresentação</Link><Link to="/google-calendar">Google Calendar</Link><Link to="/login">Entrar</Link></nav>
           <p>Planos e condições sujeitos a proposta comercial.</p>
         </footer>
       </div>
