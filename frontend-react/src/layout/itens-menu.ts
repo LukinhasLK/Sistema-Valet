@@ -7,6 +7,8 @@ export interface NavItem {
   icone: string;
   /** Palavras extras para a busca da paleta de comandos. */
   termos?: string;
+  /** Chave de PERMISSOES, quando difere da rota (atalhos exclusivos de um nível). */
+  permissao?: string;
 }
 
 export interface GrupoMenu {
@@ -53,6 +55,7 @@ export const GRUPOS_MENU: GrupoMenu[] = [
       { label: 'Relatórios', rota: '/app/relatorios', icone: 'relatorios', termos: 'pdf exportar mensal' },
       { label: 'Despesas', rota: '/app/despesas', icone: 'despesas', termos: 'custos gastos contas' },
       { label: 'Divisão de Lucro', rota: '/app/divisao-lucro', icone: 'lucro', termos: 'sócios partilha resultado' },
+      { label: 'Sociedade', rota: '/app/sociedade', icone: 'socios', termos: 'sócio minha parte participação lucro' },
     ],
   },
   {
@@ -75,13 +78,14 @@ export const BOTTOM_NAV_ITEMS: NavItem[] = [
   { label: 'Fichas', rota: '/app/fichas', icone: 'fichas' },
   { label: 'Lucro', rota: '/app/divisao-lucro', icone: 'lucro' },
   { label: 'Despesas', rota: '/app/despesas', icone: 'despesas' },
+  { label: 'Sociedade', rota: '/app/sociedade', icone: 'socios', permissao: 'sociedade-atalho' },
 ];
 
 export const PERFIL_ITEM: NavItem = { label: 'Meu perfil', rota: '/app/perfil', icone: 'perfil', termos: 'conta senha tutorial notificações' };
 
 /** Itens que o nível do usuário pode ver (mesma regra do roleGuard). */
 export function itensPermitidos(itens: NavItem[], nivel: NivelAcesso | null): NavItem[] {
-  return itens.filter((item) => podeAcessar(nivel, item.rota.replace('/app/', '')));
+  return itens.filter((item) => podeAcessar(nivel, item.permissao ?? item.rota.replace('/app/', '')));
 }
 
 /** Grupos com pelo menos um item visível para o nível. */

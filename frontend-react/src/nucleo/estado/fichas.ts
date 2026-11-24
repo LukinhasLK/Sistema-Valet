@@ -126,6 +126,13 @@ export function diariasPorManobrista(fichas: Ficha[], mes: number, ano: number):
 
 const atuais = () => useFichas.getState().fichas;
 
+/** Assinatura do fechamento (registro interno de quem conferiu). */
+export interface AssinaturaFicha {
+  imagem: string;
+  autor: string;
+  assinadoEm: string;
+}
+
 export const fichasServico = {
   async carregar() {
     useFichas.setState({ fichas: await api.get<Ficha[]>(URL) });
@@ -154,12 +161,14 @@ export const fichasServico = {
     useFichas.setState(({ fichas }) => ({ fichas: fichas.map((f) => (f.id === salva.id ? salva : f)).sort(maisRecentePrimeiro) }));
     return salva;
   },
-  async transicao(id: number, acao: AcaoFicha, justificativa?: string) {
-    const ficha = await api.post<Ficha>(`${URL}/${id}/transicao`, { acao, justificativa });
+  /** `assinatura`: só no FECHAR, imagem PNG (data URL) desenhada na ficha de papel. */
+  async transicao(id: number, acao: AcaoFicha, justificativa?: string, assinatura?: string) {
+    const ficha = await api.post<Ficha>(`${URL}/${id}/transicao`, { acao, justificativa, assinatura });
     useFichas.setState(({ fichas }) => ({ fichas: fichas.map((item) => (item.id === id ? ficha : item)) }));
     return ficha;
   },
   historico: (id: number) => api.get<RegistroFicha[]>(`${URL}/${id}/historico`),
+  assinatura: (id: number) => api.get<AssinaturaFicha>(`${URL}/${id}/assinatura`),
   async excluir(id: number) {
     await api.delete(`${URL}/${id}`);
     useFichas.setState(({ fichas }) => ({ fichas: fichas.filter((f) => f.id !== id) }));

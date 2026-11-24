@@ -34,6 +34,8 @@ public class SecurityConfig {
 
     private static final String PROPRIETARIO = "PROPRIETARIO";
     private static final String[] GESTAO = {"PROPRIETARIO", "GERENTE"};
+    /** Quem trabalha na operação. O Sócio fica de fora: ele só consulta a própria sociedade. */
+    private static final String[] OPERACAO = {"PROPRIETARIO", "GERENTE", "OPERADOR"};
 
     @Bean
     SecurityFilterChain filtros(HttpSecurity http, JwtService jwtService, UsuarioRepository usuarios, ObjectMapper json) throws Exception {
@@ -50,19 +52,21 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/usuarios/**", "/api/unidades/*/auditoria", "/api/relatorios/divisao-lucro").hasRole(PROPRIETARIO)
                         .requestMatchers("/api/socios/**").hasRole(PROPRIETARIO)
+                        .requestMatchers(HttpMethod.GET, "/api/sociedade").hasAnyRole(PROPRIETARIO, "SOCIO")
 
                         .requestMatchers("/api/notificacoes/**", "/api/despesas/**", "/api/relatorios/**", "/api/pagamentos-manobristas/**", "/api/eventos/**", "/api/escalas/**").hasAnyRole(GESTAO)
-                        .requestMatchers(HttpMethod.GET, "/api/unidades/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/unidades/**").hasAnyRole(OPERACAO)
                         .requestMatchers("/api/unidades/**").hasRole(PROPRIETARIO)
-                        .requestMatchers(HttpMethod.GET, "/api/manobristas").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/manobristas").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/manobristas").hasAnyRole(OPERACAO)
+                        .requestMatchers(HttpMethod.POST, "/api/manobristas").hasAnyRole(OPERACAO)
                         .requestMatchers("/api/manobristas/**").hasRole(PROPRIETARIO)
                         .requestMatchers(HttpMethod.PUT, "/api/fichas/**").hasAnyRole(GESTAO)
                         .requestMatchers(HttpMethod.DELETE, "/api/fichas/**").hasAnyRole(GESTAO)
 
-                        .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/fichas", "/api/fichas/*", "/api/fichas/*/historico").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/auth/senha").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/fichas", "/api/fichas/*/transicao").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/fichas", "/api/fichas/*", "/api/fichas/*/historico", "/api/fichas/*/assinatura").hasAnyRole(OPERACAO)
+                        .requestMatchers(HttpMethod.POST, "/api/fichas", "/api/fichas/*/transicao").hasAnyRole(OPERACAO)
                         .anyRequest().denyAll())
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) -> erro(res, json, 401, "Faça login para continuar."))

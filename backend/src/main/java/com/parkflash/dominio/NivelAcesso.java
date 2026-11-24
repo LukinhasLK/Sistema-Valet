@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 /** Nível de acesso do usuário (mesmos rótulos do front). No JSON usa o rótulo; no banco, o nome da constante. */
 public enum NivelAcesso {
-    PROPRIETARIO("Proprietário"), GERENTE("Gerente"), OPERADOR("Operador");
+    PROPRIETARIO("Proprietário"), GERENTE("Gerente"), OPERADOR("Operador"),
+    /** Só consulta a própria sociedade: unidades onde tem participação e a parte dele no resultado. */
+    SOCIO("Sócio");
 
     private final String rotulo;
 

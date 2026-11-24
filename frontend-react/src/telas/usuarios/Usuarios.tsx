@@ -10,6 +10,7 @@ import { corDoAvatar } from '../../layout/itens-menu';
 import { useUsuario } from '../../nucleo/estado/auth';
 import { avisos } from '../../nucleo/estado/aviso';
 import { useIsMobile } from '../../nucleo/estado/layout';
+import { useSocios } from '../../nucleo/estado/socios';
 import { useUnidades } from '../../nucleo/estado/unidades';
 import { usuariosServico, useUsuarios } from '../../nucleo/estado/usuarios';
 import { NivelAcesso, NIVEIS_ACESSO, Unidade, Usuario } from '../../nucleo/modelos';
@@ -20,10 +21,12 @@ const CLASSE_NIVEL: Record<NivelAcesso, string> = {
   'Proprietário': 'pf-badge--purple',
   Gerente: 'pf-badge--blue',
   Operador: 'pf-badge--gray',
+  'Sócio': 'pf-badge--green',
 };
 
-function resumoEscopo(usuario: Usuario, unidades: Unidade[]): string {
+function resumoEscopo(usuario: Usuario, unidades: Unidade[], nomeSocio: (id?: number | null) => string): string {
   if (usuario.nivel === 'Proprietário') return 'Todas as unidades';
+  if (usuario.nivel === 'Sócio') return `Sócio ${nomeSocio(usuario.socioId)} · só a própria sociedade`;
   const ids = new Set(usuario.unidadeIds ?? []);
   return unidades.filter((u) => ids.has(u.id)).map((u) => u.nome).join(', ') || 'Sem acesso a unidades';
 }
@@ -33,6 +36,10 @@ export default function Usuarios() {
   const sessao = useUsuario();
   const todos = useUsuarios((s) => s.usuarios);
   const unidades = useUnidades((s) => s.unidades);
+  const socios = useSocios((s) => s.socios);
+  const nomeSocio = (id?: number | null) => socios.find((x) => x.id === id)?.nome ?? '—';
+  /** Sócios que ainda não têm login (o de quem está sendo editado continua na lista). */
+  const sociosLivres = socios.filter((x) => x.id === editando?.socioId || !todos.some((u) => u.ativo !== false && u.socioId === x.id));
   const [mostrarInativos, setMostrarInativos] = useState(false);
   const usuarios = useMemo(() => todos.filter((u) => mostrarInativos || u.ativo !== false), [todos, mostrarInativos]);
   const [salvando, setSalvando] = useState(false);
@@ -41,8 +48,9 @@ export default function Usuarios() {
   const [paraExcluir, setParaExcluir] = useState<Usuario | null>(null);
   const [emailDuplicado, setEmailDuplicado] = useState(false);
   const f = useFormulario(
-    { nome: '', email: '', nivel: 'Operador' as NivelAcesso, senha: '', unidadeIds: [] as number[] },
+    { nome: '', email: '', nivel: 'Operador' as NivelAcesso, senha: '', unidadeIds: [] as number[], socioId: '' },
     (v) => ({
+      socioId: v.nivel === 'Sócio' && !v.socioId,
       nome: !v.nome,
       email: !v.email || !emailValido(v.email),
       // Senha obrigatória só no cadastro; na edição, vazio mantém a atual.
@@ -55,7 +63,7 @@ export default function Usuarios() {
 
   function abrir(usuario?: Usuario) {
     setEditando(usuario ?? null);
-    f.resetar({ nome: usuario?.nome ?? '', email: usuario?.email ?? '', nivel: usuario?.nivel ?? 'Operador', senha: '', unidadeIds: usuario?.unidadeIds ?? [] });
+    f.resetar({ nome: usuario?.nome ?? '', email: usuario?.email ?? '', nivel: usuario?.nivel ?? 'Operador', senha: '', unidadeIds: usuario?.unidadeIds ?? [], socioId: usuario?.socioId ? String(usuario.socioId) : '' });
     setEmailDuplicado(false);
     setFormAberto(true);
   }
@@ -76,7 +84,13 @@ export default function Usuarios() {
     }
     setSalvando(true);
     try {
-      await usuariosServico.salvarUsuario({ ...f.valores, id: editando?.id });
+      const { socioId, ...valores } = f.valores;
+      const ehSocio = valores.nivel === 'Sócio';
+      await usuariosServico.salvarUsuario({
+        ...valores, id: editando?.id,
+        unidadeIds: ehSocio ? [] : valores.unidadeIds,
+        socioId: ehSocio ? Number(socioId) : null,
+      });
       setFormAberto(false);
       avisos.sucesso('Usuário salvo.');
     } catch (erro) {
@@ -121,7 +135,7 @@ export default function Usuarios() {
                 <div className="card-usuario__info">
                   <p className="card-usuario__nome">{u.nome}{ehVoce(u) && <span className="voce">você</span>}</p>
                   <p className="card-usuario__email">{u.email}</p>
-                  <p className="card-usuario__escopo">{resumoEscopo(u, unidades)}</p>
+                  <p className="card-usuario__escopo">{resumoEscopo(u, unidades, nomeSocio)}</p>
                 </div>
                 <div className="card-usuario__acoes">
                   <span className={`pf-badge ${CLASSE_NIVEL[u.nivel]}`}>{u.nivel}</span>
@@ -155,7 +169,7 @@ export default function Usuarios() {
                         <span className={`pf-badge ${CLASSE_NIVEL[u.nivel]}`}>{u.nivel}</span>
                         {u.ativo === false && <span className="pf-badge pf-badge--gray">Desativado</span>}
                       </td>
-                      <td>{resumoEscopo(u, unidades)}</td>
+                      <td>{resumoEscopo(u, unidades, nomeSocio)}</td>
                       <td className="actions">
                         <HistoricoAdministrativo tipo="usuarios" id={u.id} nome={u.nome} />
                         {u.ativo !== false && <button type="button" className="acao" onClick={() => abrir(u)}>Editar</button>}
@@ -193,7 +207,20 @@ export default function Usuarios() {
               </CampoSelecao>
             </div>
 
-            {f.valores.nivel !== 'Proprietário' && (
+            {f.valores.nivel === 'Sócio' && (
+              <div className="pf-field">
+                <label className="pf-label" htmlFor="us-socio">Qual sócio é este login</label>
+                <CampoSelecao id="us-socio" {...f.campo('socioId')} className="pf-select">
+                  <option value="">Escolha o sócio</option>
+                  {sociosLivres.map((x) => <option key={x.id} value={String(x.id)}>{x.nome}</option>)}
+                </CampoSelecao>
+                <p className="card-usuario__escopo">Ele vê só as unidades onde tem participação e quanto é a parte dele. Não vê fichas, equipe nem os outros sócios.</p>
+                {f.invalido('socioId') && <span className="pf-error">Escolha o sócio.</span>}
+                {!sociosLivres.length && <span className="pf-error">Todos os sócios já têm login. Cadastre o sócio em Sócios primeiro.</span>}
+              </div>
+            )}
+
+            {f.valores.nivel !== 'Proprietário' && f.valores.nivel !== 'Sócio' && (
               <fieldset className="escopo" aria-describedby="us-escopo-ajuda">
                 <legend className="pf-label">Unidades autorizadas</legend>
                 <p id="us-escopo-ajuda" className="card-usuario__escopo">Sem seleção, este usuário não verá dados de nenhuma unidade.</p>

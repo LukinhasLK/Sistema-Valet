@@ -35,6 +35,8 @@ export const inicialDe = (usuario: Usuario | null) => usuario?.nome.charAt(0).to
 
 /** Carrega só o que o nível pode ver — o servidor recusaria o resto com 403. */
 async function carregarDados(nivel: NivelAcesso): Promise<void> {
+  // O sócio não vê a operação: a tela dele busca o que precisa sozinha.
+  if (!podeAcessar(nivel, 'fichas')) return;
   await Promise.all([
     unidadesServico.carregar(),
     manobristasServico.carregar(),

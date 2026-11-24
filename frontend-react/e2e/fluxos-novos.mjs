@@ -141,7 +141,9 @@ try {
   // Página inicial pública e planos
   const inicio = await (await b.createBrowserContext()).newPage();
   await inicio.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
-  ok('Sem login, o site abre na apresentação', new URL(inicio.url()).pathname === '/' && !!(await inicio.$('pf-conheca .heroi')));
+  ok('Sem login, o site abre no login', new URL(inicio.url()).pathname === '/login', inicio.url());
+  await inicio.goto(`${BASE}/conheca`, { waitUntil: 'networkidle0' });
+  ok('A apresentação continua em /conheca', !!(await inicio.$('pf-conheca .heroi')));
   ok('Navegação da apresentação tem Planos', await inicio.evaluate(() => [...document.querySelectorAll('.topo__nav a')].some((a) => a.textContent === 'Planos')));
   await inicio.goto(`${BASE}/planos`, { waitUntil: 'networkidle0' });
   const planos = await inicio.$$eval('.plano h2', (l) => l.map((x) => x.textContent));
@@ -174,6 +176,36 @@ try {
   const op = await abrir('dario@email.com');
   await op.goto(`${BASE}/app/perfil`, { waitUntil: 'networkidle0' }); await esp(300);
   ok('Operador não vê o Google Calendar', !(await op.$('#perfil-agenda')));
+
+  // Sócio: entra direto na própria sociedade e não vê a operação
+  const sc = await abrir('francisco@email.com');
+  await esp(600);
+  ok('Sócio entra em Minha sociedade', sc.url().endsWith('/app/sociedade'), sc.url());
+  await sc.waitForSelector('.unidade', { timeout: 8000 }).catch(() => {});
+  const titulo = await sc.$eval('h1', (e) => e.textContent).catch(() => '');
+  ok('Título da tela do sócio', titulo.includes('Minha sociedade'), titulo);
+  const menuSocio = await sc.$$eval('nav a', (l) => l.map((a) => a.getAttribute('href')));
+  ok('Menu do sócio sem fichas nem equipe', !menuSocio.some((h) => /fichas|manobristas|despesas|relatorios/.test(h ?? '')), menuSocio.join(' '));
+  await sc.goto(`${BASE}/app/fichas`, { waitUntil: 'networkidle0' }); await esp(300);
+  ok('Sócio que digita /app/fichas volta para a sociedade', sc.url().endsWith('/app/sociedade'), sc.url());
+  ok('Sem erros de JavaScript (sócio)', sc.erros.length === 0, sc.erros.join(' | '));
+  const dono = await abrir('lucasrodrigues.10@icloud.com');
+  await dono.goto(`${BASE}/app/sociedade`, { waitUntil: 'networkidle0' }); await esp(500);
+  ok('Proprietário escolhe o sócio na Sociedade', !!(await dono.$('button[aria-label^="Sócio "]')));
+
+  // Fechamento com a ficha de papel e assinatura
+  await dono.goto(`${BASE}/app/fichas?mes=6&ano=2026&detalhe=10`, { waitUntil: 'networkidle0' }); await esp(500);
+  await clicar(dono, 'Enviar para conferência'); await esp(250);
+  await clicar(dono, 'Confirmar'); await esp(900);
+  await clicar(dono, 'Confirmar fechamento'); await esp(500);
+  ok('Fechamento mostra a ficha de papel', !!(await dono.$('pf-ficha-papel .papel__picote')));
+  const travado = await dono.evaluate(() => [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Assinar e fechar')?.disabled);
+  ok('Sem assinatura não fecha', travado === true);
+  await clicar(dono, 'Assinar com meu nome'); await esp(200);
+  await clicar(dono, 'Assinar e fechar'); await esp(2200);
+  const assinatura = await dono.$eval('.det__assinatura', (i) => i.getAttribute('src')).catch(() => '');
+  ok('Ficha fechada guarda a assinatura', assinatura.startsWith('data:image/png;base64,'));
+  ok('Sem erros de JavaScript (fechamento)', dono.erros.length === 0, dono.erros.join(' | '));
 } catch (e) { r.push(`❌ ERRO NO ROTEIRO: ${e.message}`); }
 console.log(r.join('\n'));
 await b.close();

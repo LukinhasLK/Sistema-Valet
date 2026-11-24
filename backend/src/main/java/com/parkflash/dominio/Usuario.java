@@ -38,6 +38,13 @@ public class Usuario {
     @Column(nullable = false, length = 36)
     private String sessaoVersao = "0";
 
+    /** Sócio que este login representa (só no nível Sócio). */
+    @Column(name = "socio_id")
+    private Long socioId;
+
+    public Long getSocioId() { return socioId; }
+    public void setSocioId(Long socioId) { this.socioId = socioId; }
+
     public String getSessaoVersao() { return sessaoVersao; }
 
     public boolean isAtivo() { return ativo; }

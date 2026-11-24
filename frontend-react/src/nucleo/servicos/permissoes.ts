@@ -1,5 +1,6 @@
 import { NivelAcesso } from '../modelos';
 
+/** Quem trabalha na operação. O Sócio só consulta a própria sociedade. */
 const TODOS: NivelAcesso[] = ['Proprietário', 'Gerente', 'Operador'];
 const GESTAO: NivelAcesso[] = ['Proprietário', 'Gerente'];
 const PROPRIETARIO: NivelAcesso[] = ['Proprietário'];
@@ -22,7 +23,10 @@ export const PERMISSOES: Record<string, NivelAcesso[]> = {
   escalas: GESTAO,
   socios: PROPRIETARIO,
   usuarios: PROPRIETARIO,
-  perfil: TODOS,
+  sociedade: ['Proprietário', 'Sócio'],
+  /** Atalho da barra inferior do celular, só para o sócio (o proprietário chega pelo menu). */
+  'sociedade-atalho': ['Sócio'],
+  perfil: [...TODOS, 'Sócio'],
 };
 
 export function podeAcessar(nivel: NivelAcesso | null | undefined, rota: string): boolean {
@@ -32,5 +36,6 @@ export function podeAcessar(nivel: NivelAcesso | null | undefined, rota: string)
 
 /** Tela inicial de cada nível após o login. */
 export function rotaInicial(nivel: NivelAcesso | null | undefined): string {
+  if (nivel === 'Sócio') return '/app/sociedade';
   return podeAcessar(nivel, 'dashboard') ? '/app/dashboard' : '/app/fichas';
 }

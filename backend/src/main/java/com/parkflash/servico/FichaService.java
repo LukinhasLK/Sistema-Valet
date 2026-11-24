@@ -147,6 +147,7 @@ public class FichaService {
             throw new AccessDeniedException("Somente a gestão pode decidir a conferência da ficha.");
         }
         String motivo = pedido.justificativa() == null ? null : pedido.justificativa().strip();
+        byte[] assinatura = lerAssinatura(pedido);
         SituacaoFicha destino = switch (pedido.acao()) {
             case ENVIAR -> depoisDe(ficha, SituacaoFicha.EM_EDICAO, SituacaoFicha.PRONTA);
             case FECHAR -> depoisDe(ficha, SituacaoFicha.PRONTA, SituacaoFicha.FECHADA);
@@ -161,11 +162,58 @@ public class FichaService {
         };
         ficha.mudarSituacao(destino, ator.id(), OffsetDateTime.now(ZoneOffset.UTC));
         auditar(ficha, ator.id(), pedido.acao().name(), motivo);
+        // A assinatura vale só para o fechamento em vigor: reabrir ou fechar de novo descarta a anterior.
+        if (pedido.acao() == TransicaoFicha.Acao.FECHAR || pedido.acao() == TransicaoFicha.Acao.REABRIR) {
+            jdbc.sql("DELETE FROM ficha_assinatura WHERE ficha_id = :id").param("id", ficha.getId()).update();
+        }
+        if (assinatura != null) {
+            jdbc.sql("INSERT INTO ficha_assinatura (ficha_id, imagem, assinado_por) VALUES (:id, :imagem, :ator)")
+                    .param("id", ficha.getId()).param("imagem", assinatura).param("ator", ator.id()).update();
+        }
         if (destino == SituacaoFicha.PRONTA) {
             notificacoes.registrar(CategoriaNotificacao.FICHA_AGUARDANDO_FECHAMENTO,
                     ficha.getId() + ":" + UUID.randomUUID(), ficha.getId(), null, List.of(ficha.getUnidadeId()));
         }
         return FichaResponse.de(ficha);
+    }
+
+    /** Assinatura do último fechamento, como data URL para exibir direto num <img>. */
+    public record Assinatura(String imagem, String autor, OffsetDateTime assinadoEm) {}
+
+    private static final String PREFIXO_PNG = "data:image/png;base64,";
+    private static final int LIMITE_ASSINATURA = 250_000;
+
+    /** Valida a assinatura desenhada: só no fechamento, só PNG, até 250 KB. */
+    private static byte[] lerAssinatura(TransicaoFicha pedido) {
+        String valor = pedido.assinatura();
+        if (valor == null || valor.isBlank()) return null;
+        if (pedido.acao() != TransicaoFicha.Acao.FECHAR) {
+            throw new RegraInvalidaException("A assinatura só é registrada no fechamento da ficha.");
+        }
+        if (!valor.startsWith(PREFIXO_PNG)) throw new RegraInvalidaException("Assinatura em formato inválido.");
+        byte[] bytes;
+        try {
+            bytes = java.util.Base64.getDecoder().decode(valor.substring(PREFIXO_PNG.length()));
+        } catch (IllegalArgumentException e) {
+            throw new RegraInvalidaException("Assinatura em formato inválido.");
+        }
+        boolean png = bytes.length > 8 && (bytes[0] & 0xFF) == 0x89 && bytes[1] == 'P' && bytes[2] == 'N' && bytes[3] == 'G';
+        if (!png) throw new RegraInvalidaException("Assinatura em formato inválido.");
+        if (bytes.length > LIMITE_ASSINATURA) throw new RegraInvalidaException("Assinatura grande demais.");
+        return bytes;
+    }
+
+    @Transactional(readOnly = true)
+    public Assinatura assinatura(Long id, AcessoUnidades acesso) {
+        var unidade = jdbc.sql("SELECT unidade_id FROM ficha WHERE id = :id").param("id", id)
+                .query(Long.class).optional().orElseThrow(() -> new NaoEncontradoException("Ficha não encontrada."));
+        acesso.exigir(unidade);
+        return jdbc.sql("""
+                SELECT a.imagem, u.nome, a.assinado_em FROM ficha_assinatura a JOIN usuario u ON u.id = a.assinado_por
+                WHERE a.ficha_id = :id""").param("id", id)
+                .query((rs, i) -> new Assinatura(PREFIXO_PNG + java.util.Base64.getEncoder().encodeToString(rs.getBytes("imagem")),
+                        rs.getString("nome"), rs.getObject("assinado_em", OffsetDateTime.class)))
+                .optional().orElseThrow(() -> new NaoEncontradoException("Esta ficha não tem assinatura registrada."));
     }
 
     @Transactional

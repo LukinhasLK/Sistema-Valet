@@ -6,9 +6,9 @@ import puppeteer from 'puppeteer-core';
 
 const BASE = process.argv[2] ?? 'http://localhost:4300';
 const axe = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
-const ROTAS_PUBLICAS = ['/', '/planos', '/login'];
+const ROTAS_PUBLICAS = ['/conheca', '/planos', '/login'];
 const ROTAS = ['/app/dashboard', '/app/fichas', '/app/fichas/nova', '/app/carros-por-mes', '/app/pagamentos-manobristas',
-  '/app/despesas', '/app/relatorios', '/app/eventos', '/app/manobristas', '/app/notificacoes', '/app/perfil'];
+  '/app/despesas', '/app/relatorios', '/app/eventos', '/app/manobristas', '/app/notificacoes', '/app/sociedade', '/app/perfil'];
 
 const b = await puppeteer.launch({ executablePath: process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
 const esp = (ms) => new Promise((r) => setTimeout(r, ms));

@@ -20,6 +20,7 @@ const Socios = lazy(() => import('./telas/socios/Socios'));
 const Usuarios = lazy(() => import('./telas/usuarios/Usuarios'));
 const Notificacoes = lazy(() => import('./telas/notificacoes/Notificacoes'));
 const Perfil = lazy(() => import('./telas/perfil/Perfil'));
+const Sociedade = lazy(() => import('./telas/sociedade/Sociedade'));
 const Conheca = lazy(() => import('./telas/conheca/Conheca'));
 const Planos = lazy(() => import('./telas/conheca/Planos'));
 
@@ -45,10 +46,10 @@ function ComPermissao({ rota, children }: { rota: string; children: ReactNode })
   return <>{children}</>;
 }
 
+/** Endereço raiz: a equipe entra pelo login; a apresentação fica em /conheca. */
 function Inicio() {
   const nivel = useAuth((s) => s.usuario?.nivel ?? null);
-  if (nivel) return <Navigate to={rotaInicial(nivel)} replace />;
-  return <Conheca />;
+  return <Navigate to={nivel ? rotaInicial(nivel) : '/login'} replace />;
 }
 
 const tela = (rota: string, elemento: ReactNode) => ({ path: rota, element: <ComPermissao rota={rota}>{elemento}</ComPermissao> });
@@ -81,6 +82,7 @@ export const rotas = createBrowserRouter([
       tela('socios', <Socios />),
       tela('usuarios', <Usuarios />),
       tela('notificacoes', <Notificacoes />),
+      tela('sociedade', <Sociedade />),
       tela('perfil', <Perfil />),
     ],
   },
