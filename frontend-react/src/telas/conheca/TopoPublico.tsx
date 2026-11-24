@@ -23,7 +23,7 @@ export function TopoPublico() {
   const destino = nivel ? rotaInicial(nivel) : '/login';
   return (
     <header className="topo">
-      <Link to="/conheca" onClick={() => setAberto(false)} aria-label="Park Flash, apresentação"><Logo tamanho={19} /></Link>
+      <Link to="/conheca" onClick={() => setAberto(false)}><Logo tamanho={19} /></Link>
       <nav className="topo__nav" aria-label="Seções">
         {LINKS.map((l) => <Link key={l.para} to={l.para}>{l.rotulo}</Link>)}
         <NavLink to="/planos" className={({ isActive }) => (isActive ? 'ativo' : undefined)}>Planos</NavLink>
