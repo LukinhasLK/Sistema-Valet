@@ -433,7 +433,7 @@ export default function ListaFichas() {
                   {agrupar !== 'nenhum' && cabecalhoGrupo(grupo)}
                   {!recolhidos.has(grupo.chave) && grupo.fichasPagina.map((ficha) => (
                     <button key={ficha.id} type="button" className="card-ficha" data-entrada-linha
-                      onClick={() => abrirDetalhe(ficha)} aria-label={`Ver ficha de ${dataBr(ficha.data)}, ${nomeUnidade(unidades, ficha.unidadeId)}`}>
+                      onClick={() => abrirDetalhe(ficha)}>
                       <span className="card-ficha__topo">
                         <span className="card-ficha__data">{dataBr(ficha.data)} <small>{diaCurto(ficha.data)}</small></span>
                         <span className={`card-ficha__valor ${classeSaldo(ficha.totalLiquido)}`}>{moeda(ficha.totalLiquido)}</span>

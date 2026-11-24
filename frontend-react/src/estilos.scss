@@ -299,7 +299,7 @@ kbd, .pf-kbd {
 
   &[readonly] {
     background: var(--pf-surface-alt);
-    color: var(--pf-text-muted);
+    color: #4f5964;
     cursor: default;
   }
 
@@ -433,7 +433,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--pf-blue); }
     font-size: 11.5px;
     font-weight: 600;
     letter-spacing: .02em;
-    color: var(--pf-text-muted);
+    color: #56606b;
     background: var(--pf-surface-alt);
     border-bottom: 1px solid var(--pf-border);
     white-space: nowrap;

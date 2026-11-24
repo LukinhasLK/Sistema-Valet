@@ -55,7 +55,7 @@ pf-calendario-agenda {
     &:focus-visible { outline: 2px solid var(--pf-blue); outline-offset: -2px; }
   }
 
-  .dia--fora { background: var(--pf-surface-alt); color: var(--pf-text-faint); }
+  .dia--fora { background: var(--pf-surface-alt); color: #56606b; }
   .dia--escolhido { background: var(--pf-blue-soft); box-shadow: inset 0 0 0 2px var(--pf-blue); &:hover { background: var(--pf-blue-soft); } }
 
   .dia__topo { display: flex; align-items: center; justify-content: space-between; gap: 4px; }

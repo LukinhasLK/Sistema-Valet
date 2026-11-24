@@ -1,0 +1,45 @@
+import { useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
+import { Icone } from '../../compartilhado/Icone';
+import { Logo } from '../../compartilhado/Logo';
+import { TRANSICAO } from '../../compartilhado/movimento';
+import { useAuth } from '../../nucleo/estado/auth';
+import { rotaInicial } from '../../nucleo/servicos/permissoes';
+
+const LINKS = [
+  { rotulo: 'Como funciona', para: '/#como-funciona' },
+  { rotulo: 'Recursos', para: '/#recursos' },
+  { rotulo: 'No celular', para: '/#celular' },
+  { rotulo: 'Segurança', para: '/#seguranca' },
+];
+
+/** Barra superior das páginas públicas (apresentação e planos), com menu no celular. */
+export function TopoPublico() {
+  const nivel = useAuth((s) => s.usuario?.nivel ?? null);
+  const [aberto, setAberto] = useState(false);
+  const destino = nivel ? rotaInicial(nivel) : '/login';
+  return (
+    <header className="topo">
+      <Link to="/" onClick={() => setAberto(false)}><Logo tamanho={19} /></Link>
+      <nav className="topo__nav" aria-label="Seções">
+        {LINKS.map((l) => <Link key={l.para} to={l.para}>{l.rotulo}</Link>)}
+        <NavLink to="/planos" className={({ isActive }) => (isActive ? 'ativo' : undefined)}>Planos</NavLink>
+      </nav>
+      <div className="topo__acoes">
+        <Link className="pf-btn pf-btn--primary pf-btn--sm" to={destino}>{nivel ? 'Abrir o sistema' : 'Entrar'}</Link>
+        <button type="button" className="topo__menu" aria-label={aberto ? 'Fechar menu' : 'Abrir menu'} aria-expanded={aberto} onClick={() => setAberto((a) => !a)}>
+          <Icone nome={aberto ? 'fechar' : 'mais'} tamanho={20} />
+        </button>
+      </div>
+      <AnimatePresence>
+        {aberto && (
+          <motion.nav className="topo__gaveta" aria-label="Menu" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={TRANSICAO.rapida}>
+            {LINKS.map((l) => <Link key={l.para} to={l.para} onClick={() => setAberto(false)}>{l.rotulo}</Link>)}
+            <Link to="/planos" onClick={() => setAberto(false)}>Planos</Link>
+          </motion.nav>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+}

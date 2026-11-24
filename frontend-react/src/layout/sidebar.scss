@@ -90,7 +90,7 @@ pf-sidebar {
     font-weight: 600;
     letter-spacing: .05em;
     text-transform: uppercase;
-    color: var(--pf-text-faint);
+    color: var(--pf-text-muted);
     white-space: nowrap;
   }
 
@@ -167,7 +167,7 @@ pf-sidebar {
     transition: background-color var(--pf-dur-fast) ease;
     .pf-avatar { width: 32px; height: 32px; font-size: 13px; }
     &:hover { background: var(--pf-surface-hover); }
-    &.active { background: var(--pf-blue-soft); }
+    &.active { background: var(--pf-blue-soft); .sidebar__user-role { color: var(--pf-blue-press); } }
   }
 
   .sidebar__user-info {

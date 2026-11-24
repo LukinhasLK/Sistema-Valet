@@ -32,7 +32,7 @@ export function FiltroPilula<V extends string | number>({ rotulo, icone, valor, 
     <motion.span layout="position" transition={TRANSICAO.mola} className={`pilula${ativa ? ' pilula--ativa' : ''}`}>
       <Seletor rotulo={rotulo} valor={valor} opcoes={opcoes} aoMudar={aoMudar} className="pilula__corpo">
         {icone && <Icone nome={icone} tamanho={14} />}
-        <span className="pilula__rotulo">{rotulo}</span>
+        <span className="pilula__rotulo">{rotulo}</span>{' '}
         <span className="pilula__valor">{atual}</span>
         <Icone nome="abrir" tamanho={13} className="pilula__seta" />
       </Seletor>

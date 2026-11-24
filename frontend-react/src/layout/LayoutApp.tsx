@@ -5,6 +5,7 @@ import { Icone } from '../compartilhado/Icone';
 import { Logo } from '../compartilhado/Logo';
 import { entradaDeTela } from '../compartilhado/movimento';
 import { inicialDe, useUsuario } from '../nucleo/estado/auth';
+import { useAtualizacaoAutomatica } from '../nucleo/estado/atualizacao';
 import { interfaceServico } from '../nucleo/estado/interface';
 import { useIsMobile } from '../nucleo/estado/layout';
 import { useNotificacoesDisponiveis, useTotalNaoLidas } from '../nucleo/servicos/notificacoes';
@@ -55,13 +56,14 @@ export function LayoutApp() {
   const disponivel = useNotificacoesDisponiveis();
   const total = useTotalNaoLidas();
   const conteudo = useRef<HTMLElement>(null);
+  useAtualizacaoAutomatica();
 
   if (isMobile) {
     return (
       <pf-app-layout>
         <div className="shell shell--mobile">
           <header className="topbar">
-            <Link to="/app/dashboard" className="topbar__logo" aria-label="Park Flash — início"><Logo tamanho={17} /></Link>
+            <Link to="/app/dashboard" className="topbar__logo"><Logo tamanho={17} /></Link>
             <div className="topbar__acoes">
               <button type="button" className="topbar__botao" aria-label="Buscar ou ir para" onClick={interfaceServico.abrirPaleta} data-tour="paleta">
                 <Icone nome="busca" tamanho={20} />

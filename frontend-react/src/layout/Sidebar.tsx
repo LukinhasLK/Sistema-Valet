@@ -40,8 +40,8 @@ export function Sidebar() {
     <pf-sidebar data-recolhido={recolhido ? '' : undefined}>
       <aside className="sidebar" aria-label="Menu lateral">
         <div className="sidebar__brand">
-          <NavLink to="/app/dashboard" className="sidebar__logo" aria-label="Park Flash — início">
-            {recolhido ? <img src="/favicon.svg" alt="" width={28} height={28} /> : <Logo tamanho={18} />}
+          <NavLink to="/app/dashboard" className="sidebar__logo">
+            {recolhido ? <img src="/favicon.svg" alt="Park Flash" width={28} height={28} /> : <Logo tamanho={18} />}
           </NavLink>
           <Dica texto={recolhido ? 'Expandir menu' : 'Recolher menu'} atalho="[" lado="right">
             <button type="button" className="sidebar__recolher" aria-label={recolhido ? 'Expandir menu' : 'Recolher menu'}
@@ -53,7 +53,7 @@ export function Sidebar() {
 
         <Dica texto="Buscar ou ir para…" atalho={`${teclaComando}K`} lado="right" desligada={!recolhido}>
           <button type="button" className="sidebar__busca" onClick={interfaceServico.abrirPaleta} data-tour="paleta"
-            aria-label="Buscar ou ir para (paleta de comandos)" aria-keyshortcuts="Meta+K Control+K">
+            aria-label={recolhido ? 'Buscar ou ir para' : undefined} aria-keyshortcuts="Meta+K Control+K">
             <Icone nome="busca" tamanho={16} />
             <span className="sidebar__busca-texto">Buscar ou ir para…</span>
             <kbd className="sidebar__busca-atalho">{teclaComando}K</kbd>
@@ -89,7 +89,7 @@ export function Sidebar() {
         {usuario && (
           <footer className="sidebar__user">
             <Dica texto="Meu perfil" lado="right" desligada={!recolhido}>
-              <NavLink className="sidebar__user-link" to="/app/perfil" aria-label="Meu perfil" data-tour="perfil">
+              <NavLink className="sidebar__user-link" to="/app/perfil" aria-label={recolhido ? 'Meu perfil' : undefined} data-tour="perfil">
                 <span className="pf-avatar" style={{ background: corDoAvatar(usuario.nome) }}>{inicialDe(usuario)}</span>
                 <span className="sidebar__user-info">
                   <span className="sidebar__user-name">{usuario.nome}</span>

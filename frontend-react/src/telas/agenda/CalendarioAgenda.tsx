@@ -124,11 +124,13 @@ export function CalendarioAgenda({ tipo, unidade, versao, rotuloSituacao, titulo
                     <div key={dia} role="gridcell" aria-selected={dia === diaEscolhido}>
                       <button type="button" data-dia={dia} tabIndex={dia === diaEscolhido ? 0 : -1}
                         className={`dia${foraDoMes ? ' dia--fora' : ''}${dia === hoje() ? ' dia--hoje' : ''}${dia === diaEscolhido ? ' dia--escolhido' : ''}${qtd ? ' dia--com' : ''}`}
-                        aria-label={`${new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' }).format(new Date(`${dia}T12:00:00`))}: ${qtd ? `${qtd} ${qtd === 1 ? nome[0] : nome[1]}` : `nenhum ${nome[0] === 'evento' ? 'evento' : 'registro'}`}`}
                         onClick={() => { setDiaEscolhido(dia); if (foraDoMes) setMes({ ano: +dia.slice(0, 4), mes: +dia.slice(5, 7) }); }}
                         onKeyDown={(e) => aoTeclar(e, dia)}>
                         <span className="dia__topo">
                           <span className="dia__numero">{+dia.slice(8)}</span>
+                          <span className="pf-sr-only">
+                            {` de ${MESES[+dia.slice(5, 7) - 1].toLowerCase()}, ${qtd ? `${qtd} ${qtd === 1 ? nome[0] : nome[1]}` : `sem ${nome[1]}`}`}
+                          </span>
                           {qtd > 0 && <span className="dia__contador" aria-hidden="true">{qtd}</span>}
                         </span>
                         {!isMobile && (

@@ -3,7 +3,7 @@
   "name": "Park Flash",
   "short_name": "Park Flash",
   "lang": "pt-BR",
-  "start_url": "/",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f7f9fb",

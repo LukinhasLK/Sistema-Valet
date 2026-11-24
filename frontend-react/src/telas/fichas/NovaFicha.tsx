@@ -2,12 +2,12 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CabecalhoPagina } from '../../compartilhado/CabecalhoPagina';
 import { Calendario } from '../../compartilhado/Calendario';
-import { moeda } from '../../compartilhado/formatos';
+import { dataHora, moeda } from '../../compartilhado/formatos';
 import { Icone } from '../../compartilhado/Icone';
 import { cpfValido, telefoneValido } from '../../compartilhado/mascara';
 import { Modal } from '../../compartilhado/Modal';
 import { useFormulario } from '../../compartilhado/useFormulario';
-import { useNivel } from '../../nucleo/estado/auth';
+import { useNivel, useUsuario } from '../../nucleo/estado/auth';
 import { avisos } from '../../nucleo/estado/aviso';
 import { fichasServico, useFichas } from '../../nucleo/estado/fichas';
 import { useIsMobile } from '../../nucleo/estado/layout';
@@ -19,6 +19,7 @@ import {
 } from '../../nucleo/servicos/calc';
 import type { Forma, TipoPix } from '../../nucleo/servicos/pagamentos-manobristas';
 import { hojeIso } from '../../nucleo/servicos/periodo';
+import { descartarRascunho, lerRascunho, RascunhoFicha, salvarRascunho } from '../../nucleo/servicos/rascunho-ficha';
 import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './nova-ficha.scss';
 
@@ -64,6 +65,21 @@ interface CamposFicha extends Record<string, unknown> {
   taxaMaquininha: number | null;
 }
 
+interface DadosRascunho {
+  campos: CamposFicha;
+  equipe: Omit<LinhaEquipe, 'chave'>[];
+  despesas: Omit<LinhaDespesa, 'chave'>[];
+  etapa: number;
+}
+
+/** O formulário tem algo digitado além dos valores iniciais? (não guarda rascunho de formulário vazio) */
+function temConteudo(d: DadosRascunho): boolean {
+  const c = d.campos;
+  return c.unidadeId !== null || c.fichaInicio !== null || c.fichaFim !== null || c.valorDinheiro !== null
+    || c.valorCartao !== null || c.valorPix !== null || !!c.observacoes || d.despesas.length > 0
+    || d.equipe.some((l) => l.manobristaId !== null);
+}
+
 let proximaChave = 1;
 const novaLinha = (emEdicao: boolean, manobristaId: number | null = null, diaria: number | null = 80,
   modalidade: ModalidadeCusto = 'DIARIA_FIXA'): LinhaEquipe =>
@@ -88,6 +104,7 @@ export default function NovaFicha() {
   const navegar = useNavigate();
   const isMobile = useIsMobile();
   const nivel = useNivel();
+  const usuarioId = useUsuario()?.id;
   const fichas = useFichas((s) => s.fichas);
   const todasUnidades = useUnidades((s) => s.unidades);
   const manobristasDisponiveis = useManobristas((s) => s.manobristas);
@@ -150,6 +167,56 @@ export default function NovaFicha() {
   }, [id]);
 
   const unidades = todasUnidades.filter((u) => u.ativa !== false || u.id === emEdicao?.unidadeId);
+
+  /* ----------------------------------------------------------------- */
+  /* Rascunho no aparelho                                               */
+  /* ----------------------------------------------------------------- */
+  const fichaIdRascunho = id ? Number(id) : null;
+  const [rascunho, setRascunho] = useState<RascunhoFicha<DadosRascunho> | null>(null);
+  /** Só grava depois de decidir sobre um rascunho existente (para não sobrescrevê-lo com o formulário vazio). */
+  const [podeGravar, setPodeGravar] = useState(false);
+  const [salvoEm, setSalvoEm] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (usuarioId === undefined) return;
+    const existente = lerRascunho<DadosRascunho>(usuarioId, fichaIdRascunho);
+    if (existente && temConteudo(existente.dados)) setRascunho(existente);
+    else setPodeGravar(true);
+  }, [usuarioId, fichaIdRascunho]);
+
+  useEffect(() => {
+    if (!podeGravar || usuarioId === undefined || salvando) return;
+    const dados: DadosRascunho = {
+      campos: v,
+      equipe: equipe.map(({ chave: _c, ...l }) => l),
+      despesas: despesas.map(({ chave: _c, ...d }) => d),
+      etapa,
+    };
+    if (!temConteudo(dados)) return;
+    const timer = setTimeout(() => {
+      salvarRascunho(usuarioId, fichaIdRascunho, dados);
+      setSalvoEm(new Date().toISOString());
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [podeGravar, usuarioId, fichaIdRascunho, v, equipe, despesas, etapa, salvando]);
+
+  function continuarRascunho() {
+    if (!rascunho) return;
+    const d = rascunho.dados;
+    f.resetar({ ...VAZIO, ...d.campos });
+    setEquipe(d.equipe.length ? d.equipe.map((l) => ({ ...l, chave: proximaChave++ })) : [novaLinha(!!emEdicao)]);
+    setDespesas(d.despesas.map((x) => ({ ...x, chave: proximaChave++ })));
+    setEtapa(Math.min(Math.max(0, d.etapa), ETAPAS.length - 1));
+    setSalvoEm(rascunho.salvoEm);
+    setRascunho(null);
+    setPodeGravar(true);
+  }
+
+  function descartarRascunhoAtual() {
+    if (usuarioId !== undefined) descartarRascunho(usuarioId, fichaIdRascunho);
+    setRascunho(null);
+    setPodeGravar(true);
+  }
 
   /* ----------------------------------------------------------------- */
   /* Equipe e despesas (listas dinâmicas)                               */
@@ -301,11 +368,14 @@ export default function NovaFicha() {
       if (emEdicao) await fichasServico.atualizar({ ...dados, id: emEdicao.id });
       else await fichasServico.adicionar(dados);
     } catch (erro) {
-      avisos.erro(erro);
+      // O rascunho continua no aparelho: nada do que foi digitado se perde.
+      avisos.erro(erro, 'Não foi possível lançar agora. Os dados continuam salvos neste aparelho; tente de novo.');
       return;
     } finally {
       setSalvando(false);
     }
+    if (usuarioId !== undefined) descartarRascunho(usuarioId, fichaIdRascunho);
+    setPodeGravar(false);
     avisos.sucesso(emEdicao ? 'Ficha atualizada.' : 'Ficha lançada.');
     navegar('/app/fichas');
   }
@@ -357,13 +427,31 @@ export default function NovaFicha() {
   return (
     <pf-nova-ficha ref={pagina}>
       <form className="pf-page nova" onSubmit={lancar} noValidate>
+        {rascunho && (
+          <div className="rascunho" role="alert">
+            <Icone nome="historico" tamanho={18} />
+            <p>
+              <strong>Você tem um rascunho {emEdicao ? 'desta ficha' : 'de ficha'}</strong> salvo neste aparelho em {dataHora(rascunho.salvoEm, 'dd/MM HH:mm')}.
+              {' '}Quer continuar de onde parou?
+            </p>
+            <div className="rascunho__acoes">
+              <button type="button" className="pf-btn pf-btn--ghost pf-btn--sm" onClick={descartarRascunhoAtual}>Descartar</button>
+              <button type="button" className="pf-btn pf-btn--primary pf-btn--sm" onClick={continuarRascunho}>Continuar</button>
+            </div>
+          </div>
+        )}
+        {salvoEm && !rascunho && (
+          <p className="rascunho-salvo" role="status" aria-live="polite">
+            <Icone nome="check" tamanho={14} /> Rascunho salvo neste aparelho às {dataHora(salvoEm, 'dd/MM HH:mm').slice(6)}
+          </p>
+        )}
         {!isMobile ? (
           <CabecalhoPagina titulo={emEdicao ? 'Editar ficha' : 'Nova ficha'}
             subtitulo={emEdicao ? 'Corrija os dados do fechamento' : 'Lance o fechamento do dia'} />
         ) : (
           /* Stepper mobile */
           <div className="stepper">
-            <div className="stepper__barra" role="progressbar" aria-valuenow={etapa + 1} aria-valuemin={1} aria-valuemax={ETAPAS.length}>
+            <div className="stepper__barra" role="progressbar" aria-label="Progresso da ficha" aria-valuenow={etapa + 1} aria-valuemin={1} aria-valuemax={ETAPAS.length}>
               {ETAPAS.map((e, i) => <span key={e.titulo} className={`stepper__seg${i <= etapa ? ' stepper__seg--ativo' : ''}`} />)}
             </div>
             <p className="stepper__contador">Etapa {etapa + 1} de {ETAPAS.length}</p>

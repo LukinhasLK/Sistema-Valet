@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { ChartConfiguration } from 'chart.js';
 import { CabecalhoPagina } from '../../compartilhado/CabecalhoPagina';
 import { CartaoKpi } from '../../compartilhado/CartaoKpi';
@@ -12,11 +12,12 @@ import { useIsMobile } from '../../nucleo/estado/layout';
 import { totaisPorUnidade, useSocios } from '../../nucleo/estado/socios';
 import { nomeUnidade, useUnidades } from '../../nucleo/estado/unidades';
 import { round2 } from '../../nucleo/servicos/calc';
-import { MESES, rotuloPeriodo } from '../../nucleo/servicos/periodo';
+import { rotuloPeriodo } from '../../nucleo/servicos/periodo';
 import { relatoriosServico } from '../../nucleo/servicos/relatorios';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { EsqueletoKpis } from '../../compartilhado/Esqueleto';
-import { CampoSelecao } from '../../compartilhado/CampoSelecao';
+import { useFiltroPeriodo } from '../../compartilhado/useFiltroPeriodo';
+import { BarraFiltros } from '../../compartilhado/BarraFiltros';
 import './divisao-lucro.scss';
 
 const NEUTRO = '#9ca3af';
@@ -35,12 +36,14 @@ export default function DivisaoLucro() {
   const unidades = useUnidades((s) => s.unidades);
   const socios = useSocios((s) => s.socios);
   const anos = useMemo(() => anosDisponiveis(fichas, despesas), [fichas, despesas]);
-  const [mes, setMes] = useState(() => periodoReferencia(fichas).mes);
-  const [ano, setAno] = useState(() => periodoReferencia(fichas).ano);
+  const referencia = useMemo(() => periodoReferencia(fichas), [fichas]);
   // Começa pela primeira unidade com rateio configurado.
-  const [unidadeId, setUnidadeId] = useState(
+  const unidadePadrao = useMemo(
     () => totaisPorUnidade(socios, unidades).filter((t) => t.total > 0)[0]?.unidadeId ?? unidades[0]?.id ?? 0,
+    [socios, unidades],
   );
+  const periodo = useFiltroPeriodo({ mesPadrao: referencia.mes, anoPadrao: referencia.ano, anos, unidades, unidadePadrao });
+  const { mes, ano, unidadeId } = periodo;
 
   const { consulta } = useConsulta(
     async (sinal) => (unidadeId ? relatoriosServico.divisao({ mes, ano, unidadeId }, sinal) : null),
@@ -117,17 +120,9 @@ export default function DivisaoLucro() {
       <div className="pf-page">
         <CabecalhoPagina titulo="Divisão de Lucro" subtitulo="Resultado da unidade (lucro das fichas − despesas fixas) dividido entre os sócios" />
 
-        <div className="pf-filters">
-          <CampoSelecao className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
-            {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </CampoSelecao>
-          <CampoSelecao className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
-            {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-          </CampoSelecao>
-          <CampoSelecao className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
-            {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </CampoSelecao>
-        </div>
+        <BarraFiltros ativos={periodo.ativos} aoLimpar={periodo.limpar}>
+          {periodo.etiquetas}
+        </BarraFiltros>
 
         {!unidadeId ? (
           <EstadoVazio ilustracao="vaga" titulo="Nenhuma unidade cadastrada" texto="Cadastre uma unidade para consultar a divisão de lucro." />

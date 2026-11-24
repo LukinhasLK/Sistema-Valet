@@ -24,7 +24,7 @@ export default defineConfig({
         // Bibliotecas em pacotes próprios: mudam pouco e ficam no cache entre versões do sistema.
         manualChunks: {
           react: ['react', 'react-dom', 'react-router-dom', 'zustand'],
-          movimento: ['motion/react', 'gsap'],
+          movimento: ['motion', 'motion/react'],
         },
       },
     },

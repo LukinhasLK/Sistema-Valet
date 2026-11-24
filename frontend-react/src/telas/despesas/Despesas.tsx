@@ -12,9 +12,11 @@ import { anosDisponiveis, periodoReferencia, useFichas } from '../../nucleo/esta
 import { useIsMobile } from '../../nucleo/estado/layout';
 import { nomeUnidade, useUnidades } from '../../nucleo/estado/unidades';
 import { CATEGORIAS_DESPESA, CategoriaDespesa, Despesa, HistoricoDespesa } from '../../nucleo/modelos';
-import { hojeIso, MESES, TODAS_UNIDADES } from '../../nucleo/servicos/periodo';
+import { hojeIso } from '../../nucleo/servicos/periodo';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { CampoSelecao } from '../../compartilhado/CampoSelecao';
+import { useFiltroPeriodo } from '../../compartilhado/useFiltroPeriodo';
+import { BarraFiltros, FiltroPilula } from '../../compartilhado/BarraFiltros';
 import './despesas.scss';
 
 const ROTULO_HISTORICO: Record<string, string> = {
@@ -36,9 +38,12 @@ export default function Despesas() {
   const unidades = useUnidades((s) => s.unidades);
   const anos = useMemo(() => anosDisponiveis(fichas, todasDespesas), [fichas, todasDespesas]);
 
-  const [mes, setMes] = useState(() => periodoReferencia(fichas).mes);
-  const [ano, setAno] = useState(() => periodoReferencia(fichas).ano);
-  const [unidadeId, setUnidadeId] = useState(TODAS_UNIDADES);
+  const referencia = useMemo(() => periodoReferencia(fichas), [fichas]);
+  const periodo = useFiltroPeriodo({
+    mesPadrao: referencia.mes, anoPadrao: referencia.ano, anos, rotuloTodosMeses: 'Todos os meses',
+    unidades, rotuloTodasUnidades: 'Todas',
+  });
+  const { mes, ano, unidadeId } = periodo;
   const [categoria, setCategoria] = useState<string>(TODAS_CATEGORIAS);
   const [verCanceladas, setVerCanceladas] = useState(false);
 
@@ -145,23 +150,11 @@ export default function Despesas() {
           </button>
         </CabecalhoPagina>
 
-        <div className="pf-filters">
-          <CampoSelecao className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
-            <option value={0}>Todos os meses</option>
-            {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </CampoSelecao>
-          <CampoSelecao className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
-            {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-          </CampoSelecao>
-          <CampoSelecao className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
-            <option value={TODAS_UNIDADES}>Todas as unidades</option>
-            {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </CampoSelecao>
-          <CampoSelecao className="pf-select" value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label="Categoria">
-            <option value={TODAS_CATEGORIAS}>Categoria</option>
-            {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{c}</option>)}
-          </CampoSelecao>
-        </div>
+        <BarraFiltros ativos={periodo.ativos} aoLimpar={periodo.limpar}>
+          {periodo.etiquetas}
+          <FiltroPilula rotulo="Categoria" icone="despesas" valor={categoria} padrao={TODAS_CATEGORIAS}
+            opcoes={[{ valor: TODAS_CATEGORIAS, rotulo: 'Todas' }, ...CATEGORIAS_DESPESA.map((c) => ({ valor: c, rotulo: c }))]} aoMudar={setCategoria} />
+        </BarraFiltros>
 
         <label className="pf-label">
           <input type="checkbox" checked={verCanceladas} onChange={(e) => setVerCanceladas(e.target.checked)} /> Mostrar canceladas

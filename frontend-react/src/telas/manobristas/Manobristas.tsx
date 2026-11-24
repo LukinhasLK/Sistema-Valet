@@ -17,11 +17,13 @@ import { useIsMobile } from '../../nucleo/estado/layout';
 import { manobristasServico, useManobristas } from '../../nucleo/estado/manobristas';
 import { Manobrista } from '../../nucleo/modelos';
 import type { TipoPix } from '../../nucleo/servicos/pagamentos-manobristas';
-import { MESES, rotuloPeriodo } from '../../nucleo/servicos/periodo';
+import { rotuloPeriodo } from '../../nucleo/servicos/periodo';
 import { podeAcessar } from '../../nucleo/servicos/permissoes';
 import { PixManobrista } from '../pagamentos-manobristas/PixManobrista';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { CampoSelecao } from '../../compartilhado/CampoSelecao';
+import { useFiltroPeriodo } from '../../compartilhado/useFiltroPeriodo';
+import { BarraFiltros } from '../../compartilhado/BarraFiltros';
 import './manobristas.scss';
 
 const fichasDe = (id: number, mes: number, ano: number) => `/app/fichas?manobristaId=${id}&mes=${mes}&ano=${ano}`;
@@ -32,9 +34,10 @@ export default function Manobristas() {
   const fichas = useFichas((s) => s.fichas);
   const despesas = useDespesas((s) => s.despesas);
   const manobristas = useManobristas((s) => s.manobristas);
-  const [mes, setMes] = useState(() => periodoReferencia(fichas).mes);
-  const [ano, setAno] = useState(() => periodoReferencia(fichas).ano);
   const anos = useMemo(() => anosDisponiveis(fichas, despesas), [fichas, despesas]);
+  const referencia = useMemo(() => periodoReferencia(fichas), [fichas]);
+  const filtroPeriodo = useFiltroPeriodo({ mesPadrao: referencia.mes, anoPadrao: referencia.ano, anos });
+  const { mes, ano } = filtroPeriodo;
   const periodo = rotuloPeriodo(mes, ano);
   const podeVerPagamentos = podeAcessar(nivel, 'pagamentos-manobristas');
   const podeGerenciar = nivel === 'Proprietário';
@@ -109,14 +112,9 @@ export default function Manobristas() {
           {podeVerPagamentos && <Link className="pf-btn pf-btn--ghost" to="/app/pagamentos-manobristas">Pagamentos</Link>}
         </CabecalhoPagina>
 
-        <div className="pf-filters">
-          <CampoSelecao className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
-            {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </CampoSelecao>
-          <CampoSelecao className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
-            {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-          </CampoSelecao>
-        </div>
+        <BarraFiltros ativos={filtroPeriodo.ativos} aoLimpar={filtroPeriodo.limpar}>
+          {filtroPeriodo.etiquetas}
+        </BarraFiltros>
 
         {linhas.length === 0 ? (
           <EstadoVazio ilustracao="equipe" titulo="Nenhum manobrista cadastrado" texto="Cadastre a equipe para lançar custos nas fichas." />

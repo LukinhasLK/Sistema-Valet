@@ -31,7 +31,9 @@ npm run dev          # http://localhost:4200 (o Vite encaminha /api para a 8080)
 Outros comandos:
 
 ```bash
-npm test             # testes unitários (59)
+npm test             # testes unitários (69)
+npm run e2e          # testes de uso real + acessibilidade (sobe backend de demonstração e front sozinho)
+npm run a11y -- URL  # só a auditoria de acessibilidade (axe, WCAG A/AA) contra um front já rodando
 npm run lint         # ESLint
 npm run typecheck    # TypeScript sem gerar arquivos
 npm run build        # checa os tipos e gera dist/ para produção

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
-import { gsap } from 'gsap';
-import { movimentoLivre } from './movimento';
+import { animate } from 'motion';
+import { CURVA, flutuar, reduzido } from './movimento';
 
 /**
  * Ilustrações originais do Park Flash (traço azul-marinho, preenchimentos claros),
@@ -109,13 +109,11 @@ export function Ilustracao({ nome, tamanho = 160 }: { nome: NomeIlustracao; tama
   useLayoutEffect(() => {
     const svg = ref.current;
     if (!svg) return;
-    const media = gsap.matchMedia();
-    media.add(movimentoLivre, () => {
-      gsap.from(svg, { opacity: 0, scale: 0.96, y: 6, duration: 0.5, ease: 'expo.out', clearProps: 'opacity,transform' });
-      gsap.to(svg.querySelectorAll('.flutua'), { y: -3, duration: 2.6, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-      gsap.fromTo(svg.querySelectorAll('.brilho'), { opacity: 0.35 }, { opacity: 1, duration: 1.6, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 0.4 });
-    });
-    return () => media.revert();
+    if (reduzido()) return;
+    const chegada = animate(svg, { opacity: [0, 1], scale: [0.96, 1], y: [6, 0] }, { duration: 0.5, ease: CURVA.saida });
+    const pararFlutuacao = flutuar([...svg.querySelectorAll('.flutua')]);
+    const brilho = animate([...svg.querySelectorAll('.brilho')], { opacity: [0.35, 1] }, { duration: 1.6, ease: 'easeInOut', repeat: Infinity, repeatType: 'reverse', delay: 0.4 });
+    return () => { chegada.complete(); pararFlutuacao(); brilho.stop(); };
   }, [nome]);
   return (
     <svg ref={ref} width={tamanho} height={tamanho * 0.72} viewBox="0 0 160 115" aria-hidden="true" focusable="false" className="pf-ilustracao">

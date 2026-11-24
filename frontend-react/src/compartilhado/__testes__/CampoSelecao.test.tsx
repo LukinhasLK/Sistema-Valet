@@ -19,7 +19,7 @@ describe('CampoSelecao', () => {
   it('mostra o placeholder, abre a lista com o nome do rótulo e escolhe pelo clique', () => {
     const aoMudar = vi.fn();
     render(<Formulario aoMudar={aoMudar} />);
-    const botao = screen.getByRole('button', { name: /^Unidade:/ });
+    const botao = screen.getByRole('button', { name: /^Unidade / });
     expect(botao.textContent).toBe('Selecione a unidade');
     fireEvent.click(botao);
     const lista = screen.getByRole('listbox', { name: 'Unidade' });
@@ -33,7 +33,7 @@ describe('CampoSelecao', () => {
   it('funciona pelo teclado: seta para baixo abre, setas navegam e Enter escolhe', () => {
     const aoMudar = vi.fn();
     render(<Formulario aoMudar={aoMudar} />);
-    const botao = screen.getByRole('button', { name: /^Unidade:/ });
+    const botao = screen.getByRole('button', { name: /^Unidade / });
     fireEvent.keyDown(botao, { key: 'ArrowDown' });
     const lista = screen.getByRole('listbox');
     fireEvent.keyDown(lista, { key: 'ArrowDown' });
@@ -46,6 +46,6 @@ describe('CampoSelecao', () => {
     const nativo = document.querySelector<HTMLSelectElement>('select[name="unidade"]')!;
     expect(nativo.id).toBe('unidade');
     fireEvent.change(nativo, { target: { value: '1' } });
-    expect(screen.getByRole('button', { name: /^Unidade:/ }).textContent).toBe('Centro');
+    expect(screen.getByRole('button', { name: /^Unidade / }).textContent).toBe('Centro');
   });
 });

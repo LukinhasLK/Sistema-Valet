@@ -4,6 +4,7 @@
 #
 #   ./deploy/publicar.sh                 (VPS padrão root@2.24.64.11, front React)
 #   FRONT=angular ./deploy/publicar.sh   (publica a versão Angular)
+#   E2E=0 ./deploy/publicar.sh           (pula os testes de uso real — só em emergência)
 #   VPS=root@outro-ip ./deploy/publicar.sh
 set -euo pipefail
 
@@ -21,7 +22,9 @@ if [ "$FRONT" = angular ]; then
     npm run build
     SITE=dist/park-flash/browser
 else
-    (cd frontend-react && npm ci --no-audit --no-fund && npm test && npm run build)
+    (cd frontend-react && npm ci --no-audit --no-fund && npm run lint && npm test && npm run build)
+    # Testes de uso real (navegador + backend de demonstração local). Pular só em emergência: E2E=0
+    if [ "${E2E:-1}" != 0 ]; then (cd frontend-react && npm run e2e); fi
     SITE=frontend-react/dist
 fi
 

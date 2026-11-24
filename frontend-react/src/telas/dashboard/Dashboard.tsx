@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ChartConfiguration } from 'chart.js';
 import { AnimatePresence, motion } from 'motion/react';
-import { BarraFiltros, FiltroPilula } from '../../compartilhado/BarraFiltros';
+import { BarraFiltros } from '../../compartilhado/BarraFiltros';
 import { CartaoKpi } from '../../compartilhado/CartaoKpi';
 import { EsqueletoKpis } from '../../compartilhado/Esqueleto';
 import { TRANSICAO } from '../../compartilhado/movimento';
@@ -21,6 +21,7 @@ import { anoDe, hojeIso, MESES, MESES_CURTOS, mesDe, rotuloPeriodo, TODAS_UNIDAD
 import { podeAcessar } from '../../nucleo/servicos/permissoes';
 import { relatoriosServico } from '../../nucleo/servicos/relatorios';
 import { carregar, salvar } from '../../nucleo/servicos/storage';
+import { useFiltroPeriodo } from '../../compartilhado/useFiltroPeriodo';
 import './dashboard.scss';
 
 const semCentavos = (v: number) => formatarMoeda(v).replace(/\s?,00$/, '');
@@ -34,9 +35,10 @@ export default function Dashboard() {
   const socios = useSocios((s) => s.socios);
   const anos = useMemo(() => anosDisponiveis(fichas, despesas), [fichas, despesas]);
 
-  const [mes, setMes] = useState(() => mesDe(hojeIso()));
-  const [ano, setAno] = useState(() => anoDe(hojeIso()));
-  const [unidadeId, setUnidadeId] = useState(TODAS_UNIDADES);
+  const filtroPeriodo = useFiltroPeriodo({
+    mesPadrao: mesDe(hojeIso()), anoPadrao: anoDe(hojeIso()), anos, unidades, rotuloTodasUnidades: 'Autorizadas',
+  });
+  const { mes, ano, unidadeId } = filtroPeriodo;
   const chaveValores = `parkflash.painel.ocultar-valores.${usuario?.id}`;
   const [valoresOcultos, setValoresOcultos] = useState(() => carregar(chaveValores, false));
   const [alertasAbertos, setAlertasAbertos] = useState(false);
@@ -161,7 +163,7 @@ export default function Dashboard() {
               Nova ficha
             </Link>
             <div className="dash__alertas">
-              <button type="button" className="pf-btn pf-btn--ghost dash__pendencias" aria-label="Pendências do painel"
+              <button type="button" className="pf-btn pf-btn--ghost dash__pendencias"
                 aria-expanded={alertasAbertos} onClick={() => setAlertasAbertos((a) => !a)}
                 onKeyDown={(e) => { if (e.key === 'Escape') setAlertasAbertos(false); }}>
                 <Icone nome="sino" tamanho={16} />
@@ -183,17 +185,13 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <BarraFiltros extra={
+        <BarraFiltros ativos={filtroPeriodo.ativos} aoLimpar={filtroPeriodo.limpar} extra={
           <button type="button" className="pf-btn pf-btn--quiet pf-btn--sm dash__privacidade" aria-pressed={valoresOcultos} onClick={alternarValores}>
             <Icone nome={valoresOcultos ? 'ver' : 'ocultar'} tamanho={15} />
             {valoresOcultos ? 'Mostrar valores' : 'Ocultar valores'}
           </button>
         }>
-          <FiltroPilula rotulo="Mês" icone="eventos" valor={mes} padrao={mesDe(hojeIso())}
-            opcoes={MESES.map((nome, i) => ({ valor: i + 1, rotulo: nome }))} aoMudar={setMes} />
-          <FiltroPilula rotulo="Ano" valor={ano} padrao={anoDe(hojeIso())} opcoes={anos.map((a) => ({ valor: a, rotulo: String(a) }))} aoMudar={setAno} />
-          <FiltroPilula rotulo="Unidade" icone="unidades" valor={unidadeId} padrao={TODAS_UNIDADES}
-            opcoes={[{ valor: TODAS_UNIDADES, rotulo: 'Autorizadas' }, ...unidades.map((u) => ({ valor: u.id, rotulo: u.nome }))]} aoMudar={setUnidadeId} />
+          {filtroPeriodo.etiquetas}
         </BarraFiltros>
 
         {consulta.tipo === 'carregando' ? (

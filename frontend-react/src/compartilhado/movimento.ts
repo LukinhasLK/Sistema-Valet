@@ -1,17 +1,17 @@
-import { gsap } from 'gsap';
+import { animate, stagger } from 'motion';
 import type { Transition } from 'motion/react';
 
 /**
  * Linguagem de movimento do Park Flash.
  *
- * Divisão de papéis (para não haver duas bibliotecas animando a mesma coisa):
- * - **Motion** (motion/react): presença de componentes React — modais, painel lateral, paleta de comandos,
- *   avisos, dicas, menus e mudanças de layout (etiquetas de filtro, menu recolhido).
- * - **GSAP**: sequências imperativas — entrada das telas, números que contam, login, landing e ilustrações.
+ * Papéis (sem duas bibliotecas animando a mesma coisa):
+ * - **Motion** em todo o sistema: presença de componentes (motion/react) e sequências imperativas
+ *   (`animate`/`stagger`): entrada das telas, números que contam, login e ilustrações.
+ * - **GSAP** só nas páginas públicas (apresentação e planos), por causa do ScrollTrigger.
+ *   Elas carregam em pacotes separados, então o sistema não baixa o GSAP.
  * - **CSS**: estados simples (hover, foco, pressionar) com as variáveis --pf-dur-* e --pf-ease-*.
  *
- * Tudo respeita "reduzir movimento": o Motion pelo MotionConfig (reducedMotion="user")
- * e o GSAP por gsap.matchMedia(). As animações GSAP devolvem uma função de limpeza.
+ * Tudo respeita "reduzir movimento" e devolve uma função de limpeza.
  */
 
 export const movimentoReduzido = '(prefers-reduced-motion: reduce)';
@@ -22,11 +22,10 @@ export const DURACAO = { instantanea: 0.09, rapida: 0.14, base: 0.22, lenta: 0.3
 
 /** Curvas: "saída" desacelera (elemento chegando), "entrada" acelera (elemento saindo). */
 export const CURVA = {
-  saida: [0.22, 1, 0.36, 1] as const,
-  entrada: [0.55, 0, 1, 0.45] as const,
-  suave: [0.65, 0, 0.35, 1] as const,
+  saida: [0.22, 1, 0.36, 1] as [number, number, number, number],
+  entrada: [0.55, 0, 1, 0.45] as [number, number, number, number],
+  suave: [0.65, 0, 0.35, 1] as [number, number, number, number],
 };
-export const EASE_GSAP = { saida: 'expo.out', entrada: 'power2.in', suave: 'power2.inOut', padrao: 'power3.out' } as const;
 
 /** Transições prontas para o Motion. */
 export const TRANSICAO = {
@@ -37,45 +36,16 @@ export const TRANSICAO = {
   molaSuave: { type: 'spring', stiffness: 300, damping: 34 },
 } satisfies Record<string, Transition>;
 
-const reduzido = () => typeof window !== 'undefined' && window.matchMedia(movimentoReduzido).matches;
+export const reduzido = () => typeof window !== 'undefined' && window.matchMedia(movimentoReduzido).matches;
+
+type Controle = { complete: () => void };
+const limpar = (controles: Controle[]) => () => controles.forEach((c) => c.complete());
 
 /** Entrada suave (opacidade + leve subida), opcionalmente em cascata. */
 export function entrada(alvos: Element[], deslocamento = 6, escalonar = false): () => void {
-  const media = gsap.matchMedia();
-  media.add(movimentoLivre, () => {
-    gsap.from(alvos, {
-      opacity: 0,
-      ...(deslocamento ? { y: deslocamento } : {}),
-      duration: DURACAO.base,
-      stagger: escalonar ? 0.035 : 0,
-      ease: EASE_GSAP.padrao,
-      clearProps: deslocamento ? 'opacity,transform' : 'opacity',
-    });
-  });
-  return () => media.revert();
-}
-
-/** Saída (usada por componentes que fecham sozinhos antes de avisar o pai). */
-export function saida(fundo: HTMLElement, painel: HTMLElement, fechar: () => void): () => void {
-  const consulta = window.matchMedia(movimentoReduzido);
-  if (consulta.matches) {
-    fechar();
-    return () => {};
-  }
-  const contexto = gsap.context(() => {
-    gsap.timeline({ onComplete: concluir })
-      .to(fundo, { opacity: 0, duration: DURACAO.rapida, ease: EASE_GSAP.entrada }, 0)
-      .to(painel, { y: 5, opacity: 0, duration: DURACAO.rapida, ease: EASE_GSAP.entrada }, 0);
-  });
-  consulta.addEventListener('change', concluir, { once: true });
-  function concluir(): void {
-    consulta.removeEventListener('change', concluir);
-    fechar();
-  }
-  return () => {
-    consulta.removeEventListener('change', concluir);
-    contexto.revert();
-  };
+  if (reduzido() || !alvos.length) return () => {};
+  return limpar([animate(alvos, { opacity: [0, 1], ...(deslocamento ? { y: [deslocamento, 0] } : {}) },
+    { duration: DURACAO.base, ease: CURVA.saida, delay: escalonar ? stagger(0.035) : 0 })]);
 }
 
 /**
@@ -83,20 +53,16 @@ export function saida(fundo: HTMLElement, painel: HTMLElement, fechar: () => voi
  * (no máximo ~0,4 s no total, para não atrasar quem usa o sistema o dia todo).
  */
 export function entradaDeTela(raiz: HTMLElement): () => void {
-  const media = gsap.matchMedia();
-  media.add(movimentoLivre, () => {
-    const q = (seletor: string) => [...raiz.querySelectorAll<HTMLElement>(seletor)];
-    const titulo = q('pf-page-header .head');
-    const blocos = q('[data-entrada], .pf-grid-kpi > *, pf-barra-filtros').slice(0, 10);
-    const cartoes = q('.pf-card:not(.pf-grid-kpi *)').slice(0, 4);
-    const linhas = q('.pf-table tbody tr, [data-entrada-linha]').slice(0, 14);
-    const tl = gsap.timeline({ defaults: { ease: EASE_GSAP.padrao, duration: DURACAO.lenta } });
-    if (titulo.length) tl.from(titulo, { opacity: 0, y: 8, clearProps: 'opacity,transform' }, 0);
-    if (blocos.length) tl.from(blocos, { opacity: 0, y: 10, stagger: 0.03, clearProps: 'opacity,transform' }, 0.04);
-    if (cartoes.length) tl.from(cartoes, { opacity: 0, y: 12, stagger: 0.05, clearProps: 'opacity,transform' }, 0.08);
-    if (linhas.length) tl.from(linhas, { opacity: 0, x: -4, stagger: 0.012, duration: DURACAO.base, clearProps: 'opacity,transform' }, 0.14);
-  });
-  return () => media.revert();
+  if (reduzido()) return () => {};
+  const q = (seletor: string) => [...raiz.querySelectorAll<HTMLElement>(seletor)];
+  const grupos: [HTMLElement[], number, number, Record<string, number[]>][] = [
+    [q('pf-page-header .head'), 0, 0, { y: [8, 0] }],
+    [q('[data-entrada], .pf-grid-kpi > *, pf-barra-filtros').slice(0, 10), 0.04, 0.03, { y: [10, 0] }],
+    [q('.pf-card:not(.pf-grid-kpi *)').slice(0, 4), 0.08, 0.05, { y: [12, 0] }],
+    [q('.pf-table tbody tr, [data-entrada-linha]').slice(0, 14), 0.14, 0.012, { x: [-4, 0] }],
+  ];
+  return limpar(grupos.filter(([alvos]) => alvos.length).map(([alvos, inicio, passo, desloc]) =>
+    animate(alvos, { opacity: [0, 1], ...desloc }, { duration: DURACAO.lenta, ease: CURVA.saida, delay: stagger(passo, { startDelay: inicio }) })));
 }
 
 /**
@@ -108,25 +74,29 @@ export function contar(elemento: HTMLElement, de: number, ate: number, formatar:
     elemento.textContent = formatar(ate);
     return () => {};
   }
-  const estado = { valor: de };
-  const tween = gsap.to(estado, {
-    valor: ate,
+  const controle = animate(de, ate, {
     duration: DURACAO.narrativa,
-    ease: 'power2.out',
-    onUpdate: () => { elemento.textContent = formatar(estado.valor); },
+    ease: CURVA.saida,
+    onUpdate: (v) => { elemento.textContent = formatar(v); },
     onComplete: () => { elemento.textContent = formatar(ate); },
   });
   return () => {
-    tween.kill();
+    controle.stop();
     elemento.textContent = formatar(ate);
   };
 }
 
-/** Pequeno "pulso" de confirmação (ex.: chave Pix copiada, situação atualizada). */
+/** Pequeno "pulso" de confirmação (ex.: situação da ficha atualizada). */
 export function pulso(elemento: Element): () => void {
   if (reduzido()) return () => {};
-  const tween = gsap.fromTo(elemento, { scale: 0.96 }, { scale: 1, duration: DURACAO.lenta, ease: 'back.out(3)', clearProps: 'transform' });
-  return () => tween.kill();
+  return limpar([animate(elemento, { scale: [0.96, 1] }, { type: 'spring', stiffness: 400, damping: 14 })]);
+}
+
+/** Flutuação contínua e discreta (ilustrações). */
+export function flutuar(alvos: Element[], amplitude = 3, duracao = 2.6): () => void {
+  if (reduzido() || !alvos.length) return () => {};
+  const c = animate(alvos, { y: [0, -amplitude] }, { duration: duracao, ease: 'easeInOut', repeat: Infinity, repeatType: 'reverse' });
+  return () => c.stop();
 }
 
 /** Opções de animação do Chart.js alinhadas à linguagem de movimento. */

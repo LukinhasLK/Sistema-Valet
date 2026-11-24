@@ -21,6 +21,7 @@ const Usuarios = lazy(() => import('./telas/usuarios/Usuarios'));
 const Notificacoes = lazy(() => import('./telas/notificacoes/Notificacoes'));
 const Perfil = lazy(() => import('./telas/perfil/Perfil'));
 const Conheca = lazy(() => import('./telas/conheca/Conheca'));
+const Planos = lazy(() => import('./telas/conheca/Planos'));
 
 /** Exige login (antigo authGuard). */
 function ComSessao({ children }: { children: ReactNode }) {
@@ -44,13 +45,21 @@ function ComPermissao({ rota, children }: { rota: string; children: ReactNode })
   return <>{children}</>;
 }
 
+function Inicio() {
+  const nivel = useAuth((s) => s.usuario?.nivel ?? null);
+  if (nivel) return <Navigate to={rotaInicial(nivel)} replace />;
+  return <Conheca />;
+}
+
 const tela = (rota: string, elemento: ReactNode) => ({ path: rota, element: <ComPermissao rota={rota}>{elemento}</ComPermissao> });
 
 export const rotas = createBrowserRouter([
-  { path: '/', element: <Navigate to="/app/dashboard" replace /> },
+  // Página inicial: apresentação para quem não está logado; quem tem sessão vai direto ao sistema.
+  { path: '/', element: <Inicio /> },
   { path: '/login', element: <SemSessao><Login /></SemSessao> },
   // Apresentação pública do produto (não substitui a entrada do sistema).
   { path: '/conheca', element: <Conheca /> },
+  { path: '/planos', element: <Planos /> },
   {
     path: '/app',
     element: <ComSessao><LayoutApp /></ComSessao>,

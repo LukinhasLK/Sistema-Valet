@@ -1,9 +1,9 @@
 import { FormEvent, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { gsap } from 'gsap';
+import { animate, stagger } from 'motion';
 import { Icone } from '../../compartilhado/Icone';
 import { Logo } from '../../compartilhado/Logo';
-import { movimentoLivre } from '../../compartilhado/movimento';
+import { CURVA, reduzido } from '../../compartilhado/movimento';
 import { authServico, useAuth } from '../../nucleo/estado/auth';
 import { useIsMobile, useMovimentoReduzido } from '../../nucleo/estado/layout';
 import { mensagemDeErro } from '../../nucleo/servicos/api';
@@ -38,19 +38,20 @@ export default function Login() {
     senha: !senha || senha.length < 4,
   };
 
-  // Entrada da tela: marca, título, cena e formulário em sequência (GSAP).
+  // Entrada da tela: marca, título, cena e formulário em sequência.
   useLayoutEffect(() => {
     const el = raiz.current;
     if (!el) return;
-    const media = gsap.matchMedia();
-    media.add(movimentoLivre, () => {
-      const tl = gsap.timeline({ defaults: { ease: 'expo.out', duration: 0.8 } });
-      tl.from(el.querySelectorAll('.brand [data-anima]'), { opacity: 0, y: 14, stagger: 0.07 }, 0)
-        .from(el.querySelector('.brand__scene'), { opacity: 0, y: 18, scale: 0.98 }, 0.12)
-        .from(el.querySelector('.card'), { opacity: 0, y: 16, duration: 0.7 }, 0.05)
-        .from(el.querySelectorAll('.card [data-anima]'), { opacity: 0, y: 8, stagger: 0.04, duration: 0.5 }, 0.18);
-    });
-    return () => media.revert();
+    if (reduzido()) return;
+    const q = (sel: string) => [...el.querySelectorAll(sel)];
+    const opcoes = { duration: 0.8, ease: CURVA.saida };
+    const controles = [
+      animate(q('.brand [data-anima]'), { opacity: [0, 1], y: [14, 0] }, { ...opcoes, delay: stagger(0.07) }),
+      ...q('.brand__scene').map((c) => animate(c, { opacity: [0, 1], y: [18, 0], scale: [0.98, 1] }, { ...opcoes, delay: 0.12 })),
+      ...q('.card').map((c) => animate(c, { opacity: [0, 1], y: [16, 0] }, { ...opcoes, duration: 0.7, delay: 0.05 })),
+      animate(q('.card [data-anima]'), { opacity: [0, 1], y: [8, 0] }, { ...opcoes, duration: 0.5, delay: stagger(0.04, { startDelay: 0.18 }) }),
+    ];
+    return () => controles.forEach((c) => c.complete());
   }, [isMobile]);
 
   function iniciarManobra(video: HTMLVideoElement) {

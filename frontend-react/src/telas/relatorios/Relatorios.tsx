@@ -10,11 +10,12 @@ import { anosDisponiveis, periodoReferencia, useFichas } from '../../nucleo/esta
 import { useIsMobile } from '../../nucleo/estado/layout';
 import { useUnidades } from '../../nucleo/estado/unidades';
 import { baixarArquivo } from '../../nucleo/servicos/download';
-import { MESES, rotuloPeriodo, TODAS_UNIDADES } from '../../nucleo/servicos/periodo';
+import { rotuloPeriodo, TODAS_UNIDADES } from '../../nucleo/servicos/periodo';
 import { FiltroRelatorio, relatoriosServico } from '../../nucleo/servicos/relatorios';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { EsqueletoKpis, EsqueletoLista } from '../../compartilhado/Esqueleto';
-import { CampoSelecao } from '../../compartilhado/CampoSelecao';
+import { useFiltroPeriodo } from '../../compartilhado/useFiltroPeriodo';
+import { BarraFiltros } from '../../compartilhado/BarraFiltros';
 import './relatorios.scss';
 
 const classeSaldo = (valor: number) => (valor < 0 ? 'pf-money--neg' : 'pf-money--pos');
@@ -26,9 +27,12 @@ export default function Relatorios() {
   const despesas = useDespesas((s) => s.despesas);
   const unidades = useUnidades((s) => s.unidades);
   const anos = useMemo(() => anosDisponiveis(fichas, despesas), [fichas, despesas]);
-  const [mes, setMes] = useState(() => periodoReferencia(fichas).mes);
-  const [ano, setAno] = useState(() => periodoReferencia(fichas).ano);
-  const [unidadeId, setUnidadeId] = useState(TODAS_UNIDADES);
+  const referencia = useMemo(() => periodoReferencia(fichas), [fichas]);
+  const periodo = useFiltroPeriodo({
+    mesPadrao: referencia.mes, anoPadrao: referencia.ano, anos, rotuloTodosMeses: 'Ano inteiro',
+    unidades, rotuloTodasUnidades: 'Consolidado',
+  });
+  const { mes, ano, unidadeId } = periodo;
   const [exportando, setExportando] = useState<'pdf' | 'excel' | null>(null);
   const periodoLabel = rotuloPeriodo(mes, ano);
 
@@ -67,19 +71,9 @@ export default function Relatorios() {
           </button>
         </CabecalhoPagina>
 
-        <div className="pf-filters nao-imprimir">
-          <CampoSelecao className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
-            <option value={0}>Ano inteiro</option>
-            {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </CampoSelecao>
-          <CampoSelecao className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
-            {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-          </CampoSelecao>
-          <CampoSelecao className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
-            <option value={TODAS_UNIDADES}>Consolidado</option>
-            {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </CampoSelecao>
-        </div>
+        <BarraFiltros ativos={periodo.ativos} aoLimpar={periodo.limpar}>
+          {periodo.etiquetas}
+        </BarraFiltros>
 
         {consulta.tipo === 'carregando' ? (
           <><EsqueletoKpis quantidade={5} /><div style={{ marginTop: 16 }}><EsqueletoLista linhas={6} rotulo="Carregando relatório…" /></div></>

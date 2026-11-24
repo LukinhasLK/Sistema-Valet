@@ -67,12 +67,13 @@ export function CampoSelecao({ children, className = 'pf-select', value, onBlur,
         {children}
       </select>
       {disabled ? (
-        <button type="button" className={`pf-select pf-campo-selecao__botao ${classes}`} disabled aria-label={`${rotuloCampo}: ${atual?.rotulo ?? ''}`}>
+        <button type="button" className={`pf-select pf-campo-selecao__botao ${classes}`} disabled aria-label={`${rotuloCampo} ${atual?.rotulo ?? 'Selecione'}`.trim()}>
           <span className={atual?.desabilitada || !atual ? 'pf-campo-selecao__vazio' : undefined}>{atual?.rotulo ?? ''}</span>
         </button>
       ) : (
         <Seletor rotulo={rotuloCampo} valor={valor} opcoes={visiveis.filter((o) => !o.desabilitada)} aoMudar={escolher}
           className={`pf-select pf-campo-selecao__botao ${classes}`} invalido={classes.includes('ng-invalid')}
+          nomeAcessivel={`${rotuloCampo} ${atual?.rotulo ?? 'Selecione'}`.trim()}
           aoSair={onBlur ? () => onBlur({ target: nativo.current, currentTarget: nativo.current } as unknown as React.FocusEvent<HTMLSelectElement>) : undefined}>
           <span className={atual?.desabilitada || !atual ? 'pf-campo-selecao__vazio' : undefined}>{atual?.rotulo ?? 'Selecione'}</span>
         </Seletor>

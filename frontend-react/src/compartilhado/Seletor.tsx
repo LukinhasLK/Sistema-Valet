@@ -28,6 +28,8 @@ interface Props<V extends string | number> {
   aoSair?: () => void;
   /** Destaque de campo inválido (aria-invalid). */
   invalido?: boolean;
+  /** Nome acessível do botão quando o texto visível é outro (ex.: placeholder "Selecione…"). */
+  nomeAcessivel?: string;
 }
 
 const normalizar = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -37,7 +39,7 @@ const normalizar = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toL
  * Padrão "listbox" acessível: setas, Home/End, Enter/Espaço, Esc, Tab e digitação da inicial.
  * No celular abre como folha na parte de baixo da tela.
  */
-export function Seletor<V extends string | number>({ rotulo, valor, opcoes, aoMudar, children, className, buscaAPartirDe = 9, aoSair, invalido }: Props<V>) {
+export function Seletor<V extends string | number>({ rotulo, valor, opcoes, aoMudar, children, className, buscaAPartirDe = 9, aoSair, invalido, nomeAcessivel }: Props<V>) {
   const id = useId();
   const isMobile = useIsMobile();
   const botao = useRef<HTMLButtonElement>(null);
@@ -186,7 +188,7 @@ export function Seletor<V extends string | number>({ rotulo, valor, opcoes, aoMu
   return (
     <>
       <button ref={botao} type="button" className={className} aria-haspopup="listbox" aria-expanded={aberto}
-        aria-controls={aberto ? `${id}-lista` : undefined} aria-label={`${rotulo}: ${opcoes.find((o) => o.valor === valor)?.rotulo ?? ''}`}
+        aria-controls={aberto ? `${id}-lista` : undefined} aria-label={nomeAcessivel ?? `${rotulo} ${opcoes.find((o) => o.valor === valor)?.rotulo ?? ''}`.trim()}
         aria-invalid={invalido || undefined}
         onClick={() => (aberto ? fechar() : abrir())} onKeyDown={aoTeclarBotao} onBlur={() => { if (!aberto) aoSair?.(); }}>
         {children}

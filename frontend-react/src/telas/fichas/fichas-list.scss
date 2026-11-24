@@ -73,10 +73,12 @@ pf-fichas-list {
   .grupo-cab__resumo {
     margin-left: auto;
     font-size: 12.5px;
-    color: var(--pf-text-muted);
+    color: #56606b;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     .pf-money--pos, .pf-money--neg { font-weight: 600; }
+    .pf-money--pos { color: var(--pf-success-ink); }
+    .pf-money--neg { color: var(--pf-danger-ink); }
   }
 
   .linha-ficha {
@@ -146,7 +148,7 @@ pf-fichas-list {
     border-top: 1px solid var(--pf-border);
     background: var(--pf-surface-alt);
     font-size: 12px;
-    color: var(--pf-text-muted);
+    color: #56606b;
     kbd { min-width: 18px; height: 18px; font-size: 10.5px; }
   }
 
