@@ -97,10 +97,10 @@ export default function Conheca() {
             <div className="heroi__visual" aria-hidden="true">
               <figure className="heroi__janela">
                 <div className="janela__barra"><span /><span /><span /></div>
-                <img src="/conheca/fichas.webp" width={1280} height={800} alt="" />
+                <img src="/midia/conheca/fichas.webp" width={1280} height={800} alt="" />
               </figure>
               <figure className="heroi__celular">
-                <img src="/conheca/celular-ficha.webp" width={390} height={800} alt="" />
+                <img src="/midia/conheca/celular-ficha.webp" width={390} height={800} alt="" />
               </figure>
             </div>
           </section>
@@ -133,7 +133,7 @@ export default function Conheca() {
               <p>Tickets, recebimentos, custos da equipe e saldo final lado a lado com a lista — e o histórico de cada alteração.</p>
             </div>
             <figure className="vitrine__imagem" data-item>
-              <img src="/conheca/ficha-detalhe.webp" width={1280} height={800} loading="lazy"
+              <img src="/midia/conheca/ficha-detalhe.webp" width={1280} height={800} loading="lazy"
                 alt="Tela de fichas do Park Flash com o painel de detalhe aberto, mostrando tickets, caixa e saldo final." />
             </figure>
           </section>
@@ -165,7 +165,7 @@ export default function Conheca() {
               </ul>
             </div>
             <figure className="celular__imagem" data-item>
-              <img src="/conheca/celular-ficha.webp" width={390} height={800} loading="lazy"
+              <img src="/midia/conheca/celular-ficha.webp" width={390} height={800} loading="lazy"
                 alt="Detalhe de uma ficha no celular, com tickets, caixa e o botão de enviar para conferência." />
             </figure>
           </section>

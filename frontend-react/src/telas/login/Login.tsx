@@ -95,9 +95,9 @@ export default function Login() {
           {!isMobile && (
             <div className="brand__scene" aria-hidden="true">
               {movimentoReduzido || usarImagem ? (
-                <img src="/login/manobra-final.png" width={960} height={600} alt="" />
+                <img src="/midia/login/manobra-final.png" width={960} height={600} alt="" />
               ) : (
-                <video src="/login/manobra-3d.mp4" width={960} height={600} autoPlay muted playsInline
+                <video src="/midia/login/manobra-3d.mp4" width={960} height={600} autoPlay muted playsInline
                   disablePictureInPicture tabIndex={-1}
                   onCanPlay={(e) => iniciarManobra(e.currentTarget)} onError={() => setUsarImagem(true)} />
               )}
