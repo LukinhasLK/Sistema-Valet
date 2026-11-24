@@ -81,6 +81,15 @@ scp deploy/vps-endurecer.sh root@2.24.64.11:/root/ && ssh root@2.24.64.11 /root/
 ```
 Agenda o backup diário do banco (03:00, 14 dias em `/root/backups/diario`), limita o login a 10 tentativas/min por IP, põe cabeçalhos de segurança no nginx e liga o fail2ban no SSH. Pode rodar de novo sem efeito colateral.
 
+## Acesso SSH
+
+Desde 24/11/2026 a VPS aceita **só chave SSH** (a do Mac, cadastrada no hPanel em VPS → Manage → Settings → SSH keys). Entrada por senha está desligada em `/etc/ssh/sshd_config.d/00-parkflash.conf`.
+
+Sem o Mac, entre pelo terminal do navegador no hPanel (VPS → Manage → Terminal do navegador) e, se precisar religar a senha:
+```bash
+rm /etc/ssh/sshd_config.d/00-parkflash.conf && systemctl reload ssh
+```
+
 ## Comandos úteis na VPS
 
 ```bash
