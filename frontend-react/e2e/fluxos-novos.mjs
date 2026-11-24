@@ -93,6 +93,11 @@ try {
   const inicioNovo = await p.$eval('pf-modal input[type="datetime-local"]', (e) => e.value).catch(() => '');
   ok('"Evento neste dia" abre o formulário com a data do dia', /^[0-9]{4}-[0-9]{2}-[0-9]{2}T08:00$/.test(inicioNovo), inicioNovo);
   await p.keyboard.press('Escape'); await esp(400);
+  const diaAlvo = await p.$eval('pf-calendario-agenda .dia:not(.dia--fora)', (b) => b.getAttribute('data-dia'));
+  await p.click(`pf-calendario-agenda [data-dia="${diaAlvo}"]`); await esp(500);
+  const inicioClique = await p.$eval('pf-modal input[type="datetime-local"]', (e) => e.value).catch(() => '');
+  ok('Clicar no dia abre o cadastro com a data', inicioClique === `${diaAlvo}T08:00`, `${diaAlvo} → ${inicioClique}`);
+  await p.keyboard.press('Escape'); await esp(400);
   await clicar(p, 'Lista'); await esp(400);
   ok('Alterna para a lista e guarda na URL', p.url().includes('ver=lista'), p.url());
   ok('Sem erros de JavaScript (novas funções)', p.erros.length === 0, p.erros.join(' | '));

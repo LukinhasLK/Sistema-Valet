@@ -136,3 +136,12 @@ pf-divisao-lucro {
 
 }
 
+
+pf-divisao-lucro .aviso-rateio {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: var(--pf-radius-sm);
+  font-size: 13px;
+  color: var(--pf-warning-ink);
+  background: var(--pf-warning-soft);
+}

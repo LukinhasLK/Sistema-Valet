@@ -9,10 +9,9 @@ import { useConsulta } from '../../compartilhado/useConsulta';
 import { useDespesas } from '../../nucleo/estado/despesas';
 import { anosDisponiveis, periodoReferencia, useFichas } from '../../nucleo/estado/fichas';
 import { useIsMobile } from '../../nucleo/estado/layout';
-import { totaisPorUnidade, useSocios } from '../../nucleo/estado/socios';
 import { nomeUnidade, useUnidades } from '../../nucleo/estado/unidades';
 import { round2 } from '../../nucleo/servicos/calc';
-import { rotuloPeriodo } from '../../nucleo/servicos/periodo';
+import { rotuloPeriodo, TODAS_UNIDADES } from '../../nucleo/servicos/periodo';
 import { relatoriosServico } from '../../nucleo/servicos/relatorios';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { EsqueletoKpis } from '../../compartilhado/Esqueleto';
@@ -34,26 +33,26 @@ export default function DivisaoLucro() {
   const fichas = useFichas((s) => s.fichas);
   const despesas = useDespesas((s) => s.despesas);
   const unidades = useUnidades((s) => s.unidades);
-  const socios = useSocios((s) => s.socios);
   const anos = useMemo(() => anosDisponiveis(fichas, despesas), [fichas, despesas]);
   const referencia = useMemo(() => periodoReferencia(fichas), [fichas]);
-  // Começa pela primeira unidade com rateio configurado.
-  const unidadePadrao = useMemo(
-    () => totaisPorUnidade(socios, unidades).filter((t) => t.total > 0)[0]?.unidadeId ?? unidades[0]?.id ?? 0,
-    [socios, unidades],
-  );
-  const periodo = useFiltroPeriodo({ mesPadrao: referencia.mes, anoPadrao: referencia.ano, anos, unidades, unidadePadrao });
+  // Começa por "Todas": a parte de cada sócio somando todas as unidades.
+  const periodo = useFiltroPeriodo({
+    mesPadrao: referencia.mes, anoPadrao: referencia.ano, anos, unidades,
+    unidadePadrao: TODAS_UNIDADES, rotuloTodasUnidades: 'Todas',
+  });
   const { mes, ano, unidadeId } = periodo;
+  const todas = unidadeId === TODAS_UNIDADES;
 
   const { consulta } = useConsulta(
-    async (sinal) => (unidadeId ? relatoriosServico.divisao({ mes, ano, unidadeId }, sinal) : null),
-    [mes, ano, unidadeId],
+    async (sinal) => (unidades.length ? relatoriosServico.divisao({ mes, ano, unidadeId: todas ? undefined : unidadeId }, sinal) : null),
+    [mes, ano, unidadeId, unidades.length],
   );
   const dados = consulta.tipo === 'pronta' ? consulta.dados : null;
   const erro = consulta.tipo === 'erro' ? consulta.mensagem : null;
 
   const periodoLabel = rotuloPeriodo(mes, ano);
-  const unidadeLabel = nomeUnidade(unidades, unidadeId);
+  const unidadeLabel = todas ? 'Todas as unidades' : nomeUnidade(unidades, unidadeId);
+  const semRateio = dados?.unidadesSemRateio ?? [];
   const resultado = dados?.resultado ?? 0;
   const partes = useMemo(() => dados?.partes ?? [], [dados]);
 
@@ -118,13 +117,15 @@ export default function DivisaoLucro() {
   return (
     <pf-divisao-lucro>
       <div className="pf-page">
-        <CabecalhoPagina titulo="Divisão de Lucro" subtitulo="Resultado da unidade (lucro das fichas − despesas fixas) dividido entre os sócios" />
+        <CabecalhoPagina titulo="Divisão de Lucro" subtitulo={todas
+          ? 'Cada unidade dividida pelo seu rateio, com a parte de cada sócio somada'
+          : 'Resultado da unidade (lucro das fichas − despesas fixas) dividido entre os sócios'} />
 
         <BarraFiltros ativos={periodo.ativos} aoLimpar={periodo.limpar}>
           {periodo.etiquetas}
         </BarraFiltros>
 
-        {!unidadeId ? (
+        {!unidades.length ? (
           <EstadoVazio ilustracao="vaga" titulo="Nenhuma unidade cadastrada" texto="Cadastre uma unidade para consultar a divisão de lucro." />
         ) : erro ? (
           <p className="pf-card vazio pf-error" role="alert">{erro}</p>
@@ -136,9 +137,17 @@ export default function DivisaoLucro() {
               <CartaoKpi rotulo="= Resultado a dividir" valor={moeda(resultado)} dica={`${partes.length} sócio(s)`} tom={resultado >= 0 ? 'success' : 'danger'} />
             </section>
 
+            {semRateio.length > 0 && partes.length > 0 && (
+              <p className="aviso-rateio" role="status">
+                Fora da divisão por falta de rateio de 100% neste mês: {semRateio.join(', ')}. Ajuste em <strong>Sócios</strong>.
+              </p>
+            )}
+
             {partes.length === 0 ? (
               <EstadoVazio ilustracao="equipe" titulo="Sem rateio configurado"
-                texto={<>Configure uma distribuição de 100% para {unidadeLabel} no mês selecionado, em <strong>Sócios</strong>.</>} />
+                texto={todas
+                  ? <>Nenhuma unidade tem uma distribuição de 100% no mês selecionado. Configure em <strong>Sócios</strong>.</>
+                  : <>Configure uma distribuição de 100% para {unidadeLabel} no mês selecionado, em <strong>Sócios</strong>.</>} />
             ) : (
               <section className="painel">
                 {/* Distribuição */}
@@ -185,7 +194,7 @@ export default function DivisaoLucro() {
                           <div className="detalhe__barra">
                             <span className="detalhe__preenchimento" style={{ width: `${largura(parte.percentual)}%`, background: corDoSocio(i) }} />
                           </div>
-                          <span className="detalhe__pct">{parte.percentual}% de participação</span>
+                          <span className="detalhe__pct">{todas ? `${parte.percentual}% do total distribuído` : `${parte.percentual}% de participação`}</span>
                         </li>
                       ))}
                     </ul>

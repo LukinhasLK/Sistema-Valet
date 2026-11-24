@@ -42,6 +42,8 @@ export interface DivisaoLucro {
   despesasFixas: number;
   quantidadeFichas: number;
   partes: { socioId: number; nome: string; percentual: number; valor: number }[];
+  /** Unidades com resultado no mês cujo rateio não soma 100% (ficam de fora das partes). */
+  unidadesSemRateio?: string[];
 }
 
 export interface ResumoPainel {
@@ -63,7 +65,8 @@ type P = Record<string, number | undefined>;
 export const relatoriosServico = {
   financeiro: (filtro: FiltroRelatorio, sinal?: AbortSignal) => api.get<RelatorioFinanceiro>(URL, { ...filtro } as P, sinal),
   painel: (filtro: FiltroRelatorio, sinal?: AbortSignal) => api.get<ResumoPainel>('/relatorios/painel', { ...filtro } as P, sinal),
-  divisao: (filtro: { mes: number; ano: number; unidadeId: number }, sinal?: AbortSignal) =>
+  /** Sem `unidadeId`: todas as unidades, com a parte de cada sócio somada. */
+  divisao: (filtro: { mes: number; ano: number; unidadeId?: number }, sinal?: AbortSignal) =>
     api.get<DivisaoLucro>('/relatorios/divisao-lucro', filtro, sinal),
   pdf: (filtro: FiltroRelatorio) => api.arquivo(`${URL}/pdf`, { ...filtro } as P),
   excel: (filtro: FiltroRelatorio) => api.arquivo(`${URL}/excel`, { ...filtro } as P),

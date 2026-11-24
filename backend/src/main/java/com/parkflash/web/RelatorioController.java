@@ -104,7 +104,7 @@ public class RelatorioController {
     @GetMapping("/divisao-lucro")
     @Operation(summary = "Rateio do resultado da unidade entre os sócios (somente Proprietário)")
     public DivisaoLucro divisao(@RequestParam(required = false) Integer mes, @RequestParam int ano,
-                                @RequestParam Long unidadeId, @AuthenticationPrincipal UsuarioLogado ator) {
+                                @RequestParam(required = false) Long unidadeId, @AuthenticationPrincipal UsuarioLogado ator) {
         return servico.divisao(mes, ano, unidadeId, AcessoUnidades.de(ator));
     }
 }

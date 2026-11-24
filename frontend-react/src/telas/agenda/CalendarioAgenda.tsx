@@ -124,7 +124,13 @@ export function CalendarioAgenda({ tipo, unidade, versao, rotuloSituacao, titulo
                     <div key={dia} role="gridcell" aria-selected={dia === diaEscolhido}>
                       <button type="button" data-dia={dia} tabIndex={dia === diaEscolhido ? 0 : -1}
                         className={`dia${foraDoMes ? ' dia--fora' : ''}${dia === hoje() ? ' dia--hoje' : ''}${dia === diaEscolhido ? ' dia--escolhido' : ''}${qtd ? ' dia--com' : ''}`}
-                        onClick={() => { setDiaEscolhido(dia); if (foraDoMes) setMes({ ano: +dia.slice(0, 4), mes: +dia.slice(5, 7) }); }}
+                        title={`Marcar ${nome[0]} neste dia`}
+                        // Clicar no dia já abre o cadastro com a data; ao fechar, o dia fica escolhido com a lista dele.
+                        onClick={() => {
+                          setDiaEscolhido(dia);
+                          if (foraDoMes) setMes({ ano: +dia.slice(0, 4), mes: +dia.slice(5, 7) });
+                          aoCriarNoDia(dia);
+                        }}
                         onKeyDown={(e) => aoTeclar(e, dia)}>
                         <span className="dia__topo">
                           <span className="dia__numero">{+dia.slice(8)}</span>

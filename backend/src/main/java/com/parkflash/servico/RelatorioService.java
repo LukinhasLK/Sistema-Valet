@@ -25,6 +25,8 @@ import java.util.Set;
 @Service
 public class RelatorioService {
 
+    private static final BigDecimal CEM = new BigDecimal("100");
+
     private final FichaRepository fichas;
     private final DespesaRepository despesas;
     private final RateioService rateios;
@@ -88,11 +90,48 @@ public class RelatorioService {
     @Transactional(readOnly = true)
     public DivisaoLucro divisao(Integer mes, int ano, Long unidadeId, AcessoUnidades acesso) {
         if (mes == null) throw new RegraInvalidaException("Escolha o mês de competência do rateio.");
+        if (unidadeId == null) return divisaoTodas(mes, ano, acesso);
         var resumo = resumo(mes, ano, unidadeId, acesso);
         BigDecimal resultado = resumo.resultado();
         var partes = rateios.repartir(resultado, rateios.cotas(unidadeId, inicio(mes, ano)));
+        boolean semRateio = partes.isEmpty() && resultado.signum() != 0;
         return new DivisaoLucro(mes, ano, unidadeId, resultado, partes, resumo.lucroFichas(),
-                resumo.despesasFixas(), resumo.quantidadeFichas());
+                resumo.despesasFixas(), resumo.quantidadeFichas(),
+                semRateio ? List.of(unidades.findById(unidadeId).map(Unidade::getNome).orElse("")) : List.of());
+    }
+
+    /**
+     * Todas as unidades: cada unidade é dividida pelo rateio vigente nela no mês e as partes são
+     * somadas por sócio. O percentual de cada sócio é a fatia dele no total distribuído.
+     */
+    private DivisaoLucro divisaoTodas(int mes, int ano, AcessoUnidades acesso) {
+        if (!acesso.todas()) throw new RegraInvalidaException("Escolha uma unidade.");
+        var total = resumo(mes, ano, null, acesso);
+        var soma = new java.util.LinkedHashMap<Long, BigDecimal>();
+        var nomes = new java.util.HashMap<Long, String>();
+        var semRateio = new java.util.ArrayList<String>();
+        for (Unidade unidade : unidades.findAll(org.springframework.data.domain.Sort.by("nome"))) {
+            var resumo = resumo(mes, ano, unidade.getId(), acesso);
+            var partes = rateios.repartir(resumo.resultado(), rateios.cotas(unidade.getId(), inicio(mes, ano)));
+            if (partes.isEmpty()) {
+                if (resumo.resultado().signum() != 0) semRateio.add(unidade.getNome());
+                continue;
+            }
+            for (var parte : partes) {
+                soma.merge(parte.socioId(), parte.valor(), BigDecimal::add);
+                nomes.putIfAbsent(parte.socioId(), parte.nome());
+            }
+        }
+        BigDecimal distribuido = soma.values().stream().map(BigDecimal::abs).reduce(BigDecimal.ZERO, BigDecimal::add);
+        var partes = soma.entrySet().stream()
+                .sorted(java.util.Map.Entry.<Long, BigDecimal>comparingByValue().reversed())
+                .map(e -> new DivisaoLucro.Parte(e.getKey(), nomes.get(e.getKey()),
+                        distribuido.signum() == 0 ? BigDecimal.ZERO
+                                : e.getValue().abs().multiply(CEM).divide(distribuido, 2, java.math.RoundingMode.HALF_UP),
+                        e.getValue()))
+                .toList();
+        return new DivisaoLucro(mes, ano, null, total.resultado(), partes, total.lucroFichas(), total.despesasFixas(),
+                total.quantidadeFichas(), semRateio);
     }
 
     private static LocalDate inicio(Integer mes, int ano) {
