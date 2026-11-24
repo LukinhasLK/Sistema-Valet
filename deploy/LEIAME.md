@@ -20,7 +20,7 @@ Backups automáticos ficam em `/root/backups/` (banco antigo antes de cada impor
 
 ## Antes de começar
 
-- **Renove a VPS** (vence em 30/11/2026).
+- **Renove a VPS** (vence em 30/12/2026; renovação automática desligada — ative em Billing → Subscriptions no hPanel). Backups semanais da Hostinger ficam fora do servidor (VPS → Manage → Backups & Monitoring).
 - O banco antigo precisa ser PostgreSQL nesta VPS. Os scripts conferem isso e param se não for.
 
 ## Passo a passo
