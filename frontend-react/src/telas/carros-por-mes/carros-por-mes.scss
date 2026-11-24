@@ -43,5 +43,6 @@ pf-estado-vazio { margin-top: 16px; }
   .grafico { margin-top: 12px; }
 }
 
+.tabela-dias { margin-top: 16px; overflow: hidden; .pf-card__head { padding-bottom: 12px; } }
+.linha-total td { font-weight: 700; background: var(--pf-surface-alt); }
 }
-

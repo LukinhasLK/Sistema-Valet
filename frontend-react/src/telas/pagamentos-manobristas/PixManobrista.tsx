@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNivel } from '../../nucleo/estado/auth';
 import { ErroHttp, mensagemDeErro } from '../../nucleo/servicos/api';
 import { pagamentosServico, Pix, TipoPix } from '../../nucleo/servicos/pagamentos-manobristas';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './pix-manobrista.scss';
 
 const TIPOS: Record<TipoPix, string> = {
@@ -119,9 +120,9 @@ export function PixManobrista({ manobristaId }: { manobristaId: number }) {
               <>
                 <div className="pf-field">
                   <label className="pf-label" htmlFor="pix-tipo">Tipo da chave</label>
-                  <select className="pf-select" id="pix-tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoPix)} disabled={ocupado}>
+                  <CampoSelecao className="pf-select" id="pix-tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoPix)} disabled={ocupado}>
                     {OPCOES.map((opcao) => <option key={opcao} value={opcao}>{TIPOS[opcao]}</option>)}
-                  </select>
+                  </CampoSelecao>
                 </div>
                 <div className="pf-field">
                   <label className="pf-label" htmlFor="pix-chave">Nova chave</label>

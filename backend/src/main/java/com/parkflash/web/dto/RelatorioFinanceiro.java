@@ -24,6 +24,24 @@ public record RelatorioFinanceiro(ResumoPeriodo resumo, LocalDate inicio, LocalD
         }).toList();
     }
 
+    /** Carros de um dia numa unidade (turnos dia e noite somados), como no "Detalhamento por dia" do sistema antigo. */
+    public record Dia(LocalDate data, String unidade, int fichas, int carros) {}
+
+    /** O período é um único mês? (o PDF e o Excel de carros mostram então cada dia) */
+    public boolean mesUnico() {
+        return inicio.getYear() == fim.getYear() && inicio.getMonth() == fim.getMonth();
+    }
+
+    public List<Dia> carrosPorDia() {
+        record Chave(LocalDate data, String unidade) {}
+        var porDia = linhas.stream().collect(Collectors.groupingBy(
+                linha -> new Chave(linha.data(), linha.unidade()),
+                () -> new TreeMap<Chave, List<Linha>>(java.util.Comparator.comparing(Chave::data).thenComparing(Chave::unidade)),
+                Collectors.toList()));
+        return porDia.entrySet().stream().map(item -> new Dia(item.getKey().data(), item.getKey().unidade(),
+                item.getValue().size(), item.getValue().stream().mapToInt(Linha::veiculos).sum())).toList();
+    }
+
     public record Subtotal(String unidade, long fichas, long carros, BigDecimal bruto, BigDecimal liquido) {}
 
     public List<Subtotal> subtotaisDasFichas() {

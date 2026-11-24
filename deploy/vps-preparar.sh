@@ -39,6 +39,12 @@ if [ ! -f "$ENV" ]; then
     SENHA_DB=$(gera 32)
     sudo -u postgres psql -v ON_ERROR_STOP=1 -q -c "CREATE ROLE parkflash LOGIN PASSWORD '$SENHA_DB'" \
         || sudo -u postgres psql -v ON_ERROR_STOP=1 -q -c "ALTER ROLE parkflash LOGIN PASSWORD '$SENHA_DB'"
+    # Par VAPID do Web Push (P-256): pública = ponto não comprimido, privada = PKCS#8 DER, ambas em Base64url.
+    b64u() { base64 -w0 | tr '+/' '-_' | tr -d '='; }
+    PEM=$(mktemp); openssl ecparam -name prime256v1 -genkey -noout -out "$PEM" 2>/dev/null
+    VAPID_PRIV=$(openssl pkcs8 -topk8 -nocrypt -in "$PEM" -outform DER | b64u)
+    VAPID_PUB=$(openssl ec -in "$PEM" -pubout -outform DER 2>/dev/null | tail -c 65 | b64u)
+    rm -f "$PEM"
     umask 027
     cat > "$ENV" <<EOF
 # Gerado por vps-preparar.sh em $(date '+%F %T'). NÃO apague nem troque PIX_SEGREDO:
@@ -55,7 +61,11 @@ PIX_SEGREDO=$(gera 64)
 JWT_EXPIRACAO=8h
 CORS_ORIGENS=https://hitmanpark.com,https://www.hitmanpark.com,https://$HOMOLOGACAO
 SERVER_FORWARDHEADERSSTRATEGY=framework
-PUSH_ENVIAR=false
+PUSH_ENVIAR=true
+# Web Push. NÃO troque as chaves: trocar obriga a reativar as notificações em todos os aparelhos.
+PUSH_VAPID_PUBLICA=$VAPID_PUB
+PUSH_VAPID_PRIVADA=$VAPID_PRIV
+PUSH_VAPID_CONTATO=https://hitmanpark.com
 EOF
     chown root:parkflash "$ENV"; chmod 640 "$ENV"
     echo "   segredos gerados em $ENV"

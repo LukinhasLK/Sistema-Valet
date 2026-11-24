@@ -12,15 +12,14 @@ import { avisos } from '../../nucleo/estado/aviso';
 import { fichasServico, useFichas } from '../../nucleo/estado/fichas';
 import { useIsMobile } from '../../nucleo/estado/layout';
 import { manobristasServico, useManobristas } from '../../nucleo/estado/manobristas';
-import { totaisPorUnidade, useSocios } from '../../nucleo/estado/socios';
 import { useUnidades } from '../../nucleo/estado/unidades';
 import { Ficha, ModalidadeCusto, MODALIDADES_CUSTO, Turno } from '../../nucleo/modelos';
 import {
   calcLiquidoCartao, calcSaldoFinal, calcTaxaDescontada, calcTotalBruto, calcTotalCarros, calcTotalDespesas, calcTotalDiarias,
-  dividirEntreSocios,
 } from '../../nucleo/servicos/calc';
 import type { Forma, TipoPix } from '../../nucleo/servicos/pagamentos-manobristas';
 import { hojeIso } from '../../nucleo/servicos/periodo';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './nova-ficha.scss';
 
 const ETAPAS = [
@@ -92,7 +91,6 @@ export default function NovaFicha() {
   const fichas = useFichas((s) => s.fichas);
   const todasUnidades = useUnidades((s) => s.unidades);
   const manobristasDisponiveis = useManobristas((s) => s.manobristas);
-  const socios = useSocios((s) => s.socios);
   const podeConfirmar = nivel === 'Gerente' || nivel === 'Proprietário';
   const podeCadastrarPix = nivel === 'Proprietário';
   const pagina = useRef<HTMLElement>(null);
@@ -212,13 +210,6 @@ export default function NovaFicha() {
     taxaMaquininha: Number(v.taxaMaquininha), manobristas: equipeInformada, despesasAdicionais: despesasInformadas,
   });
 
-  const divisao = useMemo(() => {
-    const unidadeId = Number(v.unidadeId ?? 0);
-    const unidade = totaisPorUnidade(socios, todasUnidades).find((t) => t.unidadeId === unidadeId);
-    return unidade?.valido && v.data?.slice(0, 7) === hojeIso().slice(0, 7)
-      ? dividirEntreSocios(saldoFinal, socios, unidade.unidadeId)
-      : [];
-  }, [v.unidadeId, v.data, socios, todasUnidades, saldoFinal]);
 
   /* ----------------------------------------------------------------- */
   /* Navegação do stepper                                               */
@@ -391,11 +382,11 @@ export default function NovaFicha() {
                 <div className="grid grid--3">
                   <div className="pf-field">
                     <label className="pf-label" htmlFor="unidade">Unidade</label>
-                    <select id="unidade" className={classe('unidadeId', 'pf-select')} value={v.unidadeId ?? ''}
+                    <CampoSelecao id="unidade" className={classe('unidadeId', 'pf-select')} value={v.unidadeId ?? ''}
                       onChange={(e) => f.definir('unidadeId', e.target.value === '' ? null : Number(e.target.value))} onBlur={() => f.tocar('unidadeId')}>
                       <option value="" disabled>Selecione a unidade</option>
                       {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-                    </select>
+                    </CampoSelecao>
                     {invalido('unidadeId') && <span className="pf-error">Escolha a unidade.</span>}
                   </div>
                   <div className="pf-field">
@@ -460,21 +451,21 @@ export default function NovaFicha() {
                     <div key={linha.chave} className="linha linha--equipe" onBlur={tocar}>
                       <div className="pf-field linha__principal">
                         <span className="pf-label">Manobrista</span>
-                        <select className={`pf-select${mostrarErros && linha.manobristaId === null ? ' ng-invalid ng-touched' : ''}`}
+                        <CampoSelecao className={`pf-select${mostrarErros && linha.manobristaId === null ? ' ng-invalid ng-touched' : ''}`}
                           value={linha.manobristaId ?? ''} aria-label="Manobrista"
                           onChange={(e) => alterarLinha(linha.chave, { manobristaId: e.target.value === '' ? null : Number(e.target.value) })}>
                           <option value="" disabled>Selecione</option>
                           {opcoesManobrista(linha.chave).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                        </select>
+                        </CampoSelecao>
                         {mostrarErros && linha.manobristaId === null && <span className="pf-error">Escolha o manobrista.</span>}
                       </div>
 
                       <label className="pf-field linha__modalidade">
                         <span className="pf-label">Modalidade de custo</span>
-                        <select className="pf-select" value={linha.modalidade}
+                        <CampoSelecao className="pf-select" value={linha.modalidade}
                           onChange={(e) => alterarLinha(linha.chave, { modalidade: e.target.value as ModalidadeCusto })}>
                           {MODALIDADES.map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
-                        </select>
+                        </CampoSelecao>
                       </label>
 
                       <label className="pf-field linha__valor">
@@ -486,7 +477,7 @@ export default function NovaFicha() {
                       {!emEdicao && (linha.diaria ?? 0) > 0 && (
                         <label className="pf-field linha__pagamento">
                           <span className="pf-label">Situação do pagamento</span>
-                          <select className="pf-select" value={linha.pagamento} onChange={(e) => alterarLinha(linha.chave, { pagamento: e.target.value })}>
+                          <CampoSelecao className="pf-select" value={linha.pagamento} onChange={(e) => alterarLinha(linha.chave, { pagamento: e.target.value })}>
                             <option value="" disabled>Selecione a situação</option>
                             <option value="PENDENTE">Falta pagar</option>
                             {podeConfirmar && (
@@ -498,7 +489,7 @@ export default function NovaFicha() {
                               </>
                             )}
                             <option value="CONFERIR">Deixar para conferência</option>
-                          </select>
+                          </CampoSelecao>
                           {(linha.diaria ?? 0) > 0 && !linha.pagamento && mostrarErros && <span className="pf-error">Informe se o custo foi pago.</span>}
                         </label>
                       )}
@@ -640,18 +631,6 @@ export default function NovaFicha() {
                   <strong className={saldoFinal < 0 ? 'pf-money--neg' : 'pf-money--pos'}>{moeda(saldoFinal)}</strong>
                 </div>
 
-                {divisao.length > 0 && (
-                  <>
-                    <p className="resumo__subtitulo">Participação no saldo desta ficha</p>
-                    <p className="resumo__aviso">Prévia sem despesas fixas; o rateio do mês fica em Divisão de Lucro.</p>
-                    <ul className="resumo__socios">
-                      {divisao.map((parte) => (
-                        <li key={parte.nome}><span>{parte.nome} ({parte.percentual}%)</span><span>{moeda(parte.valor)}</span></li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-
                 {!isMobile && (
                   <>
                     <button type="submit" className="pf-btn pf-btn--primary pf-btn--block resumo__acao" disabled={salvando}>
@@ -710,10 +689,10 @@ export default function NovaFicha() {
             {podeCadastrarPix && (
               <>
                 <label className="pf-field"><span className="pf-label">Tipo de chave Pix</span>
-                  <select {...nm.campo('tipoPix')} className="pf-select">
+                  <CampoSelecao {...nm.campo('tipoPix')} className="pf-select">
                     <option value="CPF">CPF</option><option value="CNPJ">CNPJ</option><option value="TELEFONE">Telefone</option>
                     <option value="EMAIL">E-mail</option><option value="ALEATORIA">Chave aleatória</option>
-                  </select>
+                  </CampoSelecao>
                 </label>
                 <label className="pf-field"><span className="pf-label">Chave Pix (opcional)</span>
                   <input {...nm.campo('chavePix')} maxLength={254} autoComplete="off" spellCheck={false} />

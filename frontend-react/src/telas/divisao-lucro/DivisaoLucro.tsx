@@ -16,6 +16,7 @@ import { MESES, rotuloPeriodo } from '../../nucleo/servicos/periodo';
 import { relatoriosServico } from '../../nucleo/servicos/relatorios';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { EsqueletoKpis } from '../../compartilhado/Esqueleto';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './divisao-lucro.scss';
 
 const NEUTRO = '#9ca3af';
@@ -117,15 +118,15 @@ export default function DivisaoLucro() {
         <CabecalhoPagina titulo="Divisão de Lucro" subtitulo="Resultado da unidade (lucro das fichas − despesas fixas) dividido entre os sócios" />
 
         <div className="pf-filters">
-          <select className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
+          <CampoSelecao className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
             {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </select>
-          <select className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
+          </CampoSelecao>
+          <CampoSelecao className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
             {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-          <select className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
+          </CampoSelecao>
+          <CampoSelecao className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
             {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
+          </CampoSelecao>
         </div>
 
         {!unidadeId ? (

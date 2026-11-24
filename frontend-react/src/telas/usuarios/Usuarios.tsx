@@ -13,6 +13,7 @@ import { useIsMobile } from '../../nucleo/estado/layout';
 import { useUnidades } from '../../nucleo/estado/unidades';
 import { usuariosServico, useUsuarios } from '../../nucleo/estado/usuarios';
 import { NivelAcesso, NIVEIS_ACESSO, Unidade, Usuario } from '../../nucleo/modelos';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './usuarios.scss';
 
 const CLASSE_NIVEL: Record<NivelAcesso, string> = {
@@ -187,9 +188,9 @@ export default function Usuarios() {
             </div>
             <div className="pf-field">
               <label className="pf-label" htmlFor="us-nivel">Nível de acesso</label>
-              <select id="us-nivel" {...f.campo('nivel')} className="pf-select">
+              <CampoSelecao id="us-nivel" {...f.campo('nivel')} className="pf-select">
                 {NIVEIS_ACESSO.map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
+              </CampoSelecao>
             </div>
 
             {f.valores.nivel !== 'Proprietário' && (

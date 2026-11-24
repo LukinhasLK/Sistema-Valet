@@ -17,6 +17,7 @@ import { MESES } from '../../nucleo/servicos/periodo';
 import { Icone } from '../../compartilhado/Icone';
 import { PixManobrista } from './PixManobrista';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './pagamentos-manobristas.scss';
 
 const FILTRO_INICIAL: FiltroPagamentos = { inicio: '', fim: '', manobristaId: 0, unidadeId: 0, busca: '', situacao: '' };
@@ -379,17 +380,17 @@ export default function PagamentosManobristas() {
           </div>
           <div className="pf-field">
             <label htmlFor="pg-manobrista" className="pf-label">Manobrista</label>
-            <select id="pg-manobrista" name="manobrista" className="pf-select" value={filtro.manobristaId} onChange={(e) => alterarFiltro({ manobristaId: +e.target.value })}>
+            <CampoSelecao id="pg-manobrista" name="manobrista" className="pf-select" value={filtro.manobristaId} onChange={(e) => alterarFiltro({ manobristaId: +e.target.value })}>
               <option value={0}>Todos</option>
               {manobristas.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-            </select>
+            </CampoSelecao>
           </div>
           <div className="pf-field">
             <label htmlFor="pg-unidade" className="pf-label">Unidade</label>
-            <select id="pg-unidade" name="unidade" className="pf-select" value={filtro.unidadeId} onChange={(e) => alterarFiltro({ unidadeId: +e.target.value })}>
+            <CampoSelecao id="pg-unidade" name="unidade" className="pf-select" value={filtro.unidadeId} onChange={(e) => alterarFiltro({ unidadeId: +e.target.value })}>
               <option value={0}>Todas</option>
               {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-            </select>
+            </CampoSelecao>
           </div>
           <div className="pf-field">
             <label htmlFor="pg-inicio" className="pf-label">Início</label>
@@ -402,12 +403,12 @@ export default function PagamentosManobristas() {
           {aba !== 'conferencia' && (
             <div className="pf-field">
               <label htmlFor="pg-situacao" className="pf-label">Situação</label>
-              <select id="pg-situacao" name="situacao" className="pf-select" value={filtro.situacao} onChange={(e) => alterarFiltro({ situacao: e.target.value as Situacao | '' })}>
+              <CampoSelecao id="pg-situacao" name="situacao" className="pf-select" value={filtro.situacao} onChange={(e) => alterarFiltro({ situacao: e.target.value as Situacao | '' })}>
                 <option value="">Todas</option>
                 {aba === 'diarias' && <option value="PENDENTE">Pendente</option>}
                 <option value="PAGO">Pago</option>
                 <option value="ESTORNADO">Estornado</option>
-              </select>
+              </CampoSelecao>
             </div>
           )}
           <div className="acoes">
@@ -709,9 +710,9 @@ export default function PagamentosManobristas() {
                   </div>
                   <div className="pf-field">
                     <label className="pf-label" htmlFor="forma-pg">Forma</label>
-                    <select className="pf-select" id="forma-pg" name="forma" value={forma} onChange={(e) => setForma(e.target.value as Forma)}>
+                    <CampoSelecao className="pf-select" id="forma-pg" name="forma" value={forma} onChange={(e) => setForma(e.target.value as Forma)}>
                       {OPCOES_FORMA.map((f) => <option key={f} value={f}>{FORMAS[f]}</option>)}
-                    </select>
+                    </CampoSelecao>
                   </div>
                 </div>
                 <div className="pf-field">

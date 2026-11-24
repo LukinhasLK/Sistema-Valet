@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { dataBr, moeda } from '../../compartilhado/formatos';
 import { Modal } from '../../compartilhado/Modal';
 import { api, mensagemDeErro } from '../../nucleo/servicos/api';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './financeiro-evento.scss';
 
 type Tipo = 'FICHA' | 'DESPESA';
@@ -105,9 +106,9 @@ export function FinanceiroEvento({ id, nome }: { id: number; nome: string }) {
           )}
           <label className="pf-field">
             <span className="pf-label">Tipo de lançamento</span>
-            <select className="pf-select" value={tipo} disabled={alterando} onChange={(e) => mudarTipo(e.target.value as Tipo)}>
+            <CampoSelecao className="pf-select" value={tipo} disabled={alterando} onChange={(e) => mudarTipo(e.target.value as Tipo)}>
               <option value="FICHA">Fichas</option><option value="DESPESA">Despesas</option>
-            </select>
+            </CampoSelecao>
           </label>
           {erro && (
             <>

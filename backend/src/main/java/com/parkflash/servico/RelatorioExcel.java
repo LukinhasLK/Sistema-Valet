@@ -115,6 +115,33 @@ public class RelatorioExcel {
             total.createCell(2).setCellValue(relatorio.resumo().totalCarros());
             valor(total, 3, relatorio.resumo().totalBruto(), moeda);
             valor(total, 4, relatorio.resumo().lucroFichas(), moeda);
+            if (relatorio.mesUnico()) {
+                // Mês escolhido: aba com cada dia e a quantidade de carros.
+                var dias = arquivo.createSheet("Carros por dia");
+                var cabecalho = dias.createRow(0);
+                var nomes = new String[]{"Data", "Dia", "Unidade", "Fichas", "Carros"};
+                for (int i = 0; i < nomes.length; i++) {
+                    texto(cabecalho, i, nomes[i], null);
+                    dias.setColumnWidth(i, (i == 2 ? 30 : 14) * 256);
+                }
+                dias.createFreezePane(0, 1);
+                int linhaDia = 1;
+                long soma = 0;
+                var br = java.util.Locale.forLanguageTag("pt-BR");
+                for (var dia : relatorio.carrosPorDia()) {
+                    var linha = dias.createRow(linhaDia++);
+                    texto(linha, 0, DATA.format(dia.data()), null);
+                    texto(linha, 1, dia.data().getDayOfWeek().getDisplayName(java.time.format.TextStyle.SHORT, br).replace(".", ""), null);
+                    texto(linha, 2, dia.unidade(), null);
+                    linha.createCell(3).setCellValue(dia.fichas());
+                    linha.createCell(4).setCellValue(dia.carros());
+                    soma += dia.carros();
+                }
+                var totalDias = dias.createRow(linhaDia);
+                texto(totalDias, 0, "Total do mês", null);
+                totalDias.createCell(3).setCellValue(relatorio.resumo().quantidadeFichas());
+                totalDias.createCell(4).setCellValue(soma);
+            }
             arquivo.write(bytes);
             return bytes.toByteArray();
         }

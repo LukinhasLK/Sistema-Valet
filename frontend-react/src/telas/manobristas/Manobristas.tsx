@@ -21,6 +21,7 @@ import { MESES, rotuloPeriodo } from '../../nucleo/servicos/periodo';
 import { podeAcessar } from '../../nucleo/servicos/permissoes';
 import { PixManobrista } from '../pagamentos-manobristas/PixManobrista';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './manobristas.scss';
 
 const fichasDe = (id: number, mes: number, ano: number) => `/app/fichas?manobristaId=${id}&mes=${mes}&ano=${ano}`;
@@ -109,12 +110,12 @@ export default function Manobristas() {
         </CabecalhoPagina>
 
         <div className="pf-filters">
-          <select className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
+          <CampoSelecao className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
             {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </select>
-          <select className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
+          </CampoSelecao>
+          <CampoSelecao className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
             {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
+          </CampoSelecao>
         </div>
 
         {linhas.length === 0 ? (
@@ -213,10 +214,10 @@ export default function Manobristas() {
             {podeGerenciar && !editando && (
               <>
                 <label className="pf-field"><span className="pf-label">Tipo de chave Pix</span>
-                  <select {...f.campo('tipoPix')} className="pf-select">
+                  <CampoSelecao {...f.campo('tipoPix')} className="pf-select">
                     <option value="CPF">CPF</option><option value="CNPJ">CNPJ</option><option value="TELEFONE">Telefone</option>
                     <option value="EMAIL">E-mail</option><option value="ALEATORIA">Chave aleatória</option>
-                  </select>
+                  </CampoSelecao>
                 </label>
                 <label className="pf-field"><span className="pf-label">Chave Pix (opcional)</span>
                   <input {...f.campo('chavePix')} maxLength={254} autoComplete="off" spellCheck={false} />

@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { CalendarioAgenda } from './CalendarioAgenda';
 import { CabecalhoPagina } from '../../compartilhado/CabecalhoPagina';
 import { dataHora, moeda } from '../../compartilhado/formatos';
 import { Icone } from '../../compartilhado/Icone';
@@ -14,6 +15,7 @@ import {
 import { mensagemDeErro } from '../../nucleo/servicos/api';
 import { FinanceiroEvento } from './FinanceiroEvento';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './agenda.scss';
 
 const STATUS_EVENTO: SituacaoEvento[] = ['PLANEJADO', 'CONFIRMADO', 'REALIZADO', 'CANCELADO'];
@@ -31,7 +33,15 @@ const numeroOuNulo = (texto: string) => (texto === '' ? null : Number(texto));
 export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escalas' }) {
   const unidades = useUnidades((s) => s.unidades);
   const manobristas = useManobristas((s) => s.manobristas);
-  const [parametros] = useSearchParams();
+  const [parametros, setParametros] = useSearchParams();
+  // Visualização guardada na URL: calendário (padrão) ou lista.
+  const visao = parametros.get('ver') === 'lista' ? 'lista' : 'calendario';
+  const trocarVisao = (nova: 'lista' | 'calendario') => setParametros((p) => {
+    const n = new URLSearchParams(p);
+    if (nova === 'lista') n.set('ver', 'lista'); else n.delete('ver');
+    return n;
+  }, { replace: true });
+  const [versao, setVersao] = useState(0);
 
   const [unidade, setUnidade] = useState<number | null>(null);
   const [de, setDe] = useState('');
@@ -113,6 +123,21 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
     void buscarEventos(escala);
   }
 
+  /** "Novo evento/escala neste dia": abre o formulário com o dia já preenchido. */
+  function novoNoDia(dia: string) {
+    if (tipo === 'eventos') {
+      abrirEvento();
+      setEventoEditado((e) => e && { ...e, inicio: `${dia}T08:00`, fim: `${dia}T18:00` });
+    } else {
+      abrirEscala();
+      setEscalaEditada((e) => {
+        const escala = e && { ...e, inicio: `${dia}T08:00`, fim: `${dia}T18:00` };
+        escalaAtual.current = escala;
+        return escala;
+      });
+    }
+  }
+
   function trocarUnidadeDaEscala(unidadeId: number | null) {
     if (!escalaEditada) return;
     const escala = { ...escalaEditada, unidadeId, eventoId: null };
@@ -176,6 +201,7 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
         avisos.sucesso('Evento salvo.');
       }
       recarregar();
+      setVersao((v) => v + 1);
     } catch (e) {
       setErroForm(mensagemDeErro(e));
     } finally {
@@ -208,22 +234,39 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
             : <button type="button" className="pf-btn pf-btn--primary" onClick={() => abrirEscala()}><Icone nome="plus" tamanho={17} /> Nova escala</button>}
         </CabecalhoPagina>
 
+        <div className="visoes" role="tablist" aria-label="Visualização">
+          <button type="button" role="tab" aria-selected={visao === 'calendario'} className={`visao${visao === 'calendario' ? ' visao--ativa' : ''}`} onClick={() => trocarVisao('calendario')}>
+            <Icone nome="eventos" tamanho={15} />Calendário
+          </button>
+          <button type="button" role="tab" aria-selected={visao === 'lista'} className={`visao${visao === 'lista' ? ' visao--ativa' : ''}`} onClick={() => trocarVisao('lista')}>
+            <Icone nome="filtro" tamanho={15} />Lista
+          </button>
+        </div>
+
         <div className="pf-filters">
           <label className="pf-field"><span className="pf-label">Unidade</span>
-            <select className="pf-select" value={unidade ?? ''} onChange={(e) => filtrar(numeroOuNulo(e.target.value), de, ate)}>
+            <CampoSelecao className="pf-select" value={unidade ?? ''} onChange={(e) => filtrar(numeroOuNulo(e.target.value), de, ate)}>
               <option value="">Unidades autorizadas</option>
               {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-            </select>
+            </CampoSelecao>
           </label>
+          {visao === 'lista' && <>
           <label className="pf-field"><span className="pf-label">De</span>
             <input className="pf-input" type="date" value={de} onChange={(e) => filtrar(unidade, e.target.value, ate)} />
           </label>
           <label className="pf-field"><span className="pf-label">Até</span>
             <input className="pf-input" type="date" value={ate} onChange={(e) => filtrar(unidade, de, e.target.value)} />
           </label>
+          </>}
         </div>
 
-        {consulta.tipo === 'carregando' ? (
+        {visao === 'calendario' ? (
+          <CalendarioAgenda tipo={tipo} unidade={unidade} versao={versao}
+            rotuloSituacao={(item) => ROTULOS[item.situacao]}
+            tituloDe={(item) => ('nome' in item ? item.nome : `${item.responsavel}${item.manobristaIds.length ? ` · ${item.manobristaIds.length} na equipe` : ''}`)}
+            aoAbrir={(item) => ('nome' in item ? abrirEvento(item) : abrirEscala(item as Escala))}
+            aoCriarNoDia={novoNoDia} />
+        ) : consulta.tipo === 'carregando' ? (
           <p className="pf-card agenda-estado" role="status">Carregando agenda…</p>
         ) : consulta.tipo === 'erro' ? (
           <div className="pf-card agenda-estado">
@@ -262,7 +305,7 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
           </div>
         )}
 
-        {(pagina > 0 || itens.length === TAMANHO_PAGINA) && (
+        {visao === 'lista' && (pagina > 0 || itens.length === TAMANHO_PAGINA) && (
           <footer aria-label="Paginação">
             <button type="button" className="pf-btn pf-btn--ghost" disabled={!pagina || consulta.tipo === 'carregando'} onClick={() => setPagina(pagina - 1)}>Anterior</button>
             <span>Página {pagina + 1}</span>
@@ -282,10 +325,10 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
               <label className="pf-field"><span className="pf-label">Local</span>
                 <input className="pf-input" name="local" required maxLength={200} value={ev.local} onChange={(e) => alterarEvento({ local: e.target.value })} /></label>
               <label className="pf-field"><span className="pf-label">Unidade responsável</span>
-                <select className="pf-select" name="unidade" required value={ev.unidadeId ?? ''} onChange={(e) => alterarEvento({ unidadeId: numeroOuNulo(e.target.value) })}>
+                <CampoSelecao className="pf-select" name="unidade" required value={ev.unidadeId ?? ''} onChange={(e) => alterarEvento({ unidadeId: numeroOuNulo(e.target.value) })}>
                   <option value="" disabled>Selecione</option>
                   {unidades.map((u) => <option key={u.id} value={u.id} disabled={u.ativa === false && u.id !== ev.unidadeId}>{u.nome}</option>)}
-                </select>
+                </CampoSelecao>
               </label>
               <label className="pf-field"><span className="pf-label">Início</span>
                 <input className="pf-input" name="inicio" type="datetime-local" required value={ev.inicio} onChange={(e) => alterarEvento({ inicio: e.target.value })} /></label>
@@ -294,9 +337,9 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
               <label className="pf-field"><span className="pf-label">Responsável</span>
                 <input className="pf-input" name="responsavel" required maxLength={100} value={ev.responsavel} onChange={(e) => alterarEvento({ responsavel: e.target.value })} /></label>
               <label className="pf-field"><span className="pf-label">Situação</span>
-                <select className="pf-select" name="situacao" required value={ev.situacao} onChange={(e) => alterarEvento({ situacao: e.target.value as SituacaoEvento })}>
+                <CampoSelecao className="pf-select" name="situacao" required value={ev.situacao} onChange={(e) => alterarEvento({ situacao: e.target.value as SituacaoEvento })}>
                   {STATUS_EVENTO.map((s) => <option key={s} value={s}>{ROTULOS[s]}</option>)}
-                </select>
+                </CampoSelecao>
               </label>
               <label className="pf-field"><span className="pf-label">Veículos previstos</span>
                 <input className="pf-input" name="veiculos" type="number" min={0} step={1} required value={ev.veiculosPrevistos ?? ''}
@@ -331,18 +374,18 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
           <form onSubmit={(e) => (escalaValida ? salvar(e, es) : e.preventDefault())}>
             <div className="grade">
               <label className="pf-field"><span className="pf-label">Unidade</span>
-                <select className="pf-select" name="unidade" required value={es.unidadeId ?? ''} onChange={(e) => trocarUnidadeDaEscala(numeroOuNulo(e.target.value))}>
+                <CampoSelecao className="pf-select" name="unidade" required value={es.unidadeId ?? ''} onChange={(e) => trocarUnidadeDaEscala(numeroOuNulo(e.target.value))}>
                   <option value="" disabled>Selecione</option>
                   {unidades.map((u) => <option key={u.id} value={u.id} disabled={u.ativa === false && u.id !== es.unidadeId}>{u.nome}</option>)}
-                </select>
+                </CampoSelecao>
               </label>
               <label className="pf-field"><span className="pf-label">Evento (opcional)</span>
-                <select className="pf-select" name="evento" value={es.eventoId ?? ''} disabled={consultandoEventos || !es.unidadeId}
+                <CampoSelecao className="pf-select" name="evento" value={es.eventoId ?? ''} disabled={consultandoEventos || !es.unidadeId}
                   onChange={(e) => alterarEscala({ eventoId: numeroOuNulo(e.target.value) })}>
                   <option value="">Sem evento vinculado</option>
                   {eventosDaUnidade.map((evento) => <option key={evento.id} value={evento.id}>{evento.nome}</option>)}
                   {es.eventoId && !eventosDaUnidade.length && <option value={es.eventoId}>Evento #{es.eventoId}</option>}
-                </select>
+                </CampoSelecao>
               </label>
               <label className="pf-field"><span className="pf-label">Início</span>
                 <input className="pf-input" name="inicio" type="datetime-local" required value={es.inicio} onChange={(e) => alterarEscala({ inicio: e.target.value })} /></label>
@@ -351,9 +394,9 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
               <label className="pf-field"><span className="pf-label">Responsável</span>
                 <input className="pf-input" name="responsavel" required maxLength={100} value={es.responsavel} onChange={(e) => alterarEscala({ responsavel: e.target.value })} /></label>
               <label className="pf-field"><span className="pf-label">Situação</span>
-                <select className="pf-select" name="situacao" required value={es.situacao} onChange={(e) => alterarEscala({ situacao: e.target.value as SituacaoEscala })}>
+                <CampoSelecao className="pf-select" name="situacao" required value={es.situacao} onChange={(e) => alterarEscala({ situacao: e.target.value as SituacaoEscala })}>
                   {STATUS_ESCALA.map((s) => <option key={s} value={s}>{ROTULOS[s]}</option>)}
-                </select>
+                </CampoSelecao>
               </label>
             </div>
             {erroEventos && <p className="pf-error" role="alert">{erroEventos}</p>}

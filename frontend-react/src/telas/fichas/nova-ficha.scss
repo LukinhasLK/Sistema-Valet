@@ -140,24 +140,6 @@ pf-nova-ficha {
   color: var(--pf-text-muted);
 }
 
-.resumo__socios {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-
-  li {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    font-size: 13px;
-
-    span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
-  }
-}
-
 .resumo__aviso {
   margin-top: 16px;
   font-size: 12px;

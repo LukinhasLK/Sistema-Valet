@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Dica } from './Dica';
 import { Icone } from './Icone';
 import { TRANSICAO } from './movimento';
+import { Seletor } from './Seletor';
 import './barra-filtros.scss';
 
 export interface OpcaoFiltro<V extends string | number> {
@@ -20,26 +21,21 @@ interface PropsPilula<V extends string | number> {
 }
 
 /**
- * Etiqueta de filtro: mostra "Rótulo · Valor" e abre a lista nativa do sistema
- * (melhor no celular e acessível por leitor de tela). Quando difere do padrão,
+ * Etiqueta de filtro: mostra "Rótulo · Valor" e abre a lista de seleção do Park Flash
+ * (mesma aparência em qualquer sistema; folha na parte de baixo no celular). Quando difere do padrão,
  * fica destacada e ganha um "×" para voltar ao padrão.
  */
 export function FiltroPilula<V extends string | number>({ rotulo, icone, valor, padrao, opcoes, aoMudar }: PropsPilula<V>) {
   const ativa = valor !== padrao;
   const atual = opcoes.find((o) => o.valor === valor)?.rotulo ?? String(valor);
-  const numerico = typeof padrao === 'number';
   return (
     <motion.span layout="position" transition={TRANSICAO.mola} className={`pilula${ativa ? ' pilula--ativa' : ''}`}>
-      <span className="pilula__corpo">
+      <Seletor rotulo={rotulo} valor={valor} opcoes={opcoes} aoMudar={aoMudar} className="pilula__corpo">
         {icone && <Icone nome={icone} tamanho={14} />}
         <span className="pilula__rotulo">{rotulo}</span>
         <span className="pilula__valor">{atual}</span>
         <Icone nome="abrir" tamanho={13} className="pilula__seta" />
-        <select aria-label={rotulo} value={String(valor)}
-          onChange={(e) => aoMudar((numerico ? Number(e.target.value) : e.target.value) as V)}>
-          {opcoes.map((o) => <option key={String(o.valor)} value={String(o.valor)}>{o.rotulo}</option>)}
-        </select>
-      </span>
+      </Seletor>
       <AnimatePresence initial={false}>
         {ativa && (
           <motion.button key="limpar" type="button" className="pilula__limpar" aria-label={`Remover filtro ${rotulo}`}

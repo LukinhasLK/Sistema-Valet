@@ -14,6 +14,7 @@ import { MESES, rotuloPeriodo, TODAS_UNIDADES } from '../../nucleo/servicos/peri
 import { FiltroRelatorio, relatoriosServico } from '../../nucleo/servicos/relatorios';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { EsqueletoKpis, EsqueletoLista } from '../../compartilhado/Esqueleto';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './relatorios.scss';
 
 const classeSaldo = (valor: number) => (valor < 0 ? 'pf-money--neg' : 'pf-money--pos');
@@ -67,17 +68,17 @@ export default function Relatorios() {
         </CabecalhoPagina>
 
         <div className="pf-filters nao-imprimir">
-          <select className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
+          <CampoSelecao className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
             <option value={0}>Ano inteiro</option>
             {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </select>
-          <select className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
+          </CampoSelecao>
+          <CampoSelecao className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
             {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-          <select className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
+          </CampoSelecao>
+          <CampoSelecao className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
             <option value={TODAS_UNIDADES}>Consolidado</option>
             {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
+          </CampoSelecao>
         </div>
 
         {consulta.tipo === 'carregando' ? (

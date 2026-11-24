@@ -14,6 +14,7 @@ import { nomeUnidade, useUnidades } from '../../nucleo/estado/unidades';
 import { CATEGORIAS_DESPESA, CategoriaDespesa, Despesa, HistoricoDespesa } from '../../nucleo/modelos';
 import { hojeIso, MESES, TODAS_UNIDADES } from '../../nucleo/servicos/periodo';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
+import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './despesas.scss';
 
 const ROTULO_HISTORICO: Record<string, string> = {
@@ -145,21 +146,21 @@ export default function Despesas() {
         </CabecalhoPagina>
 
         <div className="pf-filters">
-          <select className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
+          <CampoSelecao className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
             <option value={0}>Todos os meses</option>
             {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </select>
-          <select className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
+          </CampoSelecao>
+          <CampoSelecao className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
             {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-          <select className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
+          </CampoSelecao>
+          <CampoSelecao className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
             <option value={TODAS_UNIDADES}>Todas as unidades</option>
             {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
-          <select className="pf-select" value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label="Categoria">
+          </CampoSelecao>
+          <CampoSelecao className="pf-select" value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label="Categoria">
             <option value={TODAS_CATEGORIAS}>Categoria</option>
             {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          </CampoSelecao>
         </div>
 
         <label className="pf-label">
@@ -231,19 +232,19 @@ export default function Despesas() {
               </div>
               <div className="pf-field">
                 <label className="pf-label" htmlFor="d-unidade">Unidade</label>
-                <select id="d-unidade" className={f.classe('unidadeId', 'pf-select')} value={f.valores.unidadeId ?? ''}
+                <CampoSelecao id="d-unidade" className={f.classe('unidadeId', 'pf-select')} value={f.valores.unidadeId ?? ''}
                   onChange={(e) => f.definir('unidadeId', e.target.value === '' ? null : Number(e.target.value))} onBlur={() => f.tocar('unidadeId')}>
                   <option value="" disabled>Selecione</option>
                   {unidadesParaLancamento.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-                </select>
+                </CampoSelecao>
                 {f.invalido('unidadeId') && <span className="pf-error">Escolha a unidade.</span>}
               </div>
             </div>
             <div className="pf-field">
               <label className="pf-label" htmlFor="d-categoria">Categoria</label>
-              <select id="d-categoria" {...f.campo('categoria')} className="pf-select">
+              <CampoSelecao id="d-categoria" {...f.campo('categoria')} className="pf-select">
                 {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              </CampoSelecao>
             </div>
             <div className="pf-field">
               <label className="pf-label" htmlFor="d-descricao">Descrição</label>

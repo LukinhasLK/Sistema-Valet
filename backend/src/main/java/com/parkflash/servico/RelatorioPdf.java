@@ -60,6 +60,7 @@ public class RelatorioPdf {
 
     public byte[] carros(RelatorioFinanceiro relatorio) throws IOException {
         var moeda = NumberFormat.getCurrencyInstance(BR);
+        if (relatorio.mesUnico()) return carrosPorDia(relatorio);
         var linhas = relatorio.mesesComMovimento().stream().map(mes -> List.of(
                 mes.mes().getDisplayName(TextStyle.FULL, BR), Integer.toString(mes.fichas()),
                 Integer.toString(mes.carros()), moeda.format(mes.bruto()), moeda.format(mes.liquido()))).toList();
@@ -68,6 +69,31 @@ public class RelatorioPdf {
                         "Fichas  " + relatorio.resumo().quantidadeFichas()),
                 List.of("Mês", "Fichas", "Carros", "Total bruto", "Total líquido"),
                 new int[]{170, 110, 110, 180, 180}, linhas);
+    }
+
+    /** Mês escolhido: cada dia com a quantidade de carros (detalhamento por dia, como no sistema antigo). */
+    private byte[] carrosPorDia(RelatorioFinanceiro relatorio) throws IOException {
+        var dias = relatorio.carrosPorDia();
+        boolean variasUnidades = dias.stream().map(RelatorioFinanceiro.Dia::unidade).distinct().count() > 1;
+        var linhas = new ArrayList<List<String>>();
+        for (var dia : dias) {
+            String semana = dia.data().getDayOfWeek().getDisplayName(TextStyle.SHORT, BR).replace(".", "");
+            linhas.add(variasUnidades
+                    ? List.of(DATA.format(dia.data()), semana, dia.unidade(), Integer.toString(dia.fichas()), Integer.toString(dia.carros()))
+                    : List.of(DATA.format(dia.data()), semana, Integer.toString(dia.fichas()), Integer.toString(dia.carros())));
+        }
+        long total = dias.stream().mapToLong(RelatorioFinanceiro.Dia::carros).sum();
+        long diasComMovimento = dias.stream().map(RelatorioFinanceiro.Dia::data).distinct().count();
+        if (!dias.isEmpty()) {
+            linhas.add(variasUnidades ? List.of("Total do mês", "", "", Integer.toString(relatorio.resumo().quantidadeFichas()), Long.toString(total))
+                    : List.of("Total do mês", "", Integer.toString(relatorio.resumo().quantidadeFichas()), Long.toString(total)));
+        }
+        String mes = relatorio.inicio().getMonth().getDisplayName(TextStyle.FULL, BR);
+        return gerar("Carros por dia | " + mes.substring(0, 1).toUpperCase(BR) + mes.substring(1) + " de " + relatorio.inicio().getYear(), relatorio,
+                List.of("Total de carros  " + total, "Dias com movimento  " + diasComMovimento,
+                        "Média por dia  " + (diasComMovimento == 0 ? 0 : Math.round((double) total / diasComMovimento))),
+                variasUnidades ? List.of("Data", "Dia", "Unidade", "Fichas", "Carros") : List.of("Data", "Dia", "Fichas", "Carros"),
+                variasUnidades ? new int[]{150, 90, 260, 110, 110} : new int[]{180, 120, 180, 180}, linhas);
     }
 
     private byte[] gerar(String titulo, RelatorioFinanceiro relatorio, List<String> totais,

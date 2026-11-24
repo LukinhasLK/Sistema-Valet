@@ -54,6 +54,52 @@ export default function CarrosPorMes() {
     return { variacao: Math.round(((totalCarros - base) / base) * 100), base, meses: meses.size };
   }, [mesesComDados, fichas, ano, unidadeId, totalCarros]);
 
+  /** Mês escolhido: carros de cada dia (dia e noite somados; fichas canceladas ficam de fora, como no PDF). */
+  const porDia = useMemo(() => {
+    if (!mes) return [];
+    const prefixo = `${ano}-${String(mes).padStart(2, '0')}`;
+    const mapa = new Map<string, { fichas: number; carros: number }>();
+    for (const f of fichas) {
+      if (f.situacao === 'CANCELADA' || !f.data.startsWith(prefixo) || (unidadeId !== TODAS_UNIDADES && f.unidadeId !== unidadeId)) continue;
+      const atual = mapa.get(f.data) ?? { fichas: 0, carros: 0 };
+      mapa.set(f.data, { fichas: atual.fichas + 1, carros: atual.carros + f.totalCarros });
+    }
+    return [...mapa.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([data, v]) => ({ data, ...v }));
+  }, [fichas, mes, ano, unidadeId]);
+
+  const graficoDias = useMemo<ChartConfiguration | null>(() => {
+    if (!mes) return null;
+    const diasNoMes = new Date(ano, mes, 0).getDate();
+    const valores = Array.from({ length: diasNoMes }, (_, i) => porDia.find((d) => +d.data.slice(8) === i + 1)?.carros ?? 0);
+    const maior = Math.max(...valores);
+    return {
+      type: 'bar',
+      data: {
+        labels: valores.map((_, i) => String(i + 1)),
+        datasets: [{
+          label: 'Carros',
+          data: valores,
+          backgroundColor: valores.map((v) => (v === 0 ? AZUL.claro : v === maior ? AZUL.escuro : AZUL.medio)),
+          borderRadius: 3,
+          borderSkipped: false,
+          maxBarThickness: 22,
+        }],
+      },
+      options: {
+        ...opcoesBase(),
+        interaction: { mode: 'nearest', intersect: true },
+        scales: escalasPadrao(formatarNumero),
+        plugins: {
+          ...opcoesBase().plugins,
+          tooltip: { ...opcoesBase().plugins!.tooltip, callbacks: {
+            title: (itens) => `${itens[0].label} de ${nomeMes(mes)}`,
+            label: (item) => `${formatarNumero(item.parsed.y ?? 0)} carros`,
+          } },
+        },
+      },
+    };
+  }, [porDia, mes, ano]);
+
   const grafico = useMemo<ChartConfiguration>(() => {
     const maior = Math.max(...resumoAnual.map((m) => m.carros));
     return {
@@ -139,13 +185,42 @@ export default function CarrosPorMes() {
 
         <article className="pf-card grafico">
           <div className="pf-card__head">
-            <h2 className="pf-card__title">Carros manobrados por mês</h2>
-            <p className="pf-card__subtitle">{ano} — o mês recorde aparece em destaque</p>
+            <h2 className="pf-card__title">{mes ? `Carros por dia — ${nomeMes(mes)} de ${ano}` : 'Carros manobrados por mês'}</h2>
+            <p className="pf-card__subtitle">{mes ? 'O dia com mais carros aparece em destaque' : `${ano} — o mês recorde aparece em destaque`}</p>
           </div>
           <div className="pf-card__body">
-            <Grafico config={grafico} altura={isMobile ? 230 : 300} rotulo="Carros manobrados mês a mês" />
+            <Grafico config={graficoDias ?? grafico} altura={isMobile ? 230 : 300} rotulo={mes ? `Carros por dia em ${nomeMes(mes)}` : 'Carros manobrados mês a mês'} />
           </div>
         </article>
+
+        {mes > 0 && porDia.length > 0 && (
+          <article className="pf-card tabela-dias">
+            <div className="pf-card__head">
+              <h2 className="pf-card__title">Carros por dia</h2>
+              <p className="pf-card__subtitle">Os mesmos números do PDF e do Excel deste mês</p>
+            </div>
+            <div className="pf-table-wrap">
+              <table className="pf-table">
+                <thead><tr><th>Data</th><th>Dia</th><th className="num">Fichas</th><th className="num">Carros</th></tr></thead>
+                <tbody>
+                  {porDia.map((d) => (
+                    <tr key={d.data}>
+                      <td className="mes">{d.data.slice(8)}/{d.data.slice(5, 7)}/{d.data.slice(0, 4)}</td>
+                      <td>{new Intl.DateTimeFormat('pt-BR', { weekday: 'long', timeZone: 'UTC' }).format(new Date(`${d.data}T12:00:00Z`))}</td>
+                      <td className="num">{d.fichas}</td>
+                      <td className="num"><strong>{numero(d.carros)}</strong></td>
+                    </tr>
+                  ))}
+                  <tr className="linha-total">
+                    <td colSpan={2}>Total do mês</td>
+                    <td className="num">{porDia.reduce((s, d) => s + d.fichas, 0)}</td>
+                    <td className="num">{numero(porDia.reduce((s, d) => s + d.carros, 0))}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        )}
 
         {mesesComDados.length === 0 ? (
           <EstadoVazio ilustracao="calendario" titulo="Nenhum carro registrado no período"
