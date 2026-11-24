@@ -573,7 +573,7 @@ pf-conheca {
     strong { color: #10283f; font-size: 15px; }
     span { font-size: 13.5px; line-height: 1.5; }
     svg { flex: none; margin-top: 2px; }
-    &--sim { background: var(--pf-blue-soft); svg { color: var(--pf-blue); } }
+    &--sim { background: var(--pf-blue-soft); span { color: #34495e; } svg { color: var(--pf-blue); } }
   }
 
   .agenda__mais { margin-top: 18px; }
