@@ -74,6 +74,13 @@ cd /root/parkflash-pacote && ./vps-instalar.sh        # na VPS
 ./vps-instalar.sh voltar                              # se a versão nova der problema
 ```
 
+## Segurança e backup (uma vez, depois da virada)
+
+```bash
+scp deploy/vps-endurecer.sh root@2.24.64.11:/root/ && ssh root@2.24.64.11 /root/vps-endurecer.sh
+```
+Agenda o backup diário do banco (03:00, 14 dias em `/root/backups/diario`), limita o login a 10 tentativas/min por IP, põe cabeçalhos de segurança no nginx e liga o fail2ban no SSH. Pode rodar de novo sem efeito colateral.
+
 ## Comandos úteis na VPS
 
 ```bash
