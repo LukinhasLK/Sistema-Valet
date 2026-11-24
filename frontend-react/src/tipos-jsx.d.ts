@@ -5,7 +5,7 @@ import 'react';
  * como raiz. Assim o CSS de cada componente continua restrito a ele, como no Angular.
  */
 declare module 'react' {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
+   
   namespace JSX {
     interface IntrinsicElements {
       [tag: `pf-${string}`]: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;

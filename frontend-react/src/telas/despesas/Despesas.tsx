@@ -13,6 +13,7 @@ import { useIsMobile } from '../../nucleo/estado/layout';
 import { nomeUnidade, useUnidades } from '../../nucleo/estado/unidades';
 import { CATEGORIAS_DESPESA, CategoriaDespesa, Despesa, HistoricoDespesa } from '../../nucleo/modelos';
 import { hojeIso, MESES, TODAS_UNIDADES } from '../../nucleo/servicos/periodo';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import './despesas.scss';
 
 const ROTULO_HISTORICO: Record<string, string> = {
@@ -172,10 +173,7 @@ export default function Despesas() {
         </div>
 
         {despesas.length === 0 ? (
-          <div className="pf-card vazio">
-            <p className="vazio__titulo">Nenhuma despesa neste período</p>
-            <p className="vazio__texto">Ajuste os filtros ou registre uma nova despesa.</p>
-          </div>
+          <EstadoVazio ilustracao="busca" titulo="Nenhuma despesa neste período" texto="Ajuste os filtros ou registre uma nova despesa." />
         ) : isMobile ? (
           <div className="cards">
             {paginacao.visiveis.map((d) => (

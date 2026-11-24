@@ -44,7 +44,7 @@ pf-divisao-lucro {
 .negativo {
   font-size: 13px;
   line-height: 1.6;
-  color: #b91c1c;
+  color: var(--pf-danger-ink);
   background: var(--pf-danger-soft);
   border-radius: var(--pf-radius-sm);
   padding: 14px 16px;
@@ -79,7 +79,7 @@ pf-divisao-lucro {
 .detalhe__barra {
   height: 8px;
   border-radius: 999px;
-  background: #eef0f3;
+  background: var(--pf-surface-hover);
   overflow: hidden;
 }
 

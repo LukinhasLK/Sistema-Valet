@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ChartConfiguration } from 'chart.js';
+import { BarraFiltros, FiltroPilula } from '../../compartilhado/BarraFiltros';
 import { CabecalhoPagina } from '../../compartilhado/CabecalhoPagina';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
+import { Icone } from '../../compartilhado/Icone';
+import { lerFiltro, useFiltrosUrl } from '../../compartilhado/useFiltrosUrl';
 import { CartaoKpi } from '../../compartilhado/CartaoKpi';
 import { moeda, numero } from '../../compartilhado/formatos';
 import { Grafico } from '../../compartilhado/Grafico';
@@ -25,9 +29,14 @@ export default function CarrosPorMes() {
   const despesas = useDespesas((s) => s.despesas);
   const unidades = useUnidades((s) => s.unidades);
   const anos = useMemo(() => anosDisponiveis(fichas, despesas), [fichas, despesas]);
-  const [mes, setMes] = useState(0);
-  const [ano, setAno] = useState(() => periodoReferencia(fichas).ano);
-  const [unidadeId, setUnidadeId] = useState(TODAS_UNIDADES);
+  const anoReferencia = useMemo(() => periodoReferencia(fichas).ano, [fichas]);
+  // Filtros na URL, como em Fichas: o link abre o mesmo recorte.
+  const filtros = useFiltrosUrl({
+    mes: { padrao: 0, ler: lerFiltro.inteiro(0, 12) },
+    ano: { padrao: anoReferencia, ler: (b: string) => { const n = Number(b); return anos.includes(n) ? n : undefined; } },
+    unidadeId: { padrao: TODAS_UNIDADES, ler: (b: string) => { const n = Number(b); return unidades.some((u) => u.id === n) ? n : undefined; } },
+  });
+  const { mes, ano, unidadeId } = filtros.valores;
   const [exportando, setExportando] = useState<'pdf' | 'excel' | null>(null);
 
   const resumoAnual = useMemo(() => resumoMensal(fichas, ano, unidadeId), [fichas, ano, unidadeId]);
@@ -91,35 +100,33 @@ export default function CarrosPorMes() {
   return (
     <pf-carros-por-mes>
       <div className="pf-page">
-        <CabecalhoPagina titulo="Carros por Mês" subtitulo="Total de carros manobrados por período">
+        <CabecalhoPagina sobretitulo="Operação" titulo="Carros por Mês" subtitulo="Carros manobrados por período, a partir das fichas lançadas.">
           <button type="button" className="pf-btn pf-btn--ghost" disabled={exportando !== null} onClick={() => exportar('pdf')}>
+            <Icone nome="documento" tamanho={16} />
             {exportando === 'pdf' ? 'Gerando PDF…' : 'Baixar PDF'}
           </button>
           <button type="button" className="pf-btn pf-btn--ghost" disabled={exportando !== null} onClick={() => exportar('excel')}>
+            <Icone nome="baixar" tamanho={16} />
             {exportando === 'excel' ? 'Gerando Excel…' : 'Baixar Excel'}
           </button>
         </CabecalhoPagina>
 
-        <div className="pf-filters">
-          <select className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês">
-            <option value={0}>Todos os meses</option>
-            {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </select>
-          <select className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano">
-            {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-          <select className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade">
-            <option value={TODAS_UNIDADES}>Todas</option>
-            {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
-        </div>
+        <BarraFiltros ativos={filtros.ativos} aoLimpar={filtros.limpar}>
+          <FiltroPilula rotulo="Mês" icone="eventos" valor={mes} padrao={0}
+            opcoes={[{ valor: 0, rotulo: 'Todos os meses' }, ...MESES.map((nome, i) => ({ valor: i + 1, rotulo: nome }))]}
+            aoMudar={(v) => filtros.definir({ mes: v })} />
+          <FiltroPilula rotulo="Ano" valor={ano} padrao={anoReferencia} opcoes={anos.map((a) => ({ valor: a, rotulo: String(a) }))} aoMudar={(v) => filtros.definir({ ano: v })} />
+          <FiltroPilula rotulo="Unidade" icone="unidades" valor={unidadeId} padrao={TODAS_UNIDADES}
+            opcoes={[{ valor: TODAS_UNIDADES, rotulo: 'Todas' }, ...unidades.map((u) => ({ valor: u.id, rotulo: u.nome }))]}
+            aoMudar={(v) => filtros.definir({ unidadeId: v })} />
+        </BarraFiltros>
 
         <section className="pf-grid-kpi">
-          <CartaoKpi rotulo={mes ? 'Total de carros no mês' : 'Total de carros no ano'} valor={numero(totalCarros)}
+          <CartaoKpi rotulo={mes ? 'Total de carros no mês' : 'Total de carros no ano'} icone="carros" valor={numero(totalCarros)} numero={totalCarros} formato={numero}
             dica={mes ? `${nomeMes(mes)} de ${ano}` : String(ano)} />
-          <CartaoKpi rotulo="Melhor mês" valor={melhorMes ? nomeMes(melhorMes.mes) : '—'}
+          <CartaoKpi rotulo="Melhor mês" icone="tendencia" valor={melhorMes ? nomeMes(melhorMes.mes) : '—'}
             dica={melhorMes ? `${numero(melhorMes.carros)} carros` : 'sem registros'} />
-          <CartaoKpi rotulo="Média mensal" valor={numero(mediaMensal)} dica="meses com movimento" />
+          <CartaoKpi rotulo="Média mensal" icone="relatorios" valor={numero(mediaMensal)} numero={mediaMensal} formato={numero} dica="meses com movimento" />
           {comparativo ? (
             <CartaoKpi rotulo="Comparativo ano ant."
               valor={`${comparativo.variacao >= 0 ? '↑ ' : '↓ '}${Math.abs(comparativo.variacao)}%`}
@@ -141,10 +148,10 @@ export default function CarrosPorMes() {
         </article>
 
         {mesesComDados.length === 0 ? (
-          <div className="pf-card vazio">
-            <p className="vazio__titulo">Nenhum registro no período</p>
-            <p className="vazio__texto">Escolha outro mês, ano ou unidade.</p>
-          </div>
+          <EstadoVazio ilustracao="calendario" titulo="Nenhum carro registrado no período"
+            texto="Os totais vêm das fichas lançadas. Escolha outro mês, ano ou unidade.">
+            {filtros.ativos > 0 && <button type="button" className="pf-btn pf-btn--ghost" onClick={filtros.limpar}>Limpar filtros</button>}
+          </EstadoVazio>
         ) : isMobile ? (
           <div className="cards">
             {mesesComDados.map((m) => (
@@ -167,17 +174,17 @@ export default function CarrosPorMes() {
             <div className="pf-table-wrap">
               <table className="pf-table">
                 <thead>
-                  <tr><th>Mês</th><th className="num">Fichas</th><th className="num">Carros</th><th className="num">Total bruto</th><th className="num">Total líquido</th><th>Ações</th></tr>
+                  <tr><th>Mês</th><th className="num">Fichas</th><th className="num">Carros</th><th className="num">Total bruto</th><th className="num">Total líquido</th><th className="actions"><span className="pf-sr-only">Ações</span></th></tr>
                 </thead>
                 <tbody>
                   {mesesComDados.map((m) => (
                     <tr key={m.mes}>
-                      <td>{nomeMes(m.mes)}</td>
+                      <td className="mes">{nomeMes(m.mes)}</td>
                       <td className="num">{m.fichas}</td>
                       <td className="num">{numero(m.carros)}</td>
                       <td className="num">{moeda(m.bruto)}</td>
                       <td className={`num ${classeSaldo(m.liquido)}`}>{moeda(m.liquido)}</td>
-                      <td><Link className="pf-btn pf-btn--ghost" to={verFichas(m.mes)}>Ver fichas de {nomeMes(m.mes)}</Link></td>
+                      <td className="actions"><Link className="pf-btn pf-btn--ghost pf-btn--sm" to={verFichas(m.mes)}>Ver fichas de {nomeMes(m.mes)}<Icone nome="seta" tamanho={14} /></Link></td>
                     </tr>
                   ))}
                 </tbody>

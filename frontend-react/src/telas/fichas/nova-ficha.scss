@@ -81,7 +81,7 @@ pf-nova-ficha {
   color: var(--pf-text-muted);
   cursor: pointer;
 
-  &:hover:not(:disabled) { background: var(--pf-danger-soft); color: #b91c1c; border-color: #fecaca; }
+  &:hover:not(:disabled) { background: var(--pf-danger-soft); color: var(--pf-danger-ink); border-color: #f0cccc; }
   &:disabled { opacity: .4; cursor: not-allowed; }
 }
 

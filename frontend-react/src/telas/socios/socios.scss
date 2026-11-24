@@ -15,12 +15,12 @@ pf-socios {
   padding: 0 12px;
   border-radius: 999px;
   background: var(--pf-success-soft);
-  color: #047857;
+  color: var(--pf-success-ink);
   font-size: 12px;
   font-weight: 600;
 
-  &--erro { background: var(--pf-danger-soft); color: #b91c1c; }
-  &--vazia { background: #f3f4f6; color: var(--pf-text-muted); }
+  &--erro { background: var(--pf-danger-soft); color: var(--pf-danger-ink); }
+  &--vazia { background: var(--pf-surface-alt); color: var(--pf-text-muted); }
 }
 
 .tabela { overflow: hidden; }
@@ -66,8 +66,8 @@ pf-socios {
   border-radius: 6px;
   font-family: inherit;
 
-  &:hover { background: #eef0f3; color: var(--pf-text); }
-  &--danger:hover { background: var(--pf-danger-soft); color: #b91c1c; }
+  &:hover { background: var(--pf-surface-hover); color: var(--pf-text); }
+  &--danger:hover { background: var(--pf-danger-soft); color: var(--pf-danger-ink); }
 }
 
 .vazio {
@@ -149,9 +149,9 @@ pf-socios {
   gap: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: #047857;
+  color: var(--pf-success-ink);
 
-  &--erro { color: #b91c1c; }
+  &--erro { color: var(--pf-danger-ink); }
 }
 
 }

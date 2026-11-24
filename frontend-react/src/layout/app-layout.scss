@@ -1,41 +1,70 @@
-/* Gerado de src/app/layouts/app-layout/app-layout.component.scss — escopado em <pf-app-layout>. */
 pf-app-layout {
-.shell {
-  display: flex;
-  min-height: 100vh;
-  background: var(--pf-bg);
+  .shell {
+    display: flex;
+    min-height: 100vh;
+    background: var(--pf-bg);
+  }
+
+  .shell--mobile { flex-direction: column; }
+
+  .content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .content--mobile {
+    padding-bottom: calc(var(--pf-bottomnav-h) + env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: 56px;
+    padding: 0 8px 0 16px;
+    padding-top: env(safe-area-inset-top);
+    box-sizing: content-box;
+    background: rgba(255, 255, 255, .9);
+    backdrop-filter: saturate(1.4) blur(12px);
+    border-bottom: 1px solid var(--pf-border);
+  }
+
+  .topbar__logo { display: flex; text-decoration: none; }
+  .topbar__avatar { width: 32px; height: 32px; margin: 0 6px 0 4px; font-size: 13px; text-decoration: none; }
+
+  .topbar__acoes { display: flex; align-items: center; gap: 2px; }
+
+  .topbar__botao {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--pf-text);
+    cursor: pointer;
+    &:active { background: var(--pf-surface-hover); }
+  }
+
+  .topbar__sino span {
+    position: absolute;
+    top: 5px;
+    right: 3px;
+    min-width: 18px;
+    padding: 1px 5px;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--pf-blue);
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+  }
 }
-
-.shell--mobile { flex-direction: column; }
-
-.content {
-  flex: 1;
-  min-width: 0;
-}
-
-.content--mobile {
-  padding-bottom: calc(var(--pf-bottomnav-h) + env(safe-area-inset-bottom));
-}
-
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  height: 58px;
-  padding: 0 16px;
-  background: var(--pf-surface);
-  border-bottom: 1px solid var(--pf-border);
-}
-
-.topbar__avatar { width: 32px; height: 32px; font-size: 13px; text-decoration: none; }
-
-.topbar__acoes { display: flex; align-items: center; gap: 10px; }
-.topbar__sino { display: grid; place-items: center; position: relative; width: 44px; height: 44px; color: var(--pf-text); }
-.topbar__sino span { position: absolute; inset: 2px 0 auto auto; border-radius: 999px; padding: 2px 5px; color: white; background: #a52828; font-size: 11px; font-weight: 700; }
-
-}
-

@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ChartConfiguration } from 'chart.js';
+import { AnimatePresence, motion } from 'motion/react';
+import { BarraFiltros, FiltroPilula } from '../../compartilhado/BarraFiltros';
 import { CartaoKpi } from '../../compartilhado/CartaoKpi';
+import { EsqueletoKpis } from '../../compartilhado/Esqueleto';
+import { TRANSICAO } from '../../compartilhado/movimento';
 import { moeda, numero } from '../../compartilhado/formatos';
 import { Grafico } from '../../compartilhado/Grafico';
 import { Icone } from '../../compartilhado/Icone';
@@ -37,6 +41,8 @@ export default function Dashboard() {
   const [valoresOcultos, setValoresOcultos] = useState(() => carregar(chaveValores, false));
   const [alertasAbertos, setAlertasAbertos] = useState(false);
   const primeiroNome = usuario?.nome.split(' ')[0] ?? '';
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
   const periodo = rotuloPeriodo(mes, ano).toUpperCase();
 
   const { consulta, tentarNovamente } = useConsulta(
@@ -147,48 +153,51 @@ export default function Dashboard() {
         <header className="dash__head">
           <div>
             <p className="dash__periodo">{periodo}</p>
-            <h1 className="dash__saudacao">Olá, {primeiroNome}</h1>
+            <h1 className="dash__saudacao">{saudacao}, {primeiroNome}</h1>
           </div>
           <div className="dash__acoes">
             <Link className="pf-btn pf-btn--primary" to="/app/fichas/nova">
               <Icone nome="plus" tamanho={17} />
-              Ficha
+              Nova ficha
             </Link>
             <div className="dash__alertas">
               <button type="button" className="pf-btn pf-btn--ghost dash__pendencias" aria-label="Pendências do painel"
                 aria-expanded={alertasAbertos} onClick={() => setAlertasAbertos((a) => !a)}
                 onKeyDown={(e) => { if (e.key === 'Escape') setAlertasAbertos(false); }}>
-                Pendências {alertas.length > 0 && <span aria-hidden="true">({alertas.length})</span>}
+                <Icone nome="sino" tamanho={16} />
+                Pendências {alertas.length > 0 && <span className="dash__contador" aria-hidden="true">{alertas.length}</span>}
               </button>
+              <AnimatePresence>
               {alertasAbertos && (
-                <div className="alertas" role="region" aria-label="Pendências do painel"
+                <motion.div className="alertas" role="region" aria-label="Pendências do painel"
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, transition: TRANSICAO.saida }} transition={TRANSICAO.mola}
                   onKeyDown={(e) => { if (e.key === 'Escape') setAlertasAbertos(false); }}>
                   <p className="alertas__titulo">Pendências</p>
                   {alertas.length ? alertas.map((alerta) => (
                     <Link key={alerta.texto} className="alertas__item" to={alerta.rota} onClick={() => setAlertasAbertos(false)}>{alerta.texto}</Link>
-                  )) : <p className="alertas__vazio">Nenhum alerta. Tudo em dia!</p>}
-                </div>
+                  )) : <p className="alertas__vazio"><Icone nome="sucesso" tamanho={16} />Nenhum alerta. Tudo em dia!</p>}
+                </motion.div>
               )}
+              </AnimatePresence>
             </div>
           </div>
         </header>
 
-        <div className="pf-filters">
-          <select className="pf-select" value={mes} onChange={(e) => setMes(+e.target.value)} aria-label="Mês do painel">
-            {MESES.map((nome, i) => <option key={nome} value={i + 1}>{nome}</option>)}
-          </select>
-          <select className="pf-select" value={ano} onChange={(e) => setAno(+e.target.value)} aria-label="Ano do painel">
-            {anos.map((valor) => <option key={valor} value={valor}>{valor}</option>)}
-          </select>
-          <select className="pf-select" value={unidadeId} onChange={(e) => setUnidadeId(+e.target.value)} aria-label="Unidade do painel">
-            <option value={TODAS_UNIDADES}>Unidades autorizadas</option>
-            {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
-          <button type="button" className="pf-btn pf-btn--ghost dash__privacidade" aria-pressed={valoresOcultos} onClick={alternarValores}>Ocultar valores</button>
-        </div>
+        <BarraFiltros extra={
+          <button type="button" className="pf-btn pf-btn--quiet pf-btn--sm dash__privacidade" aria-pressed={valoresOcultos} onClick={alternarValores}>
+            <Icone nome={valoresOcultos ? 'ver' : 'ocultar'} tamanho={15} />
+            {valoresOcultos ? 'Mostrar valores' : 'Ocultar valores'}
+          </button>
+        }>
+          <FiltroPilula rotulo="Mês" icone="eventos" valor={mes} padrao={mesDe(hojeIso())}
+            opcoes={MESES.map((nome, i) => ({ valor: i + 1, rotulo: nome }))} aoMudar={setMes} />
+          <FiltroPilula rotulo="Ano" valor={ano} padrao={anoDe(hojeIso())} opcoes={anos.map((a) => ({ valor: a, rotulo: String(a) }))} aoMudar={setAno} />
+          <FiltroPilula rotulo="Unidade" icone="unidades" valor={unidadeId} padrao={TODAS_UNIDADES}
+            opcoes={[{ valor: TODAS_UNIDADES, rotulo: 'Autorizadas' }, ...unidades.map((u) => ({ valor: u.id, rotulo: u.nome }))]} aoMudar={setUnidadeId} />
+        </BarraFiltros>
 
         {consulta.tipo === 'carregando' ? (
-          <p role="status">Carregando indicadores…</p>
+          <EsqueletoKpis />
         ) : consulta.tipo === 'erro' ? (
           <>
             <p className="pf-error" role="alert">{consulta.mensagem}</p>
@@ -196,23 +205,23 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            <section className="pf-grid-kpi">
+            <section className="pf-grid-kpi" data-tour="kpis-dashboard">
               {!valoresOcultos && (
                 <>
-                  <CartaoKpi rotulo="Faturamento hoje" valor={moeda(consulta.dados.brutoHoje)} />
-                  <CartaoKpi rotulo="Faturamento do mês" valor={moeda(consulta.dados.mes.totalBruto)} />
+                  <CartaoKpi rotulo="Faturamento hoje" icone="dinheiro" valor={moeda(consulta.dados.brutoHoje)} numero={consulta.dados.brutoHoje} formato={moeda} />
+                  <CartaoKpi rotulo="Faturamento do mês" icone="dinheiro" valor={moeda(consulta.dados.mes.totalBruto)} numero={consulta.dados.mes.totalBruto} formato={moeda} />
                 </>
               )}
-              <CartaoKpi rotulo="Fichas" valor={numero(consulta.dados.mes.quantidadeFichas)} />
-              <CartaoKpi rotulo="Veículos" valor={numero(consulta.dados.mes.totalCarros)} />
+              <CartaoKpi rotulo="Fichas" icone="fichas" valor={numero(consulta.dados.mes.quantidadeFichas)} numero={consulta.dados.mes.quantidadeFichas} formato={numero} />
+              <CartaoKpi rotulo="Veículos" icone="carros" valor={numero(consulta.dados.mes.totalCarros)} numero={consulta.dados.mes.totalCarros} formato={numero} />
               {!valoresOcultos && (
                 <>
-                  <CartaoKpi rotulo="Resultado do mês" valor={moeda(consulta.dados.mes.resultado)}
+                  <CartaoKpi rotulo="Resultado do mês" icone="tendencia" valor={moeda(consulta.dados.mes.resultado)} numero={consulta.dados.mes.resultado} formato={moeda}
                     dica={`Mês anterior: ${moeda(consulta.dados.resultadoAnterior)}`} tom={consulta.dados.mes.resultado < 0 ? 'danger' : 'success'} />
-                  <CartaoKpi rotulo="Despesas totais" valor={moeda(consulta.dados.despesasTotais)} dica="Adicionais e fixas" />
-                  <CartaoKpi rotulo="Custos de manobristas" valor={moeda(consulta.dados.custosManobristas)} dica="Registrados nas fichas" />
-                  <CartaoKpi rotulo="Pagamentos pendentes" valor={moeda(consulta.dados.pagamentosPendentes)} dica="Diárias reconhecidas pelo mês do trabalho" />
-                  <CartaoKpi rotulo="Pagamentos confirmados" valor={moeda(consulta.dados.pagamentosConfirmados)} dica="Pelo mês da baixa registrada" />
+                  <CartaoKpi rotulo="Despesas totais" icone="despesas" valor={moeda(consulta.dados.despesasTotais)} numero={consulta.dados.despesasTotais} formato={moeda} dica="Adicionais e fixas" />
+                  <CartaoKpi rotulo="Custos de manobristas" icone="manobristas" valor={moeda(consulta.dados.custosManobristas)} numero={consulta.dados.custosManobristas} formato={moeda} dica="Registrados nas fichas" />
+                  <CartaoKpi rotulo="Pagamentos pendentes" icone="relogio" valor={moeda(consulta.dados.pagamentosPendentes)} numero={consulta.dados.pagamentosPendentes} formato={moeda} dica="Diárias reconhecidas pelo mês do trabalho" />
+                  <CartaoKpi rotulo="Pagamentos confirmados" icone="sucesso" valor={moeda(consulta.dados.pagamentosConfirmados)} numero={consulta.dados.pagamentosConfirmados} formato={moeda} dica="Pelo mês da baixa registrada" />
                 </>
               )}
             </section>

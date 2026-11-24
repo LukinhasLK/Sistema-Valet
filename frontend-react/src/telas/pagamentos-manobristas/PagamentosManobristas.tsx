@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { CabecalhoPagina } from '../../compartilhado/CabecalhoPagina';
 import { Calendario } from '../../compartilhado/Calendario';
 import { CartaoKpi } from '../../compartilhado/CartaoKpi';
-import { dataBr, dataHora, moeda } from '../../compartilhado/formatos';
+import { dataBr, dataHora, moeda, numero } from '../../compartilhado/formatos';
 import { Modal } from '../../compartilhado/Modal';
 import { avisos } from '../../nucleo/estado/aviso';
 import { useIsMobile } from '../../nucleo/estado/layout';
@@ -14,7 +14,9 @@ import {
   Aba, Candidato, Confirmacao, Diaria, FiltroPagamentos, Forma, Pagamento, pagamentosServico, Pendencia, Resumo, Situacao,
 } from '../../nucleo/servicos/pagamentos-manobristas';
 import { MESES } from '../../nucleo/servicos/periodo';
+import { Icone } from '../../compartilhado/Icone';
 import { PixManobrista } from './PixManobrista';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import './pagamentos-manobristas.scss';
 
 const FILTRO_INICIAL: FiltroPagamentos = { inicio: '', fim: '', manobristaId: 0, unidadeId: 0, busca: '', situacao: '' };
@@ -240,15 +242,23 @@ export default function PagamentosManobristas() {
     });
   }
 
-  function abrirPagamento() {
-    if (!selecao.length) return;
+  function abrirPagamento(lista: Diaria[] = selecao) {
+    if (!lista.length) return;
     setTentativa(null);
     setArquivo(null);
     setForma('PIX');
     setValor('');
     setDataPagamento(HOJE);
-    setDataMinima(selecao.reduce((maior, d) => (d.data > maior ? d.data : maior), ''));
-    abrir({ tipo: 'pagamento', diarias: selecao });
+    setDataMinima(lista.reduce((maior, d) => (d.data > maior ? d.data : maior), ''));
+    abrir({ tipo: 'pagamento', diarias: lista });
+  }
+
+  /** Atalho de "Quem falta pagar": seleciona as diárias pendentes listadas da pessoa e abre a revisão. */
+  const pendentesDe = (manobristaId: number) => diarias.filter((d) => d.manobristaId === manobristaId && d.saldo > 0).slice(0, 100);
+  function pagarPessoa(manobristaId: number) {
+    const lista = pendentesDe(manobristaId);
+    setSelecao(lista);
+    abrirPagamento(lista);
   }
 
   function anexar(input: HTMLInputElement) {
@@ -428,18 +438,31 @@ export default function PagamentosManobristas() {
                 <>
                   {resumo && (
                     <div className="pf-grid-kpi kpis" aria-label="Resumo financeiro">
-                      <CartaoKpi rotulo="Total a pagar" valor={moeda(resumo.aPagar)} tom="accent" dica="Por data de trabalho" />
-                      <CartaoKpi rotulo="Total pago" valor={moeda(resumo.pago)} tom="success" dica="Por data de pagamento" />
-                      <CartaoKpi rotulo="Manobristas pendentes" valor={`${resumo.manobristasPendentes}`} />
-                      <CartaoKpi rotulo="Pagamentos realizados" valor={`${resumo.pagamentos}`} />
+                      <CartaoKpi rotulo="Total a pagar" icone="relogio" valor={moeda(resumo.aPagar)} numero={resumo.aPagar} formato={moeda} tom="accent" dica="Por data de trabalho" />
+                      <CartaoKpi rotulo="Total pago" icone="sucesso" valor={moeda(resumo.pago)} numero={resumo.pago} formato={moeda} tom="success" dica="Por data de pagamento" />
+                      <CartaoKpi rotulo="Manobristas pendentes" icone="manobristas" valor={numero(resumo.manobristasPendentes)} numero={resumo.manobristasPendentes} formato={numero} />
+                      <CartaoKpi rotulo="Pagamentos realizados" icone="pagamentos" valor={numero(resumo.pagamentos)} numero={resumo.pagamentos} formato={numero} />
                     </div>
                   )}
-                  <section className="pf-card saldos-pessoa" aria-label="Saldo a receber por manobrista">
-                    <header className="pf-card__head"><h2 className="pf-card__title">Quem falta pagar</h2></header>
+                  <section className="pf-card saldos-pessoa" aria-label="Saldo a receber por manobrista" data-tour="pagamentos">
+                    <header className="pf-card__head">
+                      <h2 className="pf-card__title">Quem falta pagar</h2>
+                      <p className="pf-card__subtitle">Pague pelo seu banco usando a chave Pix e confirme aqui. O sistema não faz transferências.</p>
+                    </header>
                     <div className="pf-card__body">
                       {saldosPorPessoa.length ? saldosPorPessoa.map((p) => (
                         <article key={p.id}>
-                          <div className="linha-card__head"><strong>{p.nome}</strong><strong>{moeda(p.centavos / 100)}</strong></div>
+                          <div className="linha-card__head pessoa">
+                            <span className="pessoa__nome"><strong>{p.nome}</strong><span className="pessoa__valor">{moeda(p.centavos / 100)} pendente</span></span>
+                            <span className="pessoa__acoes">
+                              <button type="button" className="pf-btn pf-btn--ghost pf-btn--sm" onClick={() => abrir({ tipo: 'pix', id: p.id, nome: p.nome })}
+                                aria-label={`Chave Pix de ${p.nome}`}><Icone nome="pix" tamanho={15} />Chave Pix</button>
+                              {pendentesDe(p.id).length > 0 && (
+                                <button type="button" className="pf-btn pf-btn--primary pf-btn--sm" onClick={() => pagarPessoa(p.id)}
+                                  aria-label={`Pagar ${p.nome}: revisar e confirmar pagamento`}><Icone nome="pagamentos" tamanho={15} />Pagar</button>
+                              )}
+                            </span>
+                          </div>
                           {p.unidades.map((u) => (
                             <div key={u.unidadeId} className="saldo-unidade">
                               <span>{u.unidade} · {u.diarias} {u.diarias === 1 ? 'diária' : 'diárias'}</span>
@@ -449,7 +472,7 @@ export default function PagamentosManobristas() {
                             </div>
                           ))}
                         </article>
-                      )) : <p className="muted">Nenhum saldo pendente para os filtros aplicados.</p>}
+                      )) : <EstadoVazio solto compacto ilustracao="tudo-certo" titulo="Ninguém esperando pagamento" texto="Nenhum saldo pendente para os filtros aplicados." />}
                     </div>
                   </section>
                   <div className="pf-card selecao">
@@ -458,7 +481,7 @@ export default function PagamentosManobristas() {
                         <p aria-live="polite"><strong>{selecao[0].manobrista}</strong> · {selecao.length} diária(s) · <strong>{moeda(soma)}</strong></p>
                         <div className="acoes">
                           <button type="button" className="pf-btn pf-btn--ghost" onClick={() => setSelecao([])}>Limpar seleção</button>
-                          <button type="button" className="pf-btn pf-btn--primary" onClick={abrirPagamento}>Revisar pagamento</button>
+                          <button type="button" className="pf-btn pf-btn--primary" onClick={() => abrirPagamento()}>Revisar pagamento</button>
                         </div>
                       </>
                     ) : <p>Selecione as diárias de um manobrista para registrar o pagamento.</p>}
@@ -512,11 +535,9 @@ export default function PagamentosManobristas() {
                       </div></div>
                     )
                   ) : (
-                    <div className="pf-card estado">
-                      <strong>Nenhuma diária encontrada</strong>
-                      <p className="muted">Ajuste os filtros ou confira as novas fichas para reconhecer um saldo.</p>
+                    <EstadoVazio ilustracao="busca" titulo="Nenhuma diária encontrada" texto="Ajuste os filtros ou confira as novas fichas para reconhecer um saldo.">
                       <button type="button" className="pf-btn pf-btn--ghost" onClick={() => trocarAba('conferencia')}>Conferir fichas</button>
-                    </div>
+                    </EstadoVazio>
                   )}
                 </>
               )}
@@ -552,10 +573,9 @@ export default function PagamentosManobristas() {
                       </table>
                     </div></div>
                   ) : (
-                    <div className="pf-card estado"><strong>Nenhuma ficha para conferir</strong>
-                      <p className="muted">As novas fichas elegíveis com diárias lançadas aparecem aqui.</p>
+                    <EstadoVazio ilustracao="tudo-certo" titulo="Nenhuma ficha para conferir" texto="As novas fichas elegíveis com diárias lançadas aparecem aqui.">
                       <Link className="pf-btn pf-btn--ghost" to="/app/fichas">Ver fichas</Link>
-                    </div>
+                    </EstadoVazio>
                   )}
                 </>
               )}
@@ -597,7 +617,7 @@ export default function PagamentosManobristas() {
                     </table>
                   </div></div>
                 ) : (
-                  <div className="pf-card estado"><strong>Nenhum pagamento encontrado</strong><p className="muted">Os pagamentos registrados aparecem aqui, inclusive os estornados.</p></div>
+                  <EstadoVazio ilustracao="busca" titulo="Nenhum pagamento encontrado" texto="Os pagamentos registrados aparecem aqui, inclusive os estornados." />
                 )
               )}
 

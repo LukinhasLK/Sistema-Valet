@@ -16,7 +16,7 @@ export function Confirmar({ titulo = 'Confirmar exclusão', mensagem, rotuloConf
         <p className="msg">{mensagem}</p>
         <div className="acoes">
           <button type="button" className="pf-btn pf-btn--ghost" onClick={aoCancelar}>Cancelar</button>
-          <button type="button" className="pf-btn danger" onClick={aoConfirmar}>{rotuloConfirmar}</button>
+          <button type="button" className="pf-btn pf-btn--danger" onClick={aoConfirmar}>{rotuloConfirmar}</button>
         </div>
       </Modal>
     </pf-confirm>

@@ -17,7 +17,7 @@ pf-usuarios {
   padding: 0 7px;
   border-radius: 999px;
   background: var(--pf-accent-soft);
-  color: #92400e;
+  color: var(--pf-warning-ink);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .04em;
@@ -54,8 +54,8 @@ pf-usuarios {
   border-radius: 6px;
   font-family: inherit;
 
-  &:hover:not(:disabled) { background: #eef0f3; color: var(--pf-text); }
-  &--danger:hover:not(:disabled) { background: var(--pf-danger-soft); color: #b91c1c; }
+  &:hover:not(:disabled) { background: var(--pf-surface-hover); color: var(--pf-text); }
+  &--danger:hover:not(:disabled) { background: var(--pf-danger-soft); color: var(--pf-danger-ink); }
   &:disabled { opacity: .4; cursor: not-allowed; }
 }
 

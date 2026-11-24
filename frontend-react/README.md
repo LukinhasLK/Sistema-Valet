@@ -1,6 +1,6 @@
 # Park Flash — Front end em React
 
-Front end do Park Flash reescrito em **React 18 + TypeScript**, com o mesmo visual e as mesmas regras da versão Angular (pasta `src/` na raiz do repositório). Ele usa a mesma API Spring Boot (`backend/`).
+Front end do Park Flash em **React 18 + TypeScript**, com as mesmas regras da versão Angular e a identidade visual nova (ver `docs/modernizacao-visual-relatorio.md`) (pasta `src/` na raiz do repositório). Ele usa a mesma API Spring Boot (`backend/`).
 
 ## Tecnologias
 
@@ -12,8 +12,10 @@ Front end do Park Flash reescrito em **React 18 + TypeScript**, com o mesmo visu
 | Rotas | React Router 6 (carregamento sob demanda de cada tela) |
 | Estado global | Zustand (uma store por recurso: fichas, unidades, manobristas…) |
 | Gráficos | Chart.js 4 |
-| Animações | GSAP (respeita "reduzir movimento" do sistema) |
-| Estilos | SCSS, com os mesmos design tokens da versão Angular |
+| Animações | GSAP (sequências, landing) + Motion (presença de componentes); ambos respeitam "reduzir movimento" |
+| Ícones e fontes | Lucide; Plus Jakarta Sans e Inter servidas pelo próprio site (@fontsource) |
+| Qualidade | ESLint (typescript-eslint + regras de hooks) |
+| Estilos | SCSS com design tokens (azul #186A9D, azul-marinho #10283F) em `estilos.scss` |
 | Testes | Vitest + Testing Library (jsdom) |
 
 ## Como rodar
@@ -29,7 +31,9 @@ npm run dev          # http://localhost:4200 (o Vite encaminha /api para a 8080)
 Outros comandos:
 
 ```bash
-npm test             # testes unitários (35)
+npm test             # testes unitários (59)
+npm run lint         # ESLint
+npm run typecheck    # TypeScript sem gerar arquivos
 npm run build        # checa os tipos e gera dist/ para produção
 npm run preview      # serve o build de produção localmente
 ```

@@ -1,18 +1,35 @@
+import { useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { Dica } from '../compartilhado/Dica';
 import { Icone } from '../compartilhado/Icone';
 import { Logo } from '../compartilhado/Logo';
+import { TRANSICAO } from '../compartilhado/movimento';
 import { authServico, inicialDe, useNivel, useUsuario } from '../nucleo/estado/auth';
+import { interfaceServico, teclaComando, useMenuRecolhido } from '../nucleo/estado/interface';
 import { useTotalNaoLidas } from '../nucleo/servicos/notificacoes';
-import { corDoAvatar, itensPermitidos, NAV_ITEMS } from './itens-menu';
+import { corDoAvatar, gruposPermitidos } from './itens-menu';
 import './sidebar.scss';
-
-const classeItem = ({ isActive }: { isActive: boolean }) => `nav-item${isActive ? ' nav-item--active' : ''}`;
 
 export function Sidebar() {
   const usuario = useUsuario();
   const nivel = useNivel();
   const naoLidas = useTotalNaoLidas();
   const navegar = useNavigate();
+  const recolhido = useMenuRecolhido();
+  const grupos = gruposPermitidos(nivel);
+
+  // "[" recolhe/expande o menu (fora de campos de texto).
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      const alvo = e.target as HTMLElement;
+      if (e.key !== '[' || e.metaKey || e.ctrlKey || e.altKey || alvo.closest('input, textarea, select, [contenteditable], [role=dialog]')) return;
+      e.preventDefault();
+      interfaceServico.alternarMenu(recolhido);
+    };
+    document.addEventListener('keydown', aoTeclar);
+    return () => document.removeEventListener('keydown', aoTeclar);
+  }, [recolhido]);
 
   function sair() {
     authServico.logout();
@@ -20,34 +37,71 @@ export function Sidebar() {
   }
 
   return (
-    <pf-sidebar>
-      <aside className="sidebar">
-        <div className="sidebar__brand"><Logo escuro tamanho={19} /></div>
+    <pf-sidebar data-recolhido={recolhido ? '' : undefined}>
+      <aside className="sidebar" aria-label="Menu lateral">
+        <div className="sidebar__brand">
+          <NavLink to="/app/dashboard" className="sidebar__logo" aria-label="Park Flash — início">
+            {recolhido ? <img src="/favicon.svg" alt="" width={28} height={28} /> : <Logo tamanho={18} />}
+          </NavLink>
+          <Dica texto={recolhido ? 'Expandir menu' : 'Recolher menu'} atalho="[" lado="right">
+            <button type="button" className="sidebar__recolher" aria-label={recolhido ? 'Expandir menu' : 'Recolher menu'}
+              aria-expanded={!recolhido} onClick={() => interfaceServico.alternarMenu(recolhido)}>
+              <Icone nome={recolhido ? 'expandir' : 'recolher'} tamanho={17} />
+            </button>
+          </Dica>
+        </div>
 
-        <nav className="sidebar__nav" aria-label="Navegação principal">
-          {itensPermitidos(NAV_ITEMS, nivel).map((item) => (
-            <NavLink key={item.rota} className={classeItem} to={item.rota}>
-              <Icone nome={item.icone} tamanho={18} />
-              <span>{item.label}</span>
-              {item.rota === '/app/notificacoes' && !!naoLidas && (
-                <span className="nav-item__contador" aria-label={`${naoLidas} não lidas`}>{naoLidas > 99 ? '99+' : naoLidas}</span>
-              )}
-            </NavLink>
+        <Dica texto="Buscar ou ir para…" atalho={`${teclaComando}K`} lado="right" desligada={!recolhido}>
+          <button type="button" className="sidebar__busca" onClick={interfaceServico.abrirPaleta} data-tour="paleta"
+            aria-label="Buscar ou ir para (paleta de comandos)" aria-keyshortcuts="Meta+K Control+K">
+            <Icone nome="busca" tamanho={16} />
+            <span className="sidebar__busca-texto">Buscar ou ir para…</span>
+            <kbd className="sidebar__busca-atalho">{teclaComando}K</kbd>
+          </button>
+        </Dica>
+
+        <nav className="sidebar__nav" aria-label="Navegação principal" data-tour="menu">
+          {grupos.map((grupo) => (
+            <div key={grupo.id} className="grupo" role="group" aria-labelledby={`grupo-${grupo.id}`}>
+              <p id={`grupo-${grupo.id}`} className="grupo__titulo">{grupo.titulo}</p>
+              {grupo.itens.map((item) => {
+                const contador = item.rota === '/app/notificacoes' && naoLidas ? (naoLidas > 99 ? '99+' : String(naoLidas)) : '';
+                return (
+                  <Dica key={item.rota} texto={item.label} lado="right" desligada={!recolhido}>
+                    <NavLink className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`} to={item.rota}
+                      aria-label={recolhido ? item.label : undefined}>
+                      {({ isActive }) => (
+                        <>
+                          {isActive && <motion.span layoutId="nav-ativo" className="nav-item__fundo" transition={TRANSICAO.mola} />}
+                          <Icone nome={item.icone} tamanho={17} />
+                          <span className="nav-item__rotulo">{item.label}</span>
+                          {contador && <span className="nav-item__contador" aria-label={`${naoLidas} não lidas`}>{contador}</span>}
+                        </>
+                      )}
+                    </NavLink>
+                  </Dica>
+                );
+              })}
+            </div>
           ))}
         </nav>
 
         {usuario && (
           <footer className="sidebar__user">
-            <NavLink className="sidebar__user-link" to="/app/perfil" title="Meu perfil">
-              <span className="pf-avatar" style={{ background: corDoAvatar(usuario.nome) }}>{inicialDe(usuario)}</span>
-              <span className="sidebar__user-info">
-                <span className="sidebar__user-name">{usuario.nome}</span>
-                <span className="sidebar__user-role">{usuario.nivel}</span>
-              </span>
-            </NavLink>
-            <button type="button" className="sidebar__logout" aria-label="Sair" title="Sair" onClick={sair}>
-              <Icone nome="sair" tamanho={17} />
-            </button>
+            <Dica texto="Meu perfil" lado="right" desligada={!recolhido}>
+              <NavLink className="sidebar__user-link" to="/app/perfil" aria-label="Meu perfil" data-tour="perfil">
+                <span className="pf-avatar" style={{ background: corDoAvatar(usuario.nome) }}>{inicialDe(usuario)}</span>
+                <span className="sidebar__user-info">
+                  <span className="sidebar__user-name">{usuario.nome}</span>
+                  <span className="sidebar__user-role">{usuario.nivel}</span>
+                </span>
+              </NavLink>
+            </Dica>
+            <Dica texto="Sair da conta" lado={recolhido ? 'right' : 'top'}>
+              <button type="button" className="sidebar__logout" aria-label="Sair" onClick={sair}>
+                <Icone nome="sair" tamanho={16} />
+              </button>
+            </Dica>
           </footer>
         )}
       </aside>

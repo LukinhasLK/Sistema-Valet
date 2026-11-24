@@ -1,22 +1,24 @@
 import { ChartOptions, TooltipOptions } from 'chart.js';
+import { ANIMACAO_GRAFICO } from './movimento';
 
 /**
  * Paleta categórica validada para daltonismo (deutan/protan/tritan).
  * Os três primeiros slots passam em todos os pares — é o limite de séries
  * que um gráfico categórico deste app deve exibir.
  */
-export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a'] as const;
+/** Validada (scripts/validate_palette.js do guia de dataviz): azul da marca, laranja e verde. */
+export const SERIES = ['#186a9d', '#eb6834', '#1baf7a'] as const;
 
 /** Hue sequencial única, do claro ao escuro. */
 export const AZUL = {
-  claro: '#9ec5f4',
-  medio: '#2a78d6',
-  escuro: '#184f95',
+  claro: '#bcd8ea',
+  medio: '#186a9d',
+  escuro: '#0e4466',
 } as const;
 
 export const SUPERFICIE = '#ffffff';
-export const GRADE = '#e5e7eb';
-export const TEXTO_EIXO = '#6b7280';
+export const GRADE = '#e9edf1';
+export const TEXTO_EIXO = '#69737e';
 export const FONTE = "'Inter', system-ui, sans-serif";
 
 const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -27,7 +29,7 @@ export const formatarNumero = (v: number) => NUMERO.format(v);
 
 /** Tooltip com a mesma linguagem visual dos cards. */
 export const TOOLTIP: Partial<TooltipOptions> = {
-  backgroundColor: '#111827',
+  backgroundColor: '#10283f',
   titleFont: { family: FONTE, size: 12, weight: 600 },
   bodyFont: { family: FONTE, size: 13, weight: 500 },
   padding: 10,
@@ -42,6 +44,7 @@ export function opcoesBase(): ChartOptions {
   return {
     responsive: true,
     maintainAspectRatio: false,
+    animation: ANIMACAO_GRAFICO,
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: { display: false },

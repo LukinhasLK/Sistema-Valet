@@ -1,10 +1,5 @@
 /* Gerado de src/app/features/pagamentos-manobristas/pagamentos-manobristas.component.scss — escopado em <pf-pagamentos-manobristas>. */
 pf-pagamentos-manobristas {
-& {
-  --pf-danger: #b91c1c;
-  --pf-accent-dark: #a65b08;
-  --pf-success: #047857;
-}
 
 .abas, .acoes, .paginacao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .abas { margin-bottom: 14px; }
@@ -80,6 +75,10 @@ input[type='checkbox'] { width: 18px; height: 18px; accent-color: var(--pf-prima
 .saldos-pessoa article + article { border-top: 1px solid var(--pf-border); margin-top: 12px; padding-top: 12px; }
 .saldo-unidade { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 6px; }
 .saldo-unidade span:first-child { flex: 1; }
+.pessoa { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pessoa__nome { display: flex; flex-direction: column; gap: 1px; }
+.pessoa__valor { font-family: var(--pf-font-display); font-weight: 700; color: var(--pf-warning-ink); font-variant-numeric: tabular-nums; }
+.pessoa__acoes { display: flex; gap: 6px; flex-wrap: wrap; }
 
 }
 @keyframes mostrar { from { opacity: 0; transform: translateY(4px); } }

@@ -11,6 +11,7 @@ import { percentualDoSocio, RevisaoRateio, sociosServico, totaisPorUnidade, useS
 import { nomeUnidade, useUnidades } from '../../nucleo/estado/unidades';
 import { Socio, Unidade } from '../../nucleo/modelos';
 import { hojeIso } from '../../nucleo/servicos/periodo';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import './socios.scss';
 
 const MES_ATUAL = hojeIso().slice(0, 7);
@@ -133,10 +134,7 @@ export default function Socios() {
         </div>
 
         {socios.length === 0 ? (
-          <div className="pf-card vazio">
-            <p className="vazio__titulo">Nenhum sócio cadastrado</p>
-            <p className="vazio__texto">Cadastre os sócios para que o app calcule a divisão do lucro.</p>
-          </div>
+          <EstadoVazio ilustracao="equipe" titulo="Nenhum sócio cadastrado" texto="Cadastre os sócios para que o app calcule a divisão do lucro." />
         ) : isMobile ? (
           <div className="cards">
             {socios.map((s) => (

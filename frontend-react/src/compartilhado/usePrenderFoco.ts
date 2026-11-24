@@ -19,7 +19,7 @@ export function usePrenderFoco(painel: RefObject<HTMLElement | null>, inicial?: 
       if (!itens.length) return;
       const primeiro = itens[0];
       const ultimo = itens[itens.length - 1];
-      if (evento.shiftKey && document.activeElement === primeiro) {
+      if (evento.shiftKey && (document.activeElement === primeiro || document.activeElement === elemento)) {
         evento.preventDefault();
         ultimo.focus();
       } else if (!evento.shiftKey && document.activeElement === ultimo) {

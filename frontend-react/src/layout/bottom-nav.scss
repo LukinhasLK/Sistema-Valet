@@ -1,138 +1,155 @@
-/* Gerado de src/app/shared/components/bottom-nav/bottom-nav.component.scss — escopado em <pf-bottom-nav>. */
 pf-bottom-nav {
-.bottom-nav {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  background: var(--pf-surface);
-  border-top: 1px solid var(--pf-border);
-  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
-  box-shadow: 0 -2px 12px rgba(17, 24, 39, .06);
-}
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: rgba(255, 255, 255, .94);
+    backdrop-filter: saturate(1.4) blur(14px);
+    border-top: 1px solid var(--pf-border);
+    padding: 7px 6px calc(7px + env(safe-area-inset-bottom));
+  }
 
-.bn-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  text-decoration: none;
-  color: var(--pf-text-muted);
-  font-family: inherit;
+  .bn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--pf-text-muted);
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
 
-  &__pill {
+    &__pill {
+      position: relative;
+      isolation: isolate;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 54px;
+      height: 30px;
+      border-radius: 999px;
+      transition: color var(--pf-dur-fast) ease;
+    }
+
+    &__fundo {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: 999px;
+      background: var(--pf-blue-soft);
+    }
+
+    &__label { font-size: 11px; font-weight: 500; }
+
+    &--active {
+      color: var(--pf-blue-press);
+      .bn-item__pill { color: var(--pf-blue); }
+      .bn-item__label { font-weight: 700; }
+    }
+  }
+
+  /* Folha "Mais" ------------------------------------------------------------ */
+  .mais-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(16, 40, 63, .45);
+    z-index: 45;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .mais {
+    width: 100%;
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    background: var(--pf-surface);
+    border-radius: 20px 20px 0 0;
+    padding: 10px 16px calc(var(--pf-bottomnav-h) + 18px + env(safe-area-inset-bottom));
+  }
+
+  .mais__alca { padding: 4px 0 6px; margin: -10px -16px 4px; touch-action: none; cursor: grab; }
+
+  .mais__handle {
+    display: block;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--pf-border-strong);
+    margin: 0 auto 10px;
+  }
+
+  .mais__grupo + .mais__grupo { margin-top: 14px; }
+
+  .mais__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--pf-text-muted);
+    margin: 0 2px 8px;
+  }
+
+  .mais__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .mais__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 84px;
+    padding: 12px 6px;
+    border-radius: 14px;
+    background: var(--pf-surface-alt);
+    border: 1px solid var(--pf-border);
+    color: var(--pf-text);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.25;
+    transition: transform var(--pf-dur-instant) ease, background-color var(--pf-dur-fast) ease;
+
+    &:active { transform: scale(.97); background: var(--pf-surface-hover); }
+    &.active { border-color: rgba(24, 106, 157, .3); background: var(--pf-blue-softer); color: var(--pf-blue-press); }
+  }
+
+  .mais__icone {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--pf-surface);
+    color: var(--pf-blue);
+    box-shadow: var(--pf-shadow-sm);
+  }
+
+  .mais__sair {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 30px;
-    border-radius: 999px;
-    transition: background-color .15s ease, color .15s ease;
+    gap: 8px;
+    width: 100%;
+    margin-top: 18px;
+    padding: 13px;
+    border-radius: 12px;
+    border: 1px solid #f0d2d2;
+    background: var(--pf-danger-soft);
+    color: var(--pf-danger-ink);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
   }
-
-  &__label { font-size: 11px; font-weight: 500; }
-
-  &--active {
-    color: var(--pf-primary);
-
-    .bn-item__pill { background: var(--pf-accent-soft); color: var(--pf-accent-dark); }
-    .bn-item__label { font-weight: 700; }
-  }
 }
-
-/* Folha "Mais" ------------------------------------------------------------ */
-.mais-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 24, 39, .5);
-  z-index: 45;
-  display: flex;
-  align-items: flex-end;
-  animation: fade .15s ease;
-}
-
-.mais {
-  width: 100%;
-  background: var(--pf-surface);
-  border-radius: var(--pf-radius-lg) var(--pf-radius-lg) 0 0;
-  padding: 10px 16px calc(var(--pf-bottomnav-h) + 24px + env(safe-area-inset-bottom));
-  animation: rise .2s ease;
-}
-
-.mais__handle {
-  width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--pf-border-strong);
-  margin: 0 auto 14px;
-}
-
-.mais__title {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--pf-text-muted);
-  margin-bottom: 12px;
-}
-
-.mais__grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.mais__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px 8px;
-  border-radius: var(--pf-radius);
-  background: var(--pf-surface-alt);
-  border: 1px solid var(--pf-border);
-  color: var(--pf-text);
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-
-  &:active { background: #f3f4f6; }
-}
-
-.mais__sair {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  margin-top: 14px;
-  padding: 13px;
-  border-radius: var(--pf-radius);
-  border: 1px solid var(--pf-danger-soft);
-  background: var(--pf-danger-soft);
-  color: #b91c1c;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-
-
-
-@media (prefers-reduced-motion: reduce) {
-  .mais-backdrop, .mais { animation: none; }
-}
-
-}
-@keyframes fade { from { opacity: 0 } }
-@keyframes rise { from { transform: translateY(100%) } }

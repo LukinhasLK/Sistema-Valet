@@ -16,3 +16,6 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
+
+// jsdom não implementa rolagem.
+Element.prototype.scrollIntoView ??= function scrollIntoView() {};

@@ -40,6 +40,8 @@ export function Calendario({ children }: { children: ReactNode }) {
     return valor;
   };
 
+  // Sem dependências de propósito: o rótulo do campo pode mudar; valores iguais não re-renderizam.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     setRotulo(campo()?.labels?.[0]?.textContent?.trim() || 'data');
   });

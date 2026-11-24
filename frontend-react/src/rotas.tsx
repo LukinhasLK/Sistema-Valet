@@ -20,6 +20,7 @@ const Socios = lazy(() => import('./telas/socios/Socios'));
 const Usuarios = lazy(() => import('./telas/usuarios/Usuarios'));
 const Notificacoes = lazy(() => import('./telas/notificacoes/Notificacoes'));
 const Perfil = lazy(() => import('./telas/perfil/Perfil'));
+const Conheca = lazy(() => import('./telas/conheca/Conheca'));
 
 /** Exige login (antigo authGuard). */
 function ComSessao({ children }: { children: ReactNode }) {
@@ -48,6 +49,8 @@ const tela = (rota: string, elemento: ReactNode) => ({ path: rota, element: <Com
 export const rotas = createBrowserRouter([
   { path: '/', element: <Navigate to="/app/dashboard" replace /> },
   { path: '/login', element: <SemSessao><Login /></SemSessao> },
+  // Apresentação pública do produto (não substitui a entrada do sistema).
+  { path: '/conheca', element: <Conheca /> },
   {
     path: '/app',
     element: <ComSessao><LayoutApp /></ComSessao>,

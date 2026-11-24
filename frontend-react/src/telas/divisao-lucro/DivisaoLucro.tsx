@@ -14,6 +14,8 @@ import { nomeUnidade, useUnidades } from '../../nucleo/estado/unidades';
 import { round2 } from '../../nucleo/servicos/calc';
 import { MESES, rotuloPeriodo } from '../../nucleo/servicos/periodo';
 import { relatoriosServico } from '../../nucleo/servicos/relatorios';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
+import { EsqueletoKpis } from '../../compartilhado/Esqueleto';
 import './divisao-lucro.scss';
 
 const NEUTRO = '#9ca3af';
@@ -127,22 +129,20 @@ export default function DivisaoLucro() {
         </div>
 
         {!unidadeId ? (
-          <p className="pf-card vazio">Cadastre uma unidade para consultar a divisão de lucro.</p>
+          <EstadoVazio ilustracao="vaga" titulo="Nenhuma unidade cadastrada" texto="Cadastre uma unidade para consultar a divisão de lucro." />
         ) : erro ? (
           <p className="pf-card vazio pf-error" role="alert">{erro}</p>
         ) : dados ? (
           <>
             <section className="cards-resumo">
-              <CartaoKpi rotulo="Lucro das fichas" valor={moeda(dados.lucroFichas)} dica={`${dados.quantidadeFichas} fichas · ${periodoLabel}`} />
-              <CartaoKpi rotulo="(−) Despesas fixas" valor={moeda(dados.despesasFixas)} dica={unidadeLabel} tom="danger" />
+              <CartaoKpi rotulo="Lucro das fichas" icone="fichas" valor={moeda(dados.lucroFichas)} numero={dados.lucroFichas} formato={moeda} dica={`${dados.quantidadeFichas} fichas · ${periodoLabel}`} />
+              <CartaoKpi rotulo="(−) Despesas fixas" icone="despesas" valor={moeda(dados.despesasFixas)} numero={dados.despesasFixas} formato={moeda} dica={unidadeLabel} tom="danger" />
               <CartaoKpi rotulo="= Resultado a dividir" valor={moeda(resultado)} dica={`${partes.length} sócio(s)`} tom={resultado >= 0 ? 'success' : 'danger'} />
             </section>
 
             {partes.length === 0 ? (
-              <div className="pf-card vazio">
-                <p className="vazio__titulo">Sem rateio configurado</p>
-                <p className="vazio__texto">Configure uma distribuição de 100% para {unidadeLabel} no mês selecionado.</p>
-              </div>
+              <EstadoVazio ilustracao="equipe" titulo="Sem rateio configurado"
+                texto={<>Configure uma distribuição de 100% para {unidadeLabel} no mês selecionado, em <strong>Sócios</strong>.</>} />
             ) : (
               <section className="painel">
                 {/* Distribuição */}
@@ -203,7 +203,7 @@ export default function DivisaoLucro() {
             )}
           </>
         ) : (
-          <p className="pf-card vazio" role="status">Consultando a divisão de lucro…</p>
+          <EsqueletoKpis quantidade={3} />
         )}
       </div>
     </pf-divisao-lucro>

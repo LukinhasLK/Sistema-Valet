@@ -10,6 +10,7 @@ import { avisos } from '../../nucleo/estado/aviso';
 import { useIsMobile } from '../../nucleo/estado/layout';
 import { unidadesServico, useUnidades } from '../../nucleo/estado/unidades';
 import { Unidade } from '../../nucleo/modelos';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import './unidades.scss';
 
 export default function Unidades() {
@@ -68,10 +69,7 @@ export default function Unidades() {
         </CabecalhoPagina>
 
         {unidades.length === 0 ? (
-          <div className="pf-card vazio">
-            <p className="vazio__titulo">Nenhuma unidade cadastrada</p>
-            <p className="vazio__texto">Cadastre a primeira unidade para começar a lançar fichas.</p>
-          </div>
+          <EstadoVazio ilustracao="vaga" titulo="Nenhuma unidade cadastrada" texto="Cadastre a primeira unidade para começar a lançar fichas." />
         ) : isMobile ? (
           <div className="cards">
             {unidades.map((u) => (

@@ -1,0 +1,28 @@
+.pf-sit-icone { flex: none; display: block; }
+.pf-sit-icone--edicao { color: #8a96a3; }
+.pf-sit-icone--pronta { color: var(--pf-warning); }
+.pf-sit-icone--fechada { color: var(--pf-success); }
+.pf-sit-icone--cancelada { color: #a3acb6; }
+
+.pf-situacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--pf-text);
+}
+
+.pf-situacao--etiqueta {
+  height: 24px;
+  padding: 0 9px 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--pf-border);
+  background: var(--pf-surface);
+}
+
+.pf-situacao--etiqueta.pf-situacao--pronta { background: var(--pf-warning-soft); border-color: #f0dcb8; color: var(--pf-warning-ink); }
+.pf-situacao--etiqueta.pf-situacao--fechada { background: var(--pf-success-soft); border-color: #cbe7d9; color: var(--pf-success-ink); }
+.pf-situacao--etiqueta.pf-situacao--cancelada { color: var(--pf-text-muted); text-decoration: line-through; text-decoration-color: rgba(105, 115, 126, .5); }
+.pf-situacao--texto.pf-situacao--cancelada { color: var(--pf-text-muted); }

@@ -1,7 +1,9 @@
 pf-logo {
-  .logo { display: inline-flex; align-items: center; gap: .4em; font-weight: 800; letter-spacing: -.01em; line-height: 1; white-space: nowrap; }
-  .logo__mark { display: block; width: 1.4em; height: 1.4em; flex: none; }
-  .logo__park { color: var(--pf-primary); }
+  display: inline-flex;
+  .logo { display: inline-flex; align-items: center; gap: .42em; font-family: var(--pf-font-display); font-weight: 800; letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
+  .logo__mark { display: block; width: 1.35em; height: 1.35em; flex: none; border-radius: .3em; }
+  .logo__park { color: var(--pf-navy); }
   .logo--dark .logo__park { color: #fff; }
-  .logo__flash { color: var(--pf-accent); }
+  /* Âmbar: assinatura exclusiva da marca. */
+  .logo__flash { color: var(--pf-amber); }
 }

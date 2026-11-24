@@ -20,6 +20,7 @@ import type { TipoPix } from '../../nucleo/servicos/pagamentos-manobristas';
 import { MESES, rotuloPeriodo } from '../../nucleo/servicos/periodo';
 import { podeAcessar } from '../../nucleo/servicos/permissoes';
 import { PixManobrista } from '../pagamentos-manobristas/PixManobrista';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import './manobristas.scss';
 
 const fichasDe = (id: number, mes: number, ano: number) => `/app/fichas?manobristaId=${id}&mes=${mes}&ano=${ano}`;
@@ -117,10 +118,7 @@ export default function Manobristas() {
         </div>
 
         {linhas.length === 0 ? (
-          <div className="pf-card vazio">
-            <p className="vazio__titulo">Nenhum manobrista cadastrado</p>
-            <p className="vazio__texto">Cadastre a equipe para lançar custos nas fichas.</p>
-          </div>
+          <EstadoVazio ilustracao="equipe" titulo="Nenhum manobrista cadastrado" texto="Cadastre a equipe para lançar custos nas fichas." />
         ) : isMobile ? (
           <div className="cards">
             {paginacao.visiveis.map((m) => (

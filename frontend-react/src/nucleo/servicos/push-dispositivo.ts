@@ -43,6 +43,22 @@ export function desligarPushDaSessao(usuario: number | undefined, token: string 
   });
 }
 
+/**
+ * Outro usuário entrou neste aparelho (ex.: a sessão do anterior expirou sem logout).
+ * Cancela a inscrição local do anterior: sem o token dele não há como avisar o servidor,
+ * mas o serviço de push passa a responder 410 e o servidor descarta o aparelho no próximo envio.
+ */
+export function liberarAparelhoDeOutroUsuario(usuario: number): void {
+  const vinculo = vinculoPush();
+  if (!vinculo || vinculo.usuario === usuario) return;
+  salvarVinculoPush(null);
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+  desligando = navigator.serviceWorker.getRegistration('/')
+    .then((registro) => registro?.pushManager?.getSubscription())
+    .then((inscricao) => inscricao?.unsubscribe())
+    .then(() => undefined, () => undefined);
+}
+
 export function navegadorPushCompativel(): boolean {
   return typeof window !== 'undefined' && window.isSecureContext
     && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;

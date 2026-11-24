@@ -50,8 +50,8 @@ pf-unidades {
   border-radius: 6px;
   font-family: inherit;
 
-  &:hover { background: #eef0f3; color: var(--pf-text); }
-  &--danger:hover { background: var(--pf-danger-soft); color: #b91c1c; }
+  &:hover { background: var(--pf-surface-hover); color: var(--pf-text); }
+  &--danger:hover { background: var(--pf-danger-soft); color: var(--pf-danger-ink); }
 }
 
 .vazio {

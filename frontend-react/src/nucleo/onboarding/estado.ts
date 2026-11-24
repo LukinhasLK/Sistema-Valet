@@ -1,0 +1,134 @@
+import { create } from 'zustand';
+import { NivelAcesso } from '../modelos';
+import { carregar, salvar } from '../servicos/storage';
+import { PassoTour, roteiroDo, VERSAO_ROTEIRO } from './roteiros';
+
+/**
+ * Progresso do onboarding, por usuário e por aparelho (localStorage).
+ * Guardar no servidor exigiria um endpoint novo no back end — ver o relatório.
+ */
+export type StatusTour = 'nao_iniciado' | 'em_andamento' | 'pausado' | 'concluido' | 'pulado';
+
+export interface ProgressoTour {
+  versao: number;
+  status: StatusTour;
+  passo: number;
+  atualizadoEm: string;
+  dicasVistas: string[];
+}
+
+const CHAVE = 'parkflash.onboarding';
+
+type Mapa = Record<string, ProgressoTour>;
+
+interface EstadoOnboarding {
+  progresso: Mapa;
+  /** Tour em exibição agora. */
+  ativo: { usuario: number; roteiro: PassoTour[]; indice: number } | null;
+  /** Convite de boas-vindas dispensado nesta sessão ("lembrar depois"). */
+  conviteAdiado: boolean;
+}
+
+const novo = (): ProgressoTour => ({ versao: VERSAO_ROTEIRO, status: 'nao_iniciado', passo: 0, atualizadoEm: new Date().toISOString(), dicasVistas: [] });
+
+export const useOnboarding = create<EstadoOnboarding>(() => ({
+  progresso: carregar<Mapa>(CHAVE, {}),
+  ativo: null,
+  conviteAdiado: false,
+}));
+
+function gravar(usuario: number, alteracao: Partial<ProgressoTour>): void {
+  const atual = useOnboarding.getState().progresso[usuario] ?? novo();
+  const progresso = { ...useOnboarding.getState().progresso, [usuario]: { ...atual, ...alteracao, atualizadoEm: new Date().toISOString() } };
+  useOnboarding.setState({ progresso });
+  salvar(CHAVE, progresso);
+}
+
+/** Progresso do usuário; roteiro de versão antiga conta como não iniciado (mantendo as dicas vistas). */
+export function progressoDe(mapa: Mapa, usuario: number | undefined): ProgressoTour {
+  if (usuario === undefined) return novo();
+  const p = mapa[usuario];
+  if (!p) return novo();
+  if (p.versao !== VERSAO_ROTEIRO && (p.status === 'concluido' || p.status === 'pulado')) return { ...novo(), dicasVistas: p.dicasVistas };
+  return p;
+}
+
+export const onboardingServico = {
+  /** Começa (ou recomeça do zero) o tour do nível. */
+  iniciar(usuario: number | undefined, nivel: NivelAcesso | null) {
+    if (usuario === undefined) return;
+    const roteiro = roteiroDo(nivel);
+    gravar(usuario, { status: 'em_andamento', passo: 0, versao: VERSAO_ROTEIRO });
+    useOnboarding.setState({ ativo: { usuario, roteiro, indice: 0 }, conviteAdiado: true });
+  },
+
+  /** Continua de onde parou ("continuar depois"). */
+  retomar(usuario: number | undefined, nivel: NivelAcesso | null) {
+    if (usuario === undefined) return;
+    const roteiro = roteiroDo(nivel);
+    const p = progressoDe(useOnboarding.getState().progresso, usuario);
+    const indice = Math.min(p.passo, roteiro.length - 1);
+    gravar(usuario, { status: 'em_andamento', passo: indice });
+    useOnboarding.setState({ ativo: { usuario, roteiro, indice }, conviteAdiado: true });
+  },
+
+  irPara(indice: number) {
+    const ativo = useOnboarding.getState().ativo;
+    if (!ativo) return;
+    const limite = Math.max(0, Math.min(indice, ativo.roteiro.length - 1));
+    gravar(ativo.usuario, { passo: limite });
+    useOnboarding.setState({ ativo: { ...ativo, indice: limite } });
+  },
+
+  avancar() {
+    const ativo = useOnboarding.getState().ativo;
+    if (!ativo) return;
+    if (ativo.indice >= ativo.roteiro.length - 1) onboardingServico.concluir();
+    else onboardingServico.irPara(ativo.indice + 1);
+  },
+
+  voltar() {
+    const ativo = useOnboarding.getState().ativo;
+    if (ativo) onboardingServico.irPara(ativo.indice - 1);
+  },
+
+  /** Fecha guardando o passo atual. */
+  pausar() {
+    const ativo = useOnboarding.getState().ativo;
+    if (!ativo) return;
+    gravar(ativo.usuario, { status: 'pausado', passo: ativo.indice });
+    // O convite para continuar só volta na próxima sessão (ou pelo perfil / paleta).
+    useOnboarding.setState({ ativo: null, conviteAdiado: true });
+  },
+
+  pular(usuario?: number) {
+    const alvo = usuario ?? useOnboarding.getState().ativo?.usuario;
+    if (alvo === undefined) return;
+    gravar(alvo, { status: 'pulado' });
+    useOnboarding.setState({ ativo: null, conviteAdiado: true });
+  },
+
+  concluir() {
+    const ativo = useOnboarding.getState().ativo;
+    if (!ativo) return;
+    gravar(ativo.usuario, { status: 'concluido', passo: ativo.roteiro.length - 1 });
+    useOnboarding.setState({ ativo: null });
+  },
+
+  /** "Lembrar depois": esconde o convite só nesta sessão. */
+  adiarConvite() {
+    useOnboarding.setState({ conviteAdiado: true });
+  },
+
+  marcarDica(usuario: number | undefined, dica: string) {
+    if (usuario === undefined) return;
+    const p = progressoDe(useOnboarding.getState().progresso, usuario);
+    if (!p.dicasVistas.includes(dica)) gravar(usuario, { dicasVistas: [...p.dicasVistas, dica] });
+  },
+
+  /** Ao sair da conta: o tour em exibição é pausado (o progresso fica salvo). */
+  encerrarSessao() {
+    if (useOnboarding.getState().ativo) onboardingServico.pausar();
+    useOnboarding.setState({ conviteAdiado: false });
+  },
+};

@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { NivelAcesso, Usuario } from '../modelos';
 import { api, configurarApi, ErroHttp } from '../servicos/api';
 import { podeAcessar } from '../servicos/permissoes';
-import { desligarPushDaSessao } from '../servicos/push-dispositivo';
+import { desligarPushDaSessao, liberarAparelhoDeOutroUsuario } from '../servicos/push-dispositivo';
 import { carregar, remover, salvar } from '../servicos/storage';
+import { onboardingServico } from '../onboarding/estado';
 import { despesasServico } from './despesas';
 import { fichasServico } from './fichas';
 import { manobristasServico } from './manobristas';
@@ -50,6 +51,7 @@ export const authServico = {
     try {
       const resposta = await api.post<RespostaLogin>('/auth/login', { identificador: identificador.trim(), senha });
       salvar(CHAVE_TOKEN, resposta.token);
+      liberarAparelhoDeOutroUsuario(resposta.usuario.id);
       useAuth.setState({ token: resposta.token, usuario: resposta.usuario });
       await carregarDados(resposta.usuario.nivel);
       return true;
@@ -68,25 +70,41 @@ export const authServico = {
       useAuth.setState({ usuario });
       await carregarDados(usuario.nivel);
     } catch {
-      authServico.logout();
+      // Token vencido ou inválido: encerra a sessão, mas o aparelho continua autorizado para push.
+      encerrarSessao(false);
     }
   },
 
   trocarSenha: (senhaAtual: string, novaSenha: string) => api.put<void>('/auth/senha', { senhaAtual, novaSenha }),
 
+  /**
+   * Saída pedida pelo usuário: além de encerrar a sessão, revoga a inscrição de push
+   * deste aparelho (o servidor deixa de enviar notificações desse usuário para cá).
+   */
   logout(): void {
-    const { usuario, token } = useAuth.getState();
-    desligarPushDaSessao(usuario?.id, token);
-    remover(CHAVE_TOKEN);
-    useAuth.setState({ token: null, usuario: null });
-    [unidadesServico, manobristasServico, sociosServico, fichasServico, despesasServico, usuariosServico].forEach((s) => s.limpar());
+    encerrarSessao(true);
   },
 };
+
+/**
+ * Encerra a sessão local. `revogarPush`:
+ * - true (logout explícito): desliga as notificações deste aparelho para o usuário;
+ * - false (sessão expirada): mantém a inscrição — o aparelho segue autorizado a receber
+ *   avisos (sem conteúdo sensível) até o usuário sair da conta ou desativar no perfil.
+ */
+function encerrarSessao(revogarPush: boolean): void {
+  const { usuario, token } = useAuth.getState();
+  if (revogarPush) desligarPushDaSessao(usuario?.id, token);
+  remover(CHAVE_TOKEN);
+  useAuth.setState({ token: null, usuario: null });
+  [unidadesServico, manobristasServico, sociosServico, fichasServico, despesasServico, usuariosServico].forEach((s) => s.limpar());
+  onboardingServico.encerrarSessao();
+}
 
 // Toda chamada à API leva o token; um 401 com sessão aberta encerra a sessão (a rota protegida manda ao login).
 configurarApi({
   token: () => useAuth.getState().token,
   sessaoExpirada: () => {
-    if (useAuth.getState().usuario) authServico.logout();
+    if (useAuth.getState().usuario) encerrarSessao(false);
   },
 });

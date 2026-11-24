@@ -13,6 +13,7 @@ import {
 } from '../../nucleo/servicos/agenda';
 import { mensagemDeErro } from '../../nucleo/servicos/api';
 import { FinanceiroEvento } from './FinanceiroEvento';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import './agenda.scss';
 
 const STATUS_EVENTO: SituacaoEvento[] = ['PLANEJADO', 'CONFIRMADO', 'REALIZADO', 'CANCELADO'];
@@ -230,7 +231,7 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
             <button type="button" className="pf-btn pf-btn--ghost" onClick={recarregar}>Tentar novamente</button>
           </div>
         ) : !itens.length ? (
-          <p className="pf-card agenda-estado">Nenhum registro neste recorte. Ajuste os filtros ou inclua um novo registro.</p>
+          <EstadoVazio ilustracao="calendario" titulo={tipo === 'eventos' ? 'Nenhum evento neste recorte' : 'Nenhuma escala neste recorte'} texto="Ajuste a unidade e as datas ou inclua um novo registro." />
         ) : (
           <div className="lista-agenda">
             {tipo === 'eventos'

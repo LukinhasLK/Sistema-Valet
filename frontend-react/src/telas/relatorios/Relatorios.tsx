@@ -12,6 +12,8 @@ import { useUnidades } from '../../nucleo/estado/unidades';
 import { baixarArquivo } from '../../nucleo/servicos/download';
 import { MESES, rotuloPeriodo, TODAS_UNIDADES } from '../../nucleo/servicos/periodo';
 import { FiltroRelatorio, relatoriosServico } from '../../nucleo/servicos/relatorios';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
+import { EsqueletoKpis, EsqueletoLista } from '../../compartilhado/Esqueleto';
 import './relatorios.scss';
 
 const classeSaldo = (valor: number) => (valor < 0 ? 'pf-money--neg' : 'pf-money--pos');
@@ -79,7 +81,7 @@ export default function Relatorios() {
         </div>
 
         {consulta.tipo === 'carregando' ? (
-          <p className="pf-card vazio" role="status">Carregando relatório…</p>
+          <><EsqueletoKpis quantidade={5} /><div style={{ marginTop: 16 }}><EsqueletoLista linhas={6} rotulo="Carregando relatório…" /></div></>
         ) : consulta.tipo === 'erro' ? (
           <div className="pf-card vazio">
             <p className="pf-error" role="alert">{consulta.mensagem}</p>
@@ -92,24 +94,20 @@ export default function Relatorios() {
             <>
               <p className="periodo">{periodoLabel} · {relatorio.unidade}</p>
               <section className="cards-resumo">
-                <CartaoKpi rotulo="Receita total" valor={moeda(resumo.totalBruto)} dica={periodoLabel} />
-                <CartaoKpi rotulo="Custos das fichas" valor={moeda(relatorio.custosFichas)} dica="diárias, taxas e gastos da ficha" tom="danger" />
+                <CartaoKpi rotulo="Receita total" icone="dinheiro" valor={moeda(resumo.totalBruto)} numero={resumo.totalBruto} formato={moeda} dica={periodoLabel} />
+                <CartaoKpi rotulo="Custos das fichas" icone="manobristas" valor={moeda(relatorio.custosFichas)} numero={relatorio.custosFichas} formato={moeda} dica="diárias, taxas e gastos da ficha" tom="danger" />
                 <CartaoKpi rotulo="Lucro das fichas" valor={moeda(resumo.lucroFichas)} dica={`${resumo.quantidadeFichas} fichas no período`}
                   tom={resumo.lucroFichas >= 0 ? 'success' : 'danger'} />
-                <CartaoKpi rotulo="Despesas fixas" valor={moeda(resumo.despesasFixas)} dica="aluguel, seguro, manutenção" tom="danger" />
+                <CartaoKpi rotulo="Despesas fixas" icone="despesas" valor={moeda(resumo.despesasFixas)} numero={resumo.despesasFixas} formato={moeda} dica="aluguel, seguro, manutenção" tom="danger" />
                 <CartaoKpi rotulo="Resultado do período" valor={moeda(resumo.resultado)} dica="lucro das fichas − despesas fixas"
                   tom={resumo.resultado >= 0 ? 'success' : 'danger'} />
               </section>
 
               {relatorio.linhas.length === 0 ? (
-                <div className="pf-card vazio">
-                  <p className="vazio__titulo">Nenhuma ficha neste período</p>
-                  {resumo.despesasFixas > 0 ? (
-                    <p className="vazio__texto">O resultado de {moeda(resumo.resultado)} vem só das despesas fixas ({moeda(resumo.despesasFixas)}).</p>
-                  ) : (
-                    <p className="vazio__texto">Escolha outro mês, ano ou unidade.</p>
-                  )}
-                </div>
+                <EstadoVazio ilustracao="fichas" titulo="Nenhuma ficha neste período"
+                  texto={resumo.despesasFixas > 0
+                    ? `O resultado de ${moeda(resumo.resultado)} vem só das despesas fixas (${moeda(resumo.despesasFixas)}).`
+                    : 'Escolha outro mês, ano ou unidade.'} />
               ) : isMobile ? (
                 <div className="cards">
                   {relatorio.linhas.map((linha) => (

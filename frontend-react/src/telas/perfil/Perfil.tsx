@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { CabecalhoPagina } from '../../compartilhado/CabecalhoPagina';
 import { useFormulario } from '../../compartilhado/useFormulario';
 import { corDoAvatar } from '../../layout/itens-menu';
-import { authServico, inicialDe, useUsuario } from '../../nucleo/estado/auth';
+import { authServico, inicialDe, useNivel, useUsuario } from '../../nucleo/estado/auth';
+import { onboardingServico, progressoDe, useOnboarding } from '../../nucleo/onboarding/estado';
+import { Icone } from '../../compartilhado/Icone';
 import { avisos } from '../../nucleo/estado/aviso';
 import { mensagemDeErro } from '../../nucleo/servicos/api';
 import './perfil.scss';
@@ -12,6 +14,8 @@ const VAZIO = { senhaAtual: '', novaSenha: '', confirmacao: '' };
 
 export default function Perfil() {
   const usuario = useUsuario();
+  const nivel = useNivel();
+  const statusTour = useOnboarding((st) => progressoDe(st.progresso, usuario?.id).status);
   const navegar = useNavigate();
   const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -47,7 +51,7 @@ export default function Perfil() {
   return (
     <pf-perfil>
       <div className="pf-page perfil">
-        <CabecalhoPagina titulo="Meu perfil" subtitulo="Seus dados de acesso" />
+        <CabecalhoPagina sobretitulo="Conta" titulo="Meu perfil" subtitulo="Seus dados de acesso e preferências deste aparelho." />
 
         {usuario && (
           <section className="pf-card perfil__card">
@@ -85,6 +89,24 @@ export default function Perfil() {
 
           <button type="submit" className="pf-btn pf-btn--primary" disabled={salvando}>Salvar nova senha</button>
         </form>
+
+        <section className="pf-card perfil__card perfil__tour" aria-labelledby="perfil-tour">
+          <span className="perfil__tour-icone"><Icone nome="tour" tamanho={20} /></span>
+          <div className="perfil__tour-texto">
+            <h2 id="perfil-tour" className="perfil__titulo">Tour guiado</h2>
+            <p>{statusTour === 'concluido' ? 'Você concluiu o tour. Reveja quando quiser.'
+              : statusTour === 'pausado' || statusTour === 'em_andamento' ? 'Você parou no meio do tour. Continue de onde parou ou recomece.'
+              : 'Um passo a passo curto pelas telas que o seu perfil usa.'}</p>
+            <div className="perfil__tour-acoes">
+              {(statusTour === 'pausado' || statusTour === 'em_andamento') && (
+                <button type="button" className="pf-btn pf-btn--primary pf-btn--sm" onClick={() => onboardingServico.retomar(usuario?.id, nivel)}>Continuar</button>
+              )}
+              <button type="button" className="pf-btn pf-btn--ghost pf-btn--sm" onClick={() => onboardingServico.iniciar(usuario?.id, nivel)}>
+                {statusTour === 'concluido' || statusTour === 'pulado' ? 'Rever o tour' : 'Começar do início'}
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
     </pf-perfil>
   );

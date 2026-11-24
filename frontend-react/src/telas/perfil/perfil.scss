@@ -31,5 +31,9 @@ pf-perfil {
   &--erro { color: var(--pf-danger); background: var(--pf-danger-soft); }
 }
 
-}
 
+.perfil__tour { display: flex; gap: 14px; align-items: flex-start; }
+.perfil__tour-icone { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 11px; background: var(--pf-blue-soft); color: var(--pf-blue); }
+.perfil__tour-texto p { margin-top: 4px; font-size: 13.5px; color: var(--pf-text-muted); }
+.perfil__tour-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+}

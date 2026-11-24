@@ -1,5 +1,5 @@
 pf-confirm {
-  .msg { color: var(--pf-text-muted); font-size: 14px; }
+  .msg { color: var(--pf-text-muted); font-size: 14px; line-height: 1.55; }
   .acoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
-  .danger { background: var(--pf-danger); color: #fff; &:hover { background: #dc2626; } }
+  @media (max-width: 767px) { .acoes .pf-btn { flex: 1; } }
 }
