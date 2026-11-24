@@ -1,0 +1,7 @@
+pf-logo {
+  .logo { display: inline-flex; align-items: center; gap: .4em; font-weight: 800; letter-spacing: -.01em; line-height: 1; white-space: nowrap; }
+  .logo__mark { display: block; width: 1.4em; height: 1.4em; flex: none; }
+  .logo__park { color: var(--pf-primary); }
+  .logo--dark .logo__park { color: #fff; }
+  .logo__flash { color: var(--pf-accent); }
+}

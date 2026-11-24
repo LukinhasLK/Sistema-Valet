@@ -1,0 +1,73 @@
+/* Gerado de src/app/features/relatorios/relatorios.component.scss — escopado em <pf-relatorios>. */
+pf-relatorios {
+.periodo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--pf-text-muted);
+  margin-bottom: 14px;
+}
+
+.cards-resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.tabela { margin-top: 16px; overflow: hidden; }
+.cards { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+& .pf-table tfoot td {
+  background: var(--pf-surface-alt);
+  border-top: 2px solid var(--pf-border-strong);
+  border-bottom: none;
+  font-weight: 700;
+}
+
+.card-rel {
+  padding: 14px 16px;
+
+  &__topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__data { font-size: 14px; font-weight: 700; }
+  &__unidade { font-size: 13px; color: var(--pf-text-muted); margin: 4px 0 10px; }
+
+  &__linha {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--pf-text-muted);
+    padding: 3px 0;
+
+    &--forte {
+      color: var(--pf-text);
+      font-weight: 600;
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1px solid var(--pf-border);
+    }
+  }
+}
+
+.vazio {
+  margin-top: 16px;
+  padding: 48px 24px;
+  text-align: center;
+
+  &__titulo { font-size: 15px; font-weight: 600; }
+  &__texto { font-size: 13px; color: var(--pf-text-muted); margin-top: 4px; }
+}
+
+@media (max-width: 767px) {
+  .cards-resumo { grid-template-columns: 1fr; gap: 12px; }
+}
+
+}
+

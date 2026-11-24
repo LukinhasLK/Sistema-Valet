@@ -1,0 +1,21 @@
+/* Gerado de src/app/features/notificacoes/notificacoes.component.scss — escopado em <pf-notificacoes>. */
+pf-notificacoes {
+.central { display: grid; gap: 16px; align-content: start; }
+.barra-central, .acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.barra-central { justify-content: space-between; }
+.aviso-central { padding: 18px; display: grid; gap: 12px; align-content: start; justify-items: start; }
+.preferencias { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 16px; }
+.categorias { display: grid; width: 100%; }
+.categoria { display: flex; padding: 10px 0; min-height: 44px; gap: 16px; justify-content: space-between; align-items: center; border-top: 1px solid var(--pf-border); }
+.categoria input { width: 18px; height: 18px; accent-color: var(--pf-accent); }
+.apoio, time { color: var(--pf-text-muted); font-size: 13px; }
+.lista-central { display: grid; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.notificacao { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; }
+.notificacao--nova { border-inline-start: 3px solid var(--pf-accent); }
+.notificacao__info { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.notificacao__info h2 { width: 100%; font-size: 15px; overflow-wrap: anywhere; }
+.diagnostico { display: grid; gap: 10px; margin-top: 6px; width: 100%; justify-items: start; }
+.diagnostico ul { margin: 0; padding-inline-start: 18px; font-size: 13px; overflow-wrap: anywhere; }
+
+}
+

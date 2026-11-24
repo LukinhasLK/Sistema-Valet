@@ -1,0 +1,9 @@
+pf-aviso {
+  .aviso {
+    position: fixed; left: 50%; bottom: calc(var(--pf-bottomnav-h, 0px) + 1rem); transform: translateX(-50%); z-index: 1000;
+    display: flex; align-items: center; gap: 0.75rem; max-width: min(92vw, 32rem); padding: 0.75rem 1rem;
+    border-radius: var(--pf-radius-sm); background: var(--pf-success); color: #fff; box-shadow: var(--pf-shadow-lg); font-weight: 500;
+  }
+  .aviso--erro { background: var(--pf-danger); }
+  .aviso__fechar { border: 0; background: transparent; color: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer; }
+}

@@ -1,0 +1,91 @@
+import { FormEvent, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CabecalhoPagina } from '../../compartilhado/CabecalhoPagina';
+import { useFormulario } from '../../compartilhado/useFormulario';
+import { corDoAvatar } from '../../layout/itens-menu';
+import { authServico, inicialDe, useUsuario } from '../../nucleo/estado/auth';
+import { avisos } from '../../nucleo/estado/aviso';
+import { mensagemDeErro } from '../../nucleo/servicos/api';
+import './perfil.scss';
+
+const VAZIO = { senhaAtual: '', novaSenha: '', confirmacao: '' };
+
+export default function Perfil() {
+  const usuario = useUsuario();
+  const navegar = useNavigate();
+  const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const f = useFormulario(VAZIO, (v) => ({
+    senhaAtual: !v.senhaAtual,
+    novaSenha: !v.novaSenha || v.novaSenha.length < 6,
+    confirmacao: !v.confirmacao,
+    _form: v.novaSenha !== v.confirmacao,
+  }));
+
+  async function trocarSenha(evento: FormEvent) {
+    evento.preventDefault();
+    setMensagem(null);
+    if (!f.valido) {
+      f.tocarTodos();
+      return;
+    }
+    setSalvando(true);
+    try {
+      await authServico.trocarSenha(f.valores.senhaAtual, f.valores.novaSenha);
+    } catch (erro) {
+      setMensagem({ tipo: 'erro', texto: mensagemDeErro(erro) });
+      return;
+    } finally {
+      setSalvando(false);
+    }
+    f.resetar(VAZIO);
+    authServico.logout();
+    navegar('/login');
+    avisos.sucesso('Senha alterada. Entre com a nova senha.');
+  }
+
+  return (
+    <pf-perfil>
+      <div className="pf-page perfil">
+        <CabecalhoPagina titulo="Meu perfil" subtitulo="Seus dados de acesso" />
+
+        {usuario && (
+          <section className="pf-card perfil__card">
+            <span className="pf-avatar perfil__avatar" style={{ background: corDoAvatar(usuario.nome) }}>{inicialDe(usuario)}</span>
+            <div>
+              <p className="perfil__nome">{usuario.nome}</p>
+              <p className="perfil__email">{usuario.email}</p>
+              <span className="pf-badge pf-badge--gray">{usuario.nivel}</span>
+            </div>
+          </section>
+        )}
+
+        <form className="pf-card perfil__card perfil__form" onSubmit={trocarSenha} noValidate>
+          <h2 className="perfil__titulo">Trocar senha</h2>
+
+          <div className="pf-field">
+            <label className="pf-label" htmlFor="p-atual">Senha atual</label>
+            <input id="p-atual" type="password" autoComplete="current-password" {...f.campo('senhaAtual')} />
+            {f.invalido('senhaAtual') && <span className="pf-error">Informe a senha atual.</span>}
+          </div>
+
+          <div className="pf-field">
+            <label className="pf-label" htmlFor="p-nova">Nova senha</label>
+            <input id="p-nova" type="password" autoComplete="new-password" placeholder="Mínimo de 6 caracteres" {...f.campo('novaSenha')} />
+            {f.invalido('novaSenha') && <span className="pf-error">A nova senha precisa ter ao menos 6 caracteres.</span>}
+          </div>
+
+          <div className="pf-field">
+            <label className="pf-label" htmlFor="p-conf">Confirmar nova senha</label>
+            <input id="p-conf" type="password" autoComplete="new-password" {...f.campo('confirmacao')} />
+            {f.erros._form && f.tocados.confirmacao && <span className="pf-error">As senhas não conferem.</span>}
+          </div>
+
+          {mensagem && <p className={`perfil__msg${mensagem.tipo === 'erro' ? ' perfil__msg--erro' : ''}`} role="status">{mensagem.texto}</p>}
+
+          <button type="submit" className="pf-btn pf-btn--primary" disabled={salvando}>Salvar nova senha</button>
+        </form>
+      </div>
+    </pf-perfil>
+  );
+}

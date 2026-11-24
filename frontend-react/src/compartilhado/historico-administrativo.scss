@@ -1,0 +1,8 @@
+pf-historico-administrativo {
+  display: inline-block;
+  ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  ol:empty { display: none; }
+  li { padding: 10px; border-radius: var(--pf-radius-sm); background: var(--pf-surface-alt); }
+  small { color: var(--pf-text-muted); }
+  ol + button { margin-top: 10px; }
+}

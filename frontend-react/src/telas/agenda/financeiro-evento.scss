@@ -1,0 +1,9 @@
+pf-financeiro-evento {
+    ul { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+    li, nav { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    li { padding: 10px; border: 1px solid var(--pf-border); border-radius: var(--pf-radius-sm); }
+    .resumo { display: grid; gap: 6px; margin-block: 12px; }
+    .resumo div { display: flex; gap: 8px; justify-content: space-between; }
+    .resumo dd { margin: 0; font-weight: 700; }
+    p, label { margin-bottom: 8px; }
+}
