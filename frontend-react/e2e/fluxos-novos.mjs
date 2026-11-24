@@ -193,18 +193,18 @@ try {
   await dono.goto(`${BASE}/app/sociedade`, { waitUntil: 'networkidle0' }); await esp(500);
   ok('Proprietário escolhe o sócio na Sociedade', !!(await dono.$('button[aria-label^="Sócio "]')));
 
-  // Fechamento com a ficha de papel e assinatura
+  // Fechamento com a ficha de papel
   await dono.goto(`${BASE}/app/fichas?mes=6&ano=2026&detalhe=10`, { waitUntil: 'networkidle0' }); await esp(500);
   await clicar(dono, 'Enviar para conferência'); await esp(250);
   await clicar(dono, 'Confirmar'); await esp(900);
   await clicar(dono, 'Confirmar fechamento'); await esp(500);
   ok('Fechamento mostra a ficha de papel', !!(await dono.$('pf-ficha-papel .papel__picote')));
-  const travado = await dono.evaluate(() => [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Assinar e fechar')?.disabled);
-  ok('Sem assinatura não fecha', travado === true);
-  await clicar(dono, 'Assinar com meu nome'); await esp(200);
-  await clicar(dono, 'Assinar e fechar'); await esp(2200);
-  const assinatura = await dono.$eval('.det__assinatura', (i) => i.getAttribute('src')).catch(() => '');
-  ok('Ficha fechada guarda a assinatura', assinatura.startsWith('data:image/png;base64,'));
+  ok('Fechamento sem espaço de assinatura', !(await dono.$('pf-ficha-papel canvas')));
+  await clicar(dono, 'Fechar ficha'); await esp(400);
+  ok('O canhoto rasga ao fechar', !!(await dono.$('.papel--fechada')));
+  await esp(1800);
+  const situacao = await dono.$eval('.det', (d) => d.textContent).catch(() => '');
+  ok('Ficha fica fechada', situacao.includes('Fechada'), situacao.slice(0, 60));
   ok('Sem erros de JavaScript (fechamento)', dono.erros.length === 0, dono.erros.join(' | '));
 } catch (e) { r.push(`❌ ERRO NO ROTEIRO: ${e.message}`); }
 console.log(r.join('\n'));

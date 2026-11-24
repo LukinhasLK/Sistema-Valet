@@ -388,10 +388,3 @@ pf-fichas-list {
     .talao__bloco--total { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 8px; text-align: left; padding: 8px 0 0; border-top: 2px dashed rgba(24, 106, 157, .22); }
   }
 }
-
-pf-ficha-detalhe {
-  .det__linha--assinatura { align-items: flex-start; }
-  .det__linha--assinatura dd { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-  .det__assinatura { width: 180px; max-width: 100%; height: auto; background: #eef4f9; border-radius: 4px; }
-  .det__assinatura-autor { font-size: 12px; color: var(--pf-text-muted); font-weight: 400; }
-}

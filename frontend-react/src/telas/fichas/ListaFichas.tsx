@@ -14,10 +14,10 @@ import { Paginacao, usePaginar } from '../../compartilhado/Paginacao';
 import { IconeSituacao, Situacao } from '../../compartilhado/Situacao';
 import { lerFiltro, useFiltrosUrl } from '../../compartilhado/useFiltrosUrl';
 import { DicaContextual } from '../../layout/TourGuiado';
-import { useNivel, useUsuario } from '../../nucleo/estado/auth';
+import { useNivel } from '../../nucleo/estado/auth';
 import { avisos } from '../../nucleo/estado/aviso';
 import { useDespesas } from '../../nucleo/estado/despesas';
-import { AssinaturaFicha, anosDisponiveis, filtrarFichas, fichasServico, periodoReferencia, resumirFichas, useFichas } from '../../nucleo/estado/fichas';
+import { anosDisponiveis, filtrarFichas, fichasServico, periodoReferencia, resumirFichas, useFichas } from '../../nucleo/estado/fichas';
 import { useIsMobile } from '../../nucleo/estado/layout';
 import { nomeManobrista, useManobristas } from '../../nucleo/estado/manobristas';
 import { nomeUnidade, useUnidades } from '../../nucleo/estado/unidades';
@@ -141,12 +141,8 @@ export default function ListaFichas() {
   const [justificativa, setJustificativa] = useState('');
   const [indicandoDivergencia, setIndicandoDivergencia] = useState(false);
   const [alterando, setAlterando] = useState(false);
-  const usuario = useUsuario();
-  /** Assinatura desenhada na ficha de papel (só no fechamento). */
-  const [assinatura, setAssinatura] = useState<string | null>(null);
   /** O servidor confirmou o fechamento: o canhoto rasga antes de voltar ao detalhe. */
   const [rasgando, setRasgando] = useState(false);
-  const [assinaturaSalva, setAssinaturaSalva] = useState<AssinaturaFicha | null>(null);
   const [consultandoHistorico, setConsultandoHistorico] = useState(false);
   const [historico, setHistorico] = useState<RegistroFicha[] | null>(null);
   const detalheAtual = useRef<Ficha | null>(null);
@@ -157,16 +153,6 @@ export default function ListaFichas() {
   const lista = useRef<HTMLDivElement>(null);
   const [pedidoFoco, setPedidoFoco] = useState(0);
 
-  // Assinatura do fechamento: só existe para fichas fechadas (as antigas, de antes dela, ficam sem).
-  const idFechada = detalhe && situacaoDe(detalhe) === 'FECHADA' ? detalhe.id : null;
-  useEffect(() => {
-    setAssinaturaSalva(null);
-    if (!idFechada) return;
-    let vivo = true;
-    fichasServico.assinatura(idFechada).then((a) => { if (vivo) setAssinaturaSalva(a); }).catch(() => undefined);
-    return () => { vivo = false; };
-  }, [idFechada, detalhe?.fechadoEm]);
-
   // Leva o foco à etapa aberta (ou às ações) depois que ela aparece na tela.
   useEffect(() => {
     if (pedidoFoco) (focoEtapa.current ?? acoesDaFicha.current)?.focus();
@@ -175,7 +161,6 @@ export default function ListaFichas() {
   const abrirDetalhe = useCallback((ficha: Ficha | null) => {
     setDetalhe(ficha);
     setAcao(null);
-    setAssinatura(null);
     setRasgando(false);
     setIndicandoDivergencia(false);
     setJustificativa('');
@@ -242,7 +227,6 @@ export default function ListaFichas() {
     setAcao(etapa === 'DIVERGENCIA' ? null : etapa);
     setIndicandoDivergencia(etapa === 'DIVERGENCIA');
     setJustificativa('');
-    setAssinatura(null);
     setPedidoFoco((n) => n + 1);
   }
 
@@ -268,8 +252,7 @@ export default function ListaFichas() {
     if (!ficha || !acao || alterando) return;
     setAlterando(true);
     try {
-      const atual = await fichasServico.transicao(ficha.id, acao, justificativa.trim() || undefined,
-        acao === 'FECHAR' ? assinatura ?? undefined : undefined);
+      const atual = await fichasServico.transicao(ficha.id, acao, justificativa.trim() || undefined);
       if (acao === 'FECHAR') {
         // O momento do fechamento: o canhoto se destaca e a ficha é carimbada.
         setRasgando(true);
@@ -280,7 +263,7 @@ export default function ListaFichas() {
         setPedidoFoco((n) => n + 1);
         requestAnimationFrame(() => { if (seloSituacao.current) pulso(seloSituacao.current); });
       }
-      avisos.sucesso(acao === 'FECHAR' ? 'Ficha fechada e assinada.' : 'Situação da ficha atualizada.');
+      avisos.sucesso(acao === 'FECHAR' ? 'Ficha fechada.' : 'Situação da ficha atualizada.');
     } catch (erro) {
       avisos.erro(erro);
     } finally {
@@ -336,8 +319,8 @@ export default function ListaFichas() {
         <>
           <button type="button" className="pf-btn pf-btn--ghost" disabled={alterando} onClick={() => prepararAcao(null)}>Voltar</button>
           <button type="button" className="pf-btn pf-btn--primary" onClick={registrarTransicao}
-            disabled={alterando || (motivoObrigatorio && !justificativa.trim()) || (acao === 'FECHAR' && !assinatura)}>
-            {alterando ? (rasgando ? 'Fechada' : 'Salvando…') : acao === 'FECHAR' ? 'Assinar e fechar' : 'Confirmar'}</button>
+            disabled={alterando || (motivoObrigatorio && !justificativa.trim())}>
+            {alterando ? (rasgando ? 'Fechada' : 'Salvando…') : acao === 'FECHAR' ? 'Fechar ficha' : 'Confirmar'}</button>
         </>
       ) : (
         <>
@@ -599,15 +582,7 @@ export default function ListaFichas() {
             <dl className="det">
               <div className="det__linha"><dt>Situação</dt><dd>{ROTULO_SITUACAO_FILTRO[situacaoDe(detalhe)]}</dd></div>
               {detalhe.fechadoEm && <div className="det__linha"><dt>Fechada em</dt><dd>{dataHora(detalhe.fechadoEm, 'dd/MM/yyyy HH:mm', '-0300')}</dd></div>}
-              {situacaoDe(detalhe) === 'FECHADA' && assinaturaSalva && (
-                <div className="det__linha det__linha--assinatura">
-                  <dt>Assinatura</dt>
-                  <dd>
-                    <img src={assinaturaSalva.imagem} alt={`Assinatura de ${assinaturaSalva.autor}`} className="det__assinatura" />
-                    <span className="det__assinatura-autor">{assinaturaSalva.autor} · {dataHora(assinaturaSalva.assinadoEm, 'dd/MM/yyyy HH:mm', '-0300')}</span>
-                  </dd>
-                </div>
-              )}
+
               {detalhe.valorInicialCaixa != null && <div className="det__linha"><dt>Caixa inicial</dt><dd>{moeda(detalhe.valorInicialCaixa)}</dd></div>}
               {detalhe.valorFinalCaixa != null && <div className="det__linha"><dt>Caixa final</dt><dd>{moeda(detalhe.valorFinalCaixa)}</dd></div>}
             </dl>
@@ -698,9 +673,8 @@ export default function ListaFichas() {
                     {detalhe.totalLiquido < 0 && (
                       <p className="det__saldo-alerta"><Icone nome="alerta" tamanho={16} />A ficha tem saldo negativo de {moeda(detalhe.totalLiquido)}. Confira os recebimentos e os custos antes de fechar.</p>
                     )}
-                    <FichaPapel ficha={detalhe} unidade={nomeUnidade(unidades, detalhe.unidadeId)} assinante={usuario?.nome ?? ''}
-                      aoAssinar={setAssinatura} fechada={rasgando} desabilitado={alterando} />
-                    <p className="det__ajuda">O fechamento bloqueia alterações até que a ficha seja reaberta. A assinatura fica guardada como registro de quem conferiu.</p>
+                    <FichaPapel ficha={detalhe} unidade={nomeUnidade(unidades, detalhe.unidadeId)} fechada={rasgando} />
+                    <p className="det__ajuda">O fechamento bloqueia alterações até que a ficha seja reaberta.</p>
                   </>
                 ) : (
                   <p className="det__ajuda">A ficha ficará disponível para a conferência da gestão.</p>

@@ -54,11 +54,6 @@ public class FichaController {
         return servico.transicao(id, pedido, ator);
     }
 
-    @GetMapping("/{id}/assinatura")
-    public com.parkflash.servico.FichaService.Assinatura assinatura(@PathVariable Long id, @AuthenticationPrincipal UsuarioLogado ator) {
-        return servico.assinatura(id, AcessoUnidades.de(ator));
-    }
-
     @GetMapping("/{id}/historico")
     public List<TransicaoFicha.Registro> historico(@PathVariable Long id, @AuthenticationPrincipal UsuarioLogado ator) {
         return servico.historico(id, AcessoUnidades.de(ator));

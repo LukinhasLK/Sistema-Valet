@@ -65,7 +65,7 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/auth/senha").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/fichas", "/api/fichas/*", "/api/fichas/*/historico", "/api/fichas/*/assinatura").hasAnyRole(OPERACAO)
+                        .requestMatchers(HttpMethod.GET, "/api/fichas", "/api/fichas/*", "/api/fichas/*/historico").hasAnyRole(OPERACAO)
                         .requestMatchers(HttpMethod.POST, "/api/fichas", "/api/fichas/*/transicao").hasAnyRole(OPERACAO)
                         .anyRequest().denyAll())
                 .exceptionHandling(e -> e
