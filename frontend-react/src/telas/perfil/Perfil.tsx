@@ -8,6 +8,8 @@ import { onboardingServico, progressoDe, useOnboarding } from '../../nucleo/onbo
 import { Icone } from '../../compartilhado/Icone';
 import { avisos } from '../../nucleo/estado/aviso';
 import { mensagemDeErro } from '../../nucleo/servicos/api';
+import { podeAcessar } from '../../nucleo/servicos/permissoes';
+import { AgendaGoogle } from './AgendaGoogle';
 import './perfil.scss';
 
 const VAZIO = { senhaAtual: '', novaSenha: '', confirmacao: '' };
@@ -89,6 +91,8 @@ export default function Perfil() {
 
           <button type="submit" className="pf-btn pf-btn--primary" disabled={salvando}>Salvar nova senha</button>
         </form>
+
+        {podeAcessar(nivel, 'eventos') && <AgendaGoogle />}
 
         <section className="pf-card perfil__card perfil__tour" aria-labelledby="perfil-tour">
           <span className="perfil__tour-icone"><Icone nome="tour" tamanho={20} /></span>

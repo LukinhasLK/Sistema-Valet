@@ -44,6 +44,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
+                        // Assinatura da agenda: o Google busca sem login; o token aleatório do link é a credencial
+                        .requestMatchers(HttpMethod.GET, "/api/agenda/*.ics").permitAll()
+                        .requestMatchers("/api/agenda/link").hasAnyRole(GESTAO)
 
                         .requestMatchers("/api/usuarios/**", "/api/unidades/*/auditoria", "/api/relatorios/divisao-lucro").hasRole(PROPRIETARIO)
                         .requestMatchers("/api/socios/**").hasRole(PROPRIETARIO)

@@ -160,6 +160,20 @@ try {
   const corpo = await lp.evaluate(() => document.body.innerText);
   ok('Landing pública com o slogan', h1.includes('Seu estacionamento') && h1.includes('sob controle'), h1);
   ok('Landing sem preços nem depoimentos', !/R\$\s?\d|depoimento|clientes atendidos/i.test(corpo));
+
+  // Google Calendar: link de agenda no Perfil
+  const g = await abrir('pedro@email.com');
+  await g.goto(`${BASE}/app/perfil`, { waitUntil: 'networkidle0' }); await esp(400);
+  ok('Perfil do gerente oferece o Google Calendar', await clicar(g, 'Gerar link da agenda'));
+  await g.waitForSelector('#perfil-agenda-url', { timeout: 5000 }).catch(() => {});
+  const link = await g.$eval('#perfil-agenda-url', (e) => e.value).catch(() => '');
+  ok('Link da agenda gerado', /\/api\/agenda\/[A-Za-z0-9_-]{40,}\.ics$/.test(link), link.replace(/agenda\/.{6}.*\.ics/, 'agenda/…ics'));
+  const ics = link ? await (await fetch(link)).text() : '';
+  ok('O link abre a agenda sem login', ics.startsWith('BEGIN:VCALENDAR') && ics.includes('X-WR-CALNAME:Park Flash'));
+  ok('Botão leva ao Google Calendar', await g.$eval('a[href*="calendar.google.com"]', (a) => a.target === '_blank').catch(() => false));
+  const op = await abrir('dario@email.com');
+  await op.goto(`${BASE}/app/perfil`, { waitUntil: 'networkidle0' }); await esp(300);
+  ok('Operador não vê o Google Calendar', !(await op.$('#perfil-agenda')));
 } catch (e) { r.push(`❌ ERRO NO ROTEIRO: ${e.message}`); }
 console.log(r.join('\n'));
 await b.close();
