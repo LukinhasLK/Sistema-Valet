@@ -150,6 +150,11 @@ try {
   await inicio.goto(`${BASE}/conheca`, { waitUntil: 'networkidle0' });
   ok('A apresentação continua em /conheca', !!(await inicio.$('pf-conheca .heroi')));
   ok('Apresentação mostra o Google Calendar', !!(await inicio.$('#agenda .agenda__exemplo')));
+  ok('Faixa de celulares com telas reais', (await inicio.$$('.faixa__celular img')).length >= 8);
+  await inicio.evaluate(() => document.querySelectorAll('.fluxo__etapa')[2]?.scrollIntoView({ block: 'center' }));
+  await esp(900);
+  const telaAtiva = await inicio.$eval('.fluxo__tela--ativa', (i) => i.getAttribute('src')).catch(() => '');
+  ok('Celular fixo mostra a tela da etapa', telaAtiva.endsWith('celular-fechamento.webp'), telaAtiva);
   const linksTopo = await inicio.$$eval('.topo__nav a', (l) => l.map((x) => x.getAttribute('href')));
   ok('Menu da apresentação sem links para a raiz', linksTopo.includes('/google-calendar') && !linksTopo.some((h) => h?.startsWith('/#')), linksTopo.join(' '));
   await inicio.goto(`${BASE}/google-calendar`, { waitUntil: 'networkidle0' });

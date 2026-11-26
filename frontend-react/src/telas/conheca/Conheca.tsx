@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -19,11 +19,14 @@ gsap.registerPlugin(ScrollTrigger);
  * As imagens são capturas reais da interface com dados de demonstração.
  */
 const ETAPAS = [
-  { icone: 'fichas', titulo: 'Lance o turno', texto: 'O operador registra a numeração inicial e final dos tickets, os cancelados, os recebimentos em dinheiro, cartão e Pix, a equipe e as despesas do dia. O rascunho fica salvo no aparelho enquanto ele preenche.' },
-  { icone: 'enviar', titulo: 'Envie para conferência', texto: 'A ficha vai para a gestão com o saldo já calculado. Se algo não bate, a gestão devolve com o motivo ou sinaliza uma divergência.' },
-  { icone: 'sucesso', titulo: 'Feche o caixa', texto: 'Ao confirmar o fechamento, a ficha fica bloqueada para alterações e o histórico de quem fez o quê permanece registrado.' },
-  { icone: 'pagamentos', titulo: 'Pague a equipe', texto: 'As diárias reconhecidas aparecem com a chave Pix do manobrista. Você paga pelo seu banco e confirma no sistema.' },
+  { icone: 'fichas', tela: 'celular-nova-ficha', titulo: 'Lance o turno', texto: 'O operador registra a numeração inicial e final dos tickets, os cancelados, os recebimentos em dinheiro, cartão e Pix, a equipe e as despesas do dia. O rascunho fica salvo no aparelho enquanto ele preenche.' },
+  { icone: 'enviar', tela: 'celular-conferencia', titulo: 'Envie para conferência', texto: 'A ficha vai para a gestão com o saldo já calculado. Se algo não bate, a gestão devolve com o motivo ou sinaliza uma divergência.' },
+  { icone: 'sucesso', tela: 'celular-fechamento', titulo: 'Feche o caixa', texto: 'Ao confirmar o fechamento, a ficha fica bloqueada para alterações e o histórico de quem fez o quê permanece registrado.' },
+  { icone: 'pagamentos', tela: 'celular-pagamentos', titulo: 'Pague a equipe', texto: 'As diárias reconhecidas aparecem com a chave Pix do manobrista. Você paga pelo seu banco e confirma no sistema.' },
 ];
+
+/** Telas reais (dados de demonstração) que passam na faixa abaixo do título. Geradas por ferramentas/capturas-celular.mjs. */
+const FAIXA = ['celular-painel', 'celular-lista', 'celular-fechamento', 'celular-calendario', 'celular-lucro', 'celular-pagamentos', 'celular-sociedade', 'celular-nova-ficha'];
 
 const PERFIS = [
   {
@@ -88,6 +91,18 @@ export default function Conheca() {
   const logado = useAuth((s) => s.usuario?.nivel ?? null);
   const destino = logado ? rotaInicial(logado) : '/login';
   const rotuloEntrar = logado ? 'Abrir o sistema' : 'Entrar';
+  // Etapa do "Como funciona" que está no meio da tela: o celular fixo mostra a tela dela.
+  const [etapaAtiva, setEtapaAtiva] = useState(0);
+
+  useEffect(() => {
+    const etapas = [...(raiz.current?.querySelectorAll<HTMLElement>('.fluxo__etapa') ?? [])];
+    if (!etapas.length || !('IntersectionObserver' in window)) return;
+    const observador = new IntersectionObserver((entradas) => {
+      entradas.forEach((e) => { if (e.isIntersecting) setEtapaAtiva(etapas.indexOf(e.target as HTMLElement)); });
+    }, { rootMargin: '-45% 0px -45% 0px' });
+    etapas.forEach((e) => observador.observe(e));
+    return () => observador.disconnect();
+  }, []);
 
   // Links do menu (/#recursos) levam até a seção.
   useEffect(() => {
@@ -157,25 +172,49 @@ export default function Conheca() {
             </div>
           </section>
 
+          <section className="faixa" aria-hidden="true">
+            <div className="faixa__trilho">
+              {[...FAIXA, ...FAIXA].map((tela, i) => (
+                <figure key={`${tela}-${i}`} className="faixa__celular">
+                  <img src={`/midia/conheca/${tela}.webp`} width={390} height={800} loading="lazy" alt="" />
+                </figure>
+              ))}
+            </div>
+          </section>
+
           <section id="como-funciona" className="secao fluxo" data-revelar>
             <div className="secao__cabeca" data-item>
               <p className="sobre">Como funciona</p>
               <h2>Do turno ao fechamento, sem planilha paralela</h2>
               <p>Cada etapa tem um responsável e fica registrada, para que o caixa feche com segurança.</p>
             </div>
-            <ol className="fluxo__lista">
-              <span className="fluxo__linha" aria-hidden="true"><span className="fluxo__linha-progresso" /></span>
-              {ETAPAS.map((etapa, i) => (
-                <li key={etapa.titulo} className="fluxo__etapa" data-item>
-                  <span className="fluxo__numero"><Icone nome={etapa.icone} tamanho={18} /></span>
-                  <div>
-                    <p className="fluxo__passo">Etapa {i + 1}</p>
-                    <h3>{etapa.titulo}</h3>
-                    <p>{etapa.texto}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+            <div className="fluxo__corpo">
+              <ol className="fluxo__lista">
+                <span className="fluxo__linha" aria-hidden="true"><span className="fluxo__linha-progresso" /></span>
+                {ETAPAS.map((etapa, i) => (
+                  <li key={etapa.titulo} className={`fluxo__etapa${i === etapaAtiva ? ' fluxo__etapa--ativa' : ''}`}>
+                    <span className="fluxo__numero"><Icone nome={etapa.icone} tamanho={18} /></span>
+                    <div>
+                      <p className="fluxo__passo">Etapa {i + 1}</p>
+                      <h3>{etapa.titulo}</h3>
+                      <p>{etapa.texto}</p>
+                      <figure className="fluxo__tela-movel" aria-hidden="true">
+                        <img src={`/midia/conheca/${etapa.tela}.webp`} width={390} height={800} loading="lazy" alt="" />
+                      </figure>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <div className="fluxo__palco" aria-hidden="true">
+                <figure className="fluxo__celular">
+                  {ETAPAS.map((etapa, i) => (
+                    <img key={etapa.tela} src={`/midia/conheca/${etapa.tela}.webp`} width={390} height={800} loading="lazy" alt=""
+                      className={i === etapaAtiva ? 'fluxo__tela fluxo__tela--ativa' : 'fluxo__tela'} />
+                  ))}
+                </figure>
+                <p className="fluxo__legenda">Etapa {etapaAtiva + 1} de {ETAPAS.length} · {ETAPAS[etapaAtiva].titulo}</p>
+              </div>
+            </div>
           </section>
 
           <section className="secao perfis" data-revelar>
