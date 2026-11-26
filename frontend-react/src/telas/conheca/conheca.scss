@@ -184,9 +184,10 @@ pf-conheca {
   .fluxo__etapa {
     min-height: 46vh;
     align-items: flex-start;
-    opacity: .5;
-    transition: opacity var(--pf-dur-base) ease;
-    &--ativa { opacity: 1; }
+    /* destaque da etapa da vez sem esmaecer as outras (o texto precisa manter o contraste) */
+    .fluxo__numero { transition: background var(--pf-dur-base) ease, color var(--pf-dur-base) ease, border-color var(--pf-dur-base) ease; }
+    &--ativa .fluxo__numero { background: var(--pf-blue); border-color: var(--pf-blue); color: #fff; }
+    &--ativa h3 { color: var(--pf-blue-press, var(--pf-blue)); }
   }
   .fluxo__palco { position: sticky; top: calc(50vh - 290px); }
   .fluxo__celular {
@@ -474,7 +475,7 @@ pf-conheca {
     .faixa__celular { width: 140px; border-radius: 20px; padding: 5px; img { border-radius: 15px; } }
     .fluxo__corpo { grid-template-columns: 1fr; gap: 0; }
     .fluxo__palco { display: none; }
-    .fluxo__etapa { min-height: 0; opacity: 1; }
+    .fluxo__etapa { min-height: 0; }
     .fluxo__corpo .fluxo__lista { gap: 40px; }
     .fluxo__tela-movel {
       display: block;

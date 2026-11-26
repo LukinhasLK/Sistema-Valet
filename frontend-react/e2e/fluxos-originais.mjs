@@ -5,6 +5,10 @@ const navegador = await puppeteer.launch({ executablePath: process.env.CHROME ??
 const resultados = [];
 const ok = (nome, cond, extra = '') => { resultados.push(`${cond ? '✅' : '❌'} ${nome}${extra ? ' — ' + extra : ''}`); };
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+// Data de hoje no fuso do negócio. O banco de teste é novo a cada rodada e só reconhece
+// diárias a partir do dia em que foi criado, então a ficha do roteiro tem de ser de hoje.
+const HOJE = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+const [ANO_HOJE, MES_HOJE] = HOJE.split('-').map(Number);
 
 async function abrir(usuario, largura = 1366) {
   const contexto = await navegador.createBrowserContext();
@@ -50,7 +54,7 @@ try {
   await p.goto(`${BASE}/app/fichas/nova`, { waitUntil: 'networkidle0' });
   const unidade = await p.$eval('#unidade option:not([disabled])', (o) => o.value);
   await p.select('#unidade', unidade);
-  await definir(p, '#data', '2026-11-24');
+  await definir(p, '#data', HOJE);
   await p.$eval('input[type=radio][value=noite]', (r) => r.click());
   await definir(p, '#fichaInicio', 1000);
   await definir(p, '#fichaFim', 1040);
@@ -70,7 +74,7 @@ try {
   ok('Ficha lançada e volta para a lista', p.url().endsWith('/app/fichas'), await aviso(p));
 
   // Detalhe + transição
-  await p.goto(`${BASE}/app/fichas?mes=11&ano=2026`, { waitUntil: 'networkidle0' });
+  await p.goto(`${BASE}/app/fichas?mes=${MES_HOJE}&ano=${ANO_HOJE}`, { waitUntil: 'networkidle0' });
   await clicarTexto(p, 'Ver');
   const titulo = await p.$eval('pf-modal .sheet__title', (e) => e.textContent).catch(() => '');
   ok('Detalhe da ficha abre', titulo.startsWith('Ficha de'), titulo);
