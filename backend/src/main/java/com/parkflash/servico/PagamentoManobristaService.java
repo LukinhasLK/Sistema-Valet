@@ -234,4 +234,42 @@ public class PagamentoManobristaService {
     private record DiariaReconhecida(long id, BigDecimal valor) {}
     private record Saldo(long id, LocalDate data, BigDecimal valor, int revisao, Long pagamentoAtivoId, Long unidadeId, String unidade) {}
     private record Confirmado(long id, Long manobristaId, LocalDate data, Forma forma, BigDecimal valor, String sha256) {}
+
+    private record DiariaAnulavel(long id, long fichaId, long manobristaId, long unidadeId, LocalDate dataTrabalho,
+                                  BigDecimal valor, String reconhecedor, Long pagamentoAtivoId) {}
+
+    /**
+     * Anula uma diária lançada errada. Só a gestão (regra de rota) e só se a diária nunca entrou em
+     * nenhum pagamento: o que já foi pago, mesmo estornado, fica no histórico financeiro.
+     * A diária sai do saldo a pagar e fica registrada em diaria_anulacao; a ficha volta a poder
+     * ser corrigida e a diária volta a aparecer na conferência para ser reconhecida com o valor certo.
+     */
+    @Transactional
+    public void anular(long diariaId, String motivo, UsuarioLogado ator) {
+        long fichaId = jdbc.sql("SELECT ficha_id FROM diaria_a_pagar WHERE id = :id").param("id", diariaId)
+                .query(Long.class).optional().orElseThrow(() -> new NaoEncontradoException("Diária não encontrada."));
+        FichaService.bloquear(fichas, fichaId);
+        DiariaAnulavel diaria = jdbc.sql("""
+                SELECT id, ficha_id, manobrista_id, unidade_id, data_trabalho, valor, reconhecedor, pagamento_ativo_id
+                FROM diaria_a_pagar WHERE id = :id FOR UPDATE""").param("id", diariaId)
+                .query(DiariaAnulavel.class).optional().orElseThrow(() -> new NaoEncontradoException("Diária não encontrada."));
+        AcessoUnidades.de(ator).exigir(diaria.unidadeId());
+        if (diaria.pagamentoAtivoId() != null) {
+            throw new ConflitoException("Esta diária já foi paga. Estorne o pagamento antes de anular.");
+        }
+        boolean jaPaga = jdbc.sql("SELECT EXISTS(SELECT 1 FROM pagamento_manobrista_item WHERE diaria_id = :id)")
+                .param("id", diariaId).query(Boolean.class).single();
+        if (jaPaga) {
+            throw new ConflitoException("Esta diária fez parte de um pagamento estornado e fica no histórico; ela não pode ser anulada.");
+        }
+        jdbc.sql("""
+                INSERT INTO diaria_anulacao (diaria_id, ficha_id, manobrista_id, unidade_id, data_trabalho, valor,
+                    reconhecedor, motivo, anulado_por)
+                VALUES (:id, :ficha, :manobrista, :unidade, :data, :valor, :reconhecedor, :motivo, :ator)""")
+                .param("id", diaria.id()).param("ficha", diaria.fichaId()).param("manobrista", diaria.manobristaId())
+                .param("unidade", diaria.unidadeId()).param("data", diaria.dataTrabalho()).param("valor", diaria.valor())
+                .param("reconhecedor", diaria.reconhecedor()).param("motivo", motivo.strip()).param("ator", ator.id())
+                .update();
+        jdbc.sql("DELETE FROM diaria_a_pagar WHERE id = :id").param("id", diariaId).update();
+    }
 }

@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Min;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -94,6 +95,13 @@ public class PagamentoManobristaController {
     public Pagamento estornar(@PathVariable long id, @Valid @RequestBody Estorno pedido,
                                @AuthenticationPrincipal UsuarioLogado ator) {
         return pagamentos.estornar(id, pedido, ator);
+    }
+
+    /** Anula uma diária lançada errada (nunca paga). O motivo fica registrado. */
+    @PostMapping("/diarias/{id}/anulacao")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void anular(@PathVariable long id, @Valid @RequestBody Estorno pedido, @AuthenticationPrincipal UsuarioLogado ator) {
+        pagamentos.anular(id, pedido.motivo(), ator);
     }
 
     @GetMapping("/historico/{id}/comprovante")

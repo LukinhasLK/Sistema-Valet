@@ -40,7 +40,8 @@ type Dialogo =
   | { tipo: 'conferencia'; candidato: Candidato }
   | { tipo: 'pix'; id: number; nome: string }
   | { tipo: 'pagamento'; diarias: Diaria[] }
-  | { tipo: 'historico' | 'estorno'; pagamento: Pagamento };
+  | { tipo: 'historico' | 'estorno'; pagamento: Pagamento }
+  | { tipo: 'anular'; diaria: Diaria };
 
 const totalCentavos = (diarias: Diaria[]) => diarias.reduce((total, item) => total + Math.round(item.saldo * 100), 0);
 /** Valor monetário digitado (aceita vírgula) com até duas casas e maior que zero. */
@@ -322,6 +323,18 @@ export default function PagamentosManobristas() {
     abrir({ tipo: 'estorno', pagamento });
   }
 
+  function anular(evento: FormEvent, diaria: Diaria) {
+    evento.preventDefault();
+    if (!motivo.trim()) return;
+    void executar(async () => {
+      await pagamentosServico.anular(diaria.id, motivo.trim());
+      setDialogo(null);
+      setSelecao((lista) => lista.filter((d) => d.id !== diaria.id));
+      avisos.sucesso('Diária anulada. A ficha pode ser corrigida e a diária reconhecida de novo na conferência.');
+      await carregar();
+    });
+  }
+
   function estornar(evento: FormEvent, pagamento: Pagamento) {
     evento.preventDefault();
     if (!motivo.trim()) return;
@@ -351,6 +364,10 @@ export default function PagamentosManobristas() {
     <div className="acoes">
       <button type="button" className="pf-btn pf-btn--ghost" onClick={() => abrir({ tipo: 'pix', id: d.manobristaId, nome: d.manobrista })}
         aria-label={`Chave Pix de ${d.manobrista}`}>Pix</button>
+      {d.situacao === 'PENDENTE' && (
+        <button type="button" className="pf-btn pf-btn--ghost perigo" onClick={() => { setMotivo(''); abrir({ tipo: 'anular', diaria: d }); }}
+          aria-label={`Anular diária de ${d.manobrista} em ${dataBr(d.data)}`}>Anular</button>
+      )}
       {d.pagamentoId
         ? <button type="button" className="pf-btn pf-btn--ghost" disabled={ocupado} onClick={() => consultarPagamento(d.pagamentoId!)}>Pagamento</button>
         : <button type="button" className="pf-btn pf-btn--ghost" onClick={() => verHistoricoDoManobrista(d.manobristaId)}>Histórico</button>}
@@ -763,6 +780,26 @@ export default function PagamentosManobristas() {
           </Modal>
         );
       })()}
+
+      {dialogo?.tipo === 'anular' && (
+        <Modal titulo="Anular diária" aoFechar={fechar}>
+          <form className="dialogo" onSubmit={(e) => anular(e, dialogo.diaria)}>
+            <p><strong>{dialogo.diaria.manobrista}</strong> · {dialogo.diaria.unidade} · {dataBr(dialogo.diaria.data)} · {moeda(dialogo.diaria.devido)}</p>
+            <p className="orientacao">Use quando o valor foi lançado errado. A diária sai do saldo a pagar e fica registrada com o motivo.
+              Depois, corrija a ficha #{dialogo.diaria.fichaId} e reconheça a diária com o valor certo na conferência.</p>
+            <div className="pf-field">
+              <label className="pf-label" htmlFor="motivo-anulacao">Motivo da anulação</label>
+              <textarea className="pf-input" id="motivo-anulacao" name="motivo" rows={3} maxLength={500} value={motivo}
+                onChange={(e) => setMotivo(e.target.value)} disabled={ocupado} required />
+            </div>
+            {erroDialogo && <p className="pf-error" role="alert">{erroDialogo}</p>}
+            <div className="acoes fim">
+              <button type="button" className="pf-btn pf-btn--ghost" disabled={ocupado} onClick={fechar}>Manter diária</button>
+              <button type="submit" className="pf-btn pf-btn--dark" disabled={ocupado || !motivo.trim()}>{ocupado ? 'Anulando…' : 'Anular diária'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {dialogo?.tipo === 'estorno' && (
         <Modal titulo="Estornar pagamento" aoFechar={fechar}>

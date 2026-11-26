@@ -18,10 +18,14 @@ interface Opcoes {
 }
 
 let obterToken: () => string | null = () => null;
-let aoPerderSessao: () => void = () => undefined;
+let aoPerderSessao: (tokenUsado: string | null) => void = () => undefined;
 
-/** Liga a API à sessão: de onde vem o token e o que fazer quando o servidor responde 401. */
-export function configurarApi(config: { token: () => string | null; sessaoExpirada: () => void }): void {
+/**
+ * Liga a API à sessão: de onde vem o token e o que fazer quando o servidor responde 401.
+ * `sessaoExpirada` recebe o token usado na requisição: um 401 atrasado de uma sessão anterior
+ * (outro usuário no mesmo aparelho) não pode derrubar a sessão atual.
+ */
+export function configurarApi(config: { token: () => string | null; sessaoExpirada: (tokenUsado: string | null) => void }): void {
   obterToken = config.token;
   aoPerderSessao = config.sessaoExpirada;
 }
@@ -70,7 +74,7 @@ async function requisitar(metodo: string, caminho: string, opcoes: Opcoes = {}):
       /* corpo não é JSON */
     }
     // Sessão inválida: encerra e volta ao login (exceto na própria tentativa de login).
-    if (resposta.status === 401 && !caminho.endsWith('/auth/login')) aoPerderSessao();
+    if (resposta.status === 401 && !caminho.endsWith('/auth/login')) aoPerderSessao(token);
     throw new ErroHttp(resposta.status, dados);
   }
   return resposta;

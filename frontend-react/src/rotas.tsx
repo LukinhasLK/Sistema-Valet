@@ -1,7 +1,7 @@
-import { lazy, ReactNode } from 'react';
+import { lazy, ReactNode, useState } from 'react';
 import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import { LayoutApp } from './layout/LayoutApp';
-import { useAuth } from './nucleo/estado/auth';
+import { authServico, useAuth } from './nucleo/estado/auth';
 import { podeAcessar, rotaInicial } from './nucleo/servicos/permissoes';
 
 const Login = lazy(() => import('./telas/login/Login'));
@@ -28,9 +28,30 @@ const GoogleCalendar = lazy(() => import('./telas/conheca/GoogleCalendar'));
 /** Exige login (antigo authGuard). */
 function ComSessao({ children }: { children: ReactNode }) {
   const autenticado = useAuth((s) => s.usuario !== null);
+  const semConexao = useAuth((s) => s.semConexao && s.token !== null);
   const local = useLocation();
+  // Login salvo, mas o servidor não respondeu: não pede a senha de novo, oferece tentar outra vez.
+  if (!autenticado && semConexao) return <SemConexao />;
   if (!autenticado) return <Navigate to={`/login?redirectTo=${encodeURIComponent(local.pathname + local.search)}`} replace />;
   return <>{children}</>;
+}
+
+function SemConexao() {
+  const [tentando, setTentando] = useState(false);
+  async function tentar() {
+    setTentando(true);
+    await authServico.restaurarSessao();
+    setTentando(false);
+  }
+  return (
+    <main className="sem-conexao" role="alert">
+      <h1>Sem conexão com o servidor</h1>
+      <p>Seu login continua salvo neste aparelho. Confira a internet e tente de novo.</p>
+      <button type="button" className="pf-btn pf-btn--primary" onClick={tentar} disabled={tentando}>
+        {tentando ? 'Tentando…' : 'Tentar de novo'}
+      </button>
+    </main>
+  );
 }
 
 /** Impede que um usuário já logado volte para a tela de login (antigo guestGuard). */

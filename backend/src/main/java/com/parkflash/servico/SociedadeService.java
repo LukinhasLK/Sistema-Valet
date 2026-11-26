@@ -45,13 +45,14 @@ public class SociedadeService {
      * @param valor parte do sócio; null quando o rateio da unidade não soma 100% (não dá para dividir)
      */
     public record UnidadeSocio(long unidadeId, String nome, BigDecimal percentual, BigDecimal resultado,
-                               BigDecimal valor, int fichas) {}
+                               BigDecimal valor, int fichas, int fichasAbertas) {}
 
     /** @param valor parte do sócio no mês; null para meses que ainda não começaram */
     public record MesSocio(int mes, BigDecimal valor) {}
 
+    /** @param fichasAbertas fichas do mês (nas unidades do sócio) que ainda não foram fechadas e por isso não entram */
     public record Sociedade(long socioId, String nome, int mes, int ano, boolean mesEmAndamento, BigDecimal totalMes,
-                            boolean rateioIncompleto, List<UnidadeSocio> unidades, List<MesSocio> meses) {}
+                            boolean rateioIncompleto, List<UnidadeSocio> unidades, List<MesSocio> meses, int fichasAbertas) {}
 
     @Transactional(readOnly = true)
     public Sociedade consultar(UsuarioLogado ator, Long socioPedido, int mes, int ano) {
@@ -78,7 +79,8 @@ public class SociedadeService {
                 meses.add(new MesSocio(m, m == mes ? total : somar(partes(socioId, unidades, m, ano))));
             }
         }
-        return new Sociedade(socioId, nome, mes, ano, YearMonth.of(ano, mes).equals(atual), total, incompleto, doMes, meses);
+        int abertas = doMes.stream().mapToInt(UnidadeSocio::fichasAbertas).sum();
+        return new Sociedade(socioId, nome, mes, ano, YearMonth.of(ano, mes).equals(atual), total, incompleto, doMes, meses, abertas);
     }
 
     private record UnidadeNome(long id, String nome) {}
@@ -90,11 +92,12 @@ public class SociedadeService {
             var cotas = rateios.cotas(unidade.id(), inicio);
             var minha = cotas.stream().filter(c -> c.socioId() == socioId).findFirst();
             if (minha.isEmpty()) continue;
-            var resumo = relatorios.resumo(mes, ano, unidade.id(), TODAS);
+            var paraDivisao = relatorios.resumoParaDivisao(mes, ano, unidade.id(), TODAS);
+            var resumo = paraDivisao.resumo();
             BigDecimal valor = rateios.repartir(resumo.resultado(), cotas).stream()
                     .filter(p -> p.socioId() == socioId).map(p -> p.valor()).findFirst().orElse(null);
             resultado.add(new UnidadeSocio(unidade.id(), unidade.nome(), minha.get().percentual(), resumo.resultado(),
-                    valor, resumo.quantidadeFichas()));
+                    valor, resumo.quantidadeFichas(), paraDivisao.fichasAbertas()));
         }
         return resultado;
     }

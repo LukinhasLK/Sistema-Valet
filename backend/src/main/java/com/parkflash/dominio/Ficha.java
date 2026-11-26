@@ -36,6 +36,9 @@ public class Ficha {
     @Column(nullable = false, length = 16)
     private SituacaoFicha situacao = SituacaoFicha.EM_EDICAO;
 
+    /** TRUE enquanto a ficha vale; NULL quando cancelada, para liberar o turno (ver V20). */
+    private Boolean vigente = Boolean.TRUE;
+
     private Long responsavelId;
     private Long fechadoPor;
     private OffsetDateTime fechadoEm;
@@ -88,6 +91,7 @@ public class Ficha {
 
     public void mudarSituacao(SituacaoFicha situacao, Long ator, OffsetDateTime instante) {
         this.situacao = situacao;
+        this.vigente = situacao == SituacaoFicha.CANCELADA ? null : Boolean.TRUE;
         this.fechadoPor = situacao == SituacaoFicha.FECHADA ? ator : null;
         this.fechadoEm = situacao == SituacaoFicha.FECHADA ? instante : null;
     }

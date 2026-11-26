@@ -27,6 +27,8 @@ export interface Sociedade {
   rateioIncompleto: boolean;
   unidades: UnidadeSocio[];
   meses: MesSocio[];
+  /** Fichas do mês ainda não fechadas nas unidades do sócio (ficam fora da conta). */
+  fichasAbertas: number;
 }
 
 export const sociedadeServico = {

@@ -93,10 +93,11 @@ const linhaEquipeValida = (l: LinhaEquipe) =>
   l.manobristaId !== null && l.diaria !== null && l.diaria >= 0 && !(l.diaria > 0 && !l.pagamento);
 const linhaDespesaValida = (d: LinhaDespesa) => !!d.descricao && d.valor !== null && d.valor >= 0;
 
-const VAZIO: CamposFicha = {
+/** Função (e não constante): a data de hoje é calculada ao abrir a tela, não quando o app carregou. */
+const vazio = (): CamposFicha => ({
   unidadeId: null, data: hojeIso(), turno: 'dia', fichaInicio: null, fichaFim: null, fichasCanceladas: null,
   valorDinheiro: null, valorCartao: null, valorPix: null, valorInicialCaixa: null, valorFinalCaixa: null, observacoes: '', taxaMaquininha: 2,
-};
+});
 
 export default function NovaFicha() {
   /** Preenchido pela rota `fichas/:id/editar`. */
@@ -122,7 +123,7 @@ export default function NovaFicha() {
   const [despesas, setDespesas] = useState<LinhaDespesa[]>([]);
 
   /** A numeração final precisa cobrir a inicial mais as fichas canceladas. */
-  const f = useFormulario<CamposFicha>(VAZIO, (v) => ({
+  const f = useFormulario<CamposFicha>(vazio(), (v) => ({
     unidadeId: v.unidadeId === null,
     data: !v.data,
     turno: !v.turno,
@@ -203,7 +204,7 @@ export default function NovaFicha() {
   function continuarRascunho() {
     if (!rascunho) return;
     const d = rascunho.dados;
-    f.resetar({ ...VAZIO, ...d.campos });
+    f.resetar({ ...vazio(), ...d.campos });
     setEquipe(d.equipe.length ? d.equipe.map((l) => ({ ...l, chave: proximaChave++ })) : [novaLinha(!!emEdicao)]);
     setDespesas(d.despesas.map((x) => ({ ...x, chave: proximaChave++ })));
     setEtapa(Math.min(Math.max(0, d.etapa), ETAPAS.length - 1));
@@ -567,9 +568,9 @@ export default function NovaFicha() {
                           <span className="pf-label">Situação do pagamento</span>
                           <CampoSelecao className="pf-select" value={linha.pagamento} onChange={(e) => alterarLinha(linha.chave, { pagamento: e.target.value })}>
                             <option value="" disabled>Selecione a situação</option>
-                            <option value="PENDENTE">Falta pagar</option>
                             {podeConfirmar && (
                               <>
+                                <option value="PENDENTE">Falta pagar</option>
                                 <option value="PIX">Pago no dia · Pix</option>
                                 <option value="DINHEIRO">Pago no dia · Dinheiro</option>
                                 <option value="TRANSFERENCIA">Pago no dia · Transferência</option>

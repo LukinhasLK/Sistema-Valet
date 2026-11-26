@@ -53,6 +53,7 @@ export default function DivisaoLucro() {
   const periodoLabel = rotuloPeriodo(mes, ano);
   const unidadeLabel = todas ? 'Todas as unidades' : nomeUnidade(unidades, unidadeId);
   const semRateio = dados?.unidadesSemRateio ?? [];
+  const abertas = dados?.fichasAbertas ?? 0;
   const resultado = dados?.resultado ?? 0;
   const partes = useMemo(() => dados?.partes ?? [], [dados]);
 
@@ -132,10 +133,17 @@ export default function DivisaoLucro() {
         ) : dados ? (
           <>
             <section className="cards-resumo">
-              <CartaoKpi rotulo="Lucro das fichas" icone="fichas" valor={moeda(dados.lucroFichas)} numero={dados.lucroFichas} formato={moeda} dica={`${dados.quantidadeFichas} fichas · ${periodoLabel}`} />
+              <CartaoKpi rotulo="Lucro das fichas" icone="fichas" valor={moeda(dados.lucroFichas)} numero={dados.lucroFichas} formato={moeda} dica={`${dados.quantidadeFichas} ${dados.quantidadeFichas === 1 ? 'ficha fechada' : 'fichas fechadas'} · ${periodoLabel}`} />
               <CartaoKpi rotulo="(−) Despesas fixas" icone="despesas" valor={moeda(dados.despesasFixas)} numero={dados.despesasFixas} formato={moeda} dica={unidadeLabel} tom="danger" />
               <CartaoKpi rotulo="= Resultado a dividir" valor={moeda(resultado)} dica={`${partes.length} sócio(s)`} tom={resultado >= 0 ? 'success' : 'danger'} />
             </section>
+
+            {abertas > 0 && (
+              <p className="aviso-rateio" role="status">
+                {abertas === 1 ? '1 ficha deste mês ainda não foi fechada e não entra' : `${abertas} fichas deste mês ainda não foram fechadas e não entram`} na divisão.
+                Os valores podem mudar até o fechamento.
+              </p>
+            )}
 
             {semRateio.length > 0 && partes.length > 0 && (
               <p className="aviso-rateio" role="status">

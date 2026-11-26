@@ -118,6 +118,13 @@ export default function Sociedade() {
                 dica={dados.unidades.map((u) => u.nome).join(', ') || 'Nenhuma neste mês'} />
             </section>
 
+            {dados.fichasAbertas > 0 && (
+              <p className="aviso-rateio" role="status">
+                {dados.fichasAbertas === 1 ? '1 ficha deste mês ainda não foi fechada e não entra' : `${dados.fichasAbertas} fichas deste mês ainda não foram fechadas e não entram`} na conta.
+                O valor pode aumentar ou diminuir até o fechamento.
+              </p>
+            )}
+
             {dados.rateioIncompleto && (
               <p className="aviso-rateio" role="status">
                 Em alguma unidade a divisão entre os sócios não soma 100% neste mês. A parte dessa unidade fica de fora até o proprietário ajustar.
@@ -144,7 +151,7 @@ export default function Sociedade() {
                     </div>
                     <dl className="unidade__dados">
                       <div><dt>Resultado da unidade</dt><dd className={u.resultado < 0 ? 'pf-money--neg' : undefined}>{moeda(u.resultado)}</dd></div>
-                      <div><dt>Fichas no mês</dt><dd>{u.fichas}</dd></div>
+                      <div><dt>Fichas fechadas no mês</dt><dd>{u.fichas}</dd></div>
                     </dl>
                   </article>
                 ))}

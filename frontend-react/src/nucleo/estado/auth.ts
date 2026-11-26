@@ -24,10 +24,16 @@ interface RespostaLogin {
  * Sessão via JWT emitido por POST /api/auth/login. O token só prova quem é o usuário:
  * as permissões valem no servidor, e o nível exibido aqui vem sempre da API.
  */
-export const useAuth = create<{ token: string | null; usuario: Usuario | null }>(() => ({
+export const useAuth = create<{ token: string | null; usuario: Usuario | null; semConexao: boolean }>(() => ({
   token: carregar<string | null>(CHAVE_TOKEN, null),
   usuario: null,
+  /** Há sessão salva, mas o servidor não respondeu ao abrir o app (sem sinal, deploy): o login é mantido. */
+  semConexao: false,
 }));
+
+const esperar = (ms: number) => new Promise((fim) => setTimeout(fim, ms));
+/** Falha passageira: sem rede (status 0) ou servidor fora do ar (5xx). Não é motivo para pedir a senha de novo. */
+const passageira = (erro: unknown) => erro instanceof ErroHttp && (erro.status === 0 || erro.status >= 500);
 
 export const useUsuario = () => useAuth((s) => s.usuario);
 export const useNivel = () => useAuth((s) => s.usuario?.nivel ?? null);
@@ -68,14 +74,29 @@ export const authServico = {
   /** Na abertura do app: se houver token salvo, confirma com o servidor e recarrega os dados. */
   async restaurarSessao(): Promise<void> {
     if (!useAuth.getState().token) return;
-    try {
-      const usuario = await api.get<Usuario>('/auth/me');
-      useAuth.setState({ usuario });
-      await carregarDados(usuario.nivel);
-    } catch {
-      // Token vencido ou inválido: encerra a sessão, mas o aparelho continua autorizado para push.
-      encerrarSessao(false);
+    useAuth.setState({ semConexao: false });
+    let usuario: Usuario | null = null;
+    // Algumas tentativas antes de desistir: o valet abre o app no subsolo, ou o servidor está reiniciando.
+    for (const espera of [0, 1500, 3000]) {
+      if (espera) await esperar(espera);
+      try {
+        usuario = await api.get<Usuario>('/auth/me');
+        break;
+      } catch (erro) {
+        if (!passageira(erro)) {
+          // 401/403: token vencido ou inválido. Encerra a sessão, mas o aparelho continua autorizado para push.
+          encerrarSessao(false);
+          return;
+        }
+      }
     }
+    if (!usuario) {
+      // Continua sem conexão: mantém o token e mostra a tela "sem conexão" em vez de pedir a senha.
+      useAuth.setState({ semConexao: true });
+      return;
+    }
+    useAuth.setState({ usuario });
+    await carregarDados(usuario.nivel).catch(() => undefined); // as telas recarregam quando a conexão voltar
   },
 
   trocarSenha: (senhaAtual: string, novaSenha: string) => api.put<void>('/auth/senha', { senhaAtual, novaSenha }),
@@ -102,7 +123,7 @@ function encerrarSessao(revogarPush: boolean): void {
   // Na sessão expirada eles ficam: é justamente o caso que o rascunho protege.
   if (revogarPush && usuario) descartarRascunhosDoUsuario(usuario.id);
   remover(CHAVE_TOKEN);
-  useAuth.setState({ token: null, usuario: null });
+  useAuth.setState({ token: null, usuario: null, semConexao: false });
   [unidadesServico, manobristasServico, sociosServico, fichasServico, despesasServico, usuariosServico].forEach((s) => s.limpar());
   onboardingServico.encerrarSessao();
 }
@@ -110,7 +131,8 @@ function encerrarSessao(revogarPush: boolean): void {
 // Toda chamada à API leva o token; um 401 com sessão aberta encerra a sessão (a rota protegida manda ao login).
 configurarApi({
   token: () => useAuth.getState().token,
-  sessaoExpirada: () => {
-    if (useAuth.getState().usuario) encerrarSessao(false);
+  sessaoExpirada: (tokenUsado) => {
+    const { usuario, token } = useAuth.getState();
+    if (usuario && tokenUsado === token) encerrarSessao(false);
   },
 });

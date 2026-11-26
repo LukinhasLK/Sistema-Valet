@@ -39,6 +39,57 @@ describe('autenticação', () => {
     expect(useAuth.getState().token).toBeNull();
   });
 
+  it('sem rede ao abrir o app, mantém o login e mostra "sem conexão"', async () => {
+    vi.useFakeTimers();
+    try {
+      useAuth.setState({ token: 'jwt-salvo' });
+      vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch'); }));
+      const restaurando = authServico.restaurarSessao();
+      await vi.advanceTimersByTimeAsync(5000);
+      await restaurando;
+      expect(useAuth.getState().token).toBe('jwt-salvo');
+      expect(useAuth.getState().semConexao).toBe(true);
+      expect(useAuth.getState().usuario).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('servidor fora do ar (5xx) também não apaga o login', async () => {
+    vi.useFakeTimers();
+    try {
+      useAuth.setState({ token: 'jwt-salvo' });
+      apiFalsa({ '/api/auth/me': { status: 503 } });
+      const restaurando = authServico.restaurarSessao();
+      await vi.advanceTimersByTimeAsync(5000);
+      await restaurando;
+      expect(useAuth.getState().token).toBe('jwt-salvo');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('token vencido (401) ao abrir o app encerra a sessão', async () => {
+    useAuth.setState({ token: 'jwt-vencido' });
+    apiFalsa({ '/api/auth/me': { status: 401 } });
+    await authServico.restaurarSessao();
+    expect(useAuth.getState().token).toBeNull();
+    expect(useAuth.getState().semConexao).toBe(false);
+  });
+
+  it('um 401 atrasado da sessão anterior não derruba o usuário seguinte', async () => {
+    // Usuário A fez uma requisição; enquanto ela não volta, A sai e B entra no mesmo aparelho.
+    let liberar: (r: Response) => void = () => undefined;
+    useAuth.setState({ token: 'jwt-de-a', usuario: dario });
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((r) => { liberar = r; })));
+    const deA = api.get('/fichas');
+    useAuth.setState({ token: 'jwt-de-b', usuario: { ...dario, id: 9, nome: 'B' } });
+    liberar(new Response(null, { status: 401 }));
+    await expect(deA).rejects.toThrow();
+    expect(useAuth.getState().token).toBe('jwt-de-b');
+    expect(useAuth.getState().usuario?.nome).toBe('B');
+  });
+
   it('troca a senha pela API', async () => {
     const pedidos = apiFalsa({ 'PUT /api/auth/senha': { status: 204 } });
     await authServico.trocarSenha('123456', 'nova-senha');

@@ -636,3 +636,15 @@ html:has(pf-modal [aria-modal='true']) { overflow: hidden; }
   }
   .pf-skeleton { animation: none; }
 }
+
+/* Tela "sem conexão" (sessão salva, servidor fora de alcance ao abrir o app) */
+.sem-conexao {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  h1 { font-size: 22px; }
+  p { color: var(--pf-text-muted); max-width: 36ch; margin: 0 auto 8px; }
+}

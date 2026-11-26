@@ -121,6 +121,8 @@ export const pagamentosServico = {
   },
   detalhar: (id: number) => api.get<Pagamento>(`${URL}/historico/${id}`),
   estornar: (id: number, motivo: string) => api.post<Pagamento>(`${URL}/historico/${id}/estorno`, { motivo }),
+  /** Anula uma diária lançada errada que nunca foi paga (só a gestão). */
+  anular: (diariaId: number, motivo: string) => api.post<void>(`${URL}/diarias/${diariaId}/anulacao`, { motivo }),
   comprovante: (id: number) => api.arquivo(`${URL}/historico/${id}/comprovante`),
   consultarPix: (id: number) => api.get<Pix>(`${URL}/pix/${id}`),
   salvarPix: (id: number, tipo: TipoPix, chave: string) => api.put<Pix>(`${URL}/pix/${id}`, { tipo, chave }),

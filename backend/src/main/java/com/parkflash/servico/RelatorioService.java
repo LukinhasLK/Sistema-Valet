@@ -2,6 +2,7 @@ package com.parkflash.servico;
 
 import com.parkflash.dominio.Despesa;
 import com.parkflash.dominio.Ficha;
+import com.parkflash.dominio.SituacaoFicha;
 import com.parkflash.dominio.Unidade;
 import com.parkflash.erro.NaoEncontradoException;
 import com.parkflash.erro.RegraInvalidaException;
@@ -62,6 +63,11 @@ public class RelatorioService {
     }
 
     private Periodo consultar(Integer mes, int ano, Long unidadeId, AcessoUnidades acesso) {
+        return consultar(mes, ano, unidadeId, acesso, false);
+    }
+
+    /** @param somenteFechadas true na divisão de lucro: fichas ainda em edição ou conferência podem mudar. */
+    private Periodo consultar(Integer mes, int ano, Long unidadeId, AcessoUnidades acesso, boolean somenteFechadas) {
         if (unidadeId != null) acesso.exigir(unidadeId);
         if (ano < 1 || ano > 9999) throw new RegraInvalidaException("Ano inválido.");
         LocalDate inicio = inicio(mes, ano);
@@ -69,8 +75,11 @@ public class RelatorioService {
 
         boolean consolidado = unidadeId == null && acesso.todas();
         Set<Long> ids = unidadeId == null ? acesso.unidades() : Set.of(unidadeId);
-        List<Ficha> doPeriodo = consolidado ? fichas.findByDataBetweenOrderByDataDescIdDesc(inicio, fim)
+        List<Ficha> todas = consolidado ? fichas.findByDataBetweenOrderByDataDescIdDesc(inicio, fim)
                 : fichas.findByUnidadeIdInAndDataBetweenOrderByDataDescIdDesc(ids, inicio, fim);
+        List<Ficha> doPeriodo = somenteFechadas
+                ? todas.stream().filter(f -> f.getSituacao() == SituacaoFicha.FECHADA).toList() : todas;
+        int abertas = todas.size() - doPeriodo.size();
         List<Despesa> despesasDoPeriodo = consolidado ? despesas.findByCanceladaFalseAndDataBetweenOrderByDataDescIdDesc(inicio, fim)
                 : despesas.findByCanceladaFalseAndUnidadeIdInAndDataBetweenOrderByDataDescIdDesc(ids, inicio, fim);
 
@@ -81,23 +90,34 @@ public class RelatorioService {
 
         var resumo = new ResumoPeriodo(mes, ano, unidadeId, doPeriodo.size(), carros, bruto, lucro, fixas,
                 CalculoFicha.resultado(lucro, fixas));
-        return new Periodo(resumo, inicio, fim, doPeriodo);
+        return new Periodo(resumo, inicio, fim, doPeriodo, abertas);
     }
 
-    private record Periodo(ResumoPeriodo resumo, LocalDate inicio, LocalDate fim, List<Ficha> fichas) {}
+    private record Periodo(ResumoPeriodo resumo, LocalDate inicio, LocalDate fim, List<Ficha> fichas, int fichasAbertas) {}
+
+    /** Resumo usado na divisão de lucro: só fichas fechadas, e quantas ficaram de fora por ainda estarem abertas. */
+    public record ResumoDivisao(ResumoPeriodo resumo, int fichasAbertas) {}
+
+    @Transactional(readOnly = true)
+    public ResumoDivisao resumoParaDivisao(int mes, int ano, Long unidadeId, AcessoUnidades acesso) {
+        var periodo = consultar(mes, ano, unidadeId, acesso, true);
+        return new ResumoDivisao(periodo.resumo(), periodo.fichasAbertas());
+    }
 
     /** Rateio do resultado da unidade conforme o percentual de cada sócio nela. */
     @Transactional(readOnly = true)
     public DivisaoLucro divisao(Integer mes, int ano, Long unidadeId, AcessoUnidades acesso) {
         if (mes == null) throw new RegraInvalidaException("Escolha o mês de competência do rateio.");
         if (unidadeId == null) return divisaoTodas(mes, ano, acesso);
-        var resumo = resumo(mes, ano, unidadeId, acesso);
+        var paraDivisao = resumoParaDivisao(mes, ano, unidadeId, acesso);
+        var resumo = paraDivisao.resumo();
         BigDecimal resultado = resumo.resultado();
         var partes = rateios.repartir(resultado, rateios.cotas(unidadeId, inicio(mes, ano)));
         boolean semRateio = partes.isEmpty() && resultado.signum() != 0;
         return new DivisaoLucro(mes, ano, unidadeId, resultado, partes, resumo.lucroFichas(),
                 resumo.despesasFixas(), resumo.quantidadeFichas(),
-                semRateio ? List.of(unidades.findById(unidadeId).map(Unidade::getNome).orElse("")) : List.of());
+                semRateio ? List.of(unidades.findById(unidadeId).map(Unidade::getNome).orElse("")) : List.of(),
+                paraDivisao.fichasAbertas());
     }
 
     /**
@@ -106,12 +126,12 @@ public class RelatorioService {
      */
     private DivisaoLucro divisaoTodas(int mes, int ano, AcessoUnidades acesso) {
         if (!acesso.todas()) throw new RegraInvalidaException("Escolha uma unidade.");
-        var total = resumo(mes, ano, null, acesso);
+        var total = resumoParaDivisao(mes, ano, null, acesso);
         var soma = new java.util.LinkedHashMap<Long, BigDecimal>();
         var nomes = new java.util.HashMap<Long, String>();
         var semRateio = new java.util.ArrayList<String>();
         for (Unidade unidade : unidades.findAll(org.springframework.data.domain.Sort.by("nome"))) {
-            var resumo = resumo(mes, ano, unidade.getId(), acesso);
+            var resumo = resumoParaDivisao(mes, ano, unidade.getId(), acesso).resumo();
             var partes = rateios.repartir(resumo.resultado(), rateios.cotas(unidade.getId(), inicio(mes, ano)));
             if (partes.isEmpty()) {
                 if (resumo.resultado().signum() != 0) semRateio.add(unidade.getNome());
@@ -130,8 +150,8 @@ public class RelatorioService {
                                 : e.getValue().abs().multiply(CEM).divide(distribuido, 2, java.math.RoundingMode.HALF_UP),
                         e.getValue()))
                 .toList();
-        return new DivisaoLucro(mes, ano, null, total.resultado(), partes, total.lucroFichas(), total.despesasFixas(),
-                total.quantidadeFichas(), semRateio);
+        return new DivisaoLucro(mes, ano, null, total.resumo().resultado(), partes, total.resumo().lucroFichas(),
+                total.resumo().despesasFixas(), total.resumo().quantidadeFichas(), semRateio, total.fichasAbertas());
     }
 
     private static LocalDate inicio(Integer mes, int ano) {

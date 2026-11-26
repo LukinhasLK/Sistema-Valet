@@ -95,6 +95,9 @@ public class FichaService {
         if (paga && ator.nivel() == NivelAcesso.OPERADOR) {
             throw new AccessDeniedException("Somente a gestão pode confirmar pagamentos.");
         }
+        // O operador não cria dívida: a diária dele fica para a gestão reconhecer na conferência
+        // de pagamentos, depois de conferir a ficha.
+        if (ator.nivel() == NivelAcesso.OPERADOR) return;
         if (paga && linha.formaPagamento() == null) {
             throw new RegraInvalidaException("Informe a forma usada para pagar a diária.");
         }

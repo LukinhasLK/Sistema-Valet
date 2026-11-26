@@ -44,6 +44,8 @@ export interface DivisaoLucro {
   partes: { socioId: number; nome: string; percentual: number; valor: number }[];
   /** Unidades com resultado no mês cujo rateio não soma 100% (ficam de fora das partes). */
   unidadesSemRateio?: string[];
+  /** Fichas do mês ainda em edição ou conferência: só entram na divisão depois de fechadas. */
+  fichasAbertas?: number;
 }
 
 export interface ResumoPainel {
