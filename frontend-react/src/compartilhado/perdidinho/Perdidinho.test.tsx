@@ -65,7 +65,7 @@ describe('Perdidinho', () => {
     expect(container.querySelector('pf-perdidinho')?.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('novos humores: triste (olhos caídos e olhar baixo), surpreso (olhos e boca arregalados), dormindo (olhos fechados e "z")', () => {
+  it('novos humores: triste (olhos caídos e olhar baixo), surpreso (olhos arregalados, sem boca), dormindo (olhos fechados e "z")', () => {
     const { container, rerender } = render(<Perdidinho humor="triste" falando passo="p" lado="centro" reduzirMovimento />);
     const olhar = () => (container.querySelector('.perdidinho__olhar') as SVGGElement).style.transform;
     expect(container.querySelector('.perdidinho__tristes')).not.toBeNull();
@@ -73,7 +73,7 @@ describe('Perdidinho', () => {
 
     rerender(<Perdidinho humor="surpreso" falando passo="p" lado="centro" reduzirMovimento />);
     expect(container.querySelector('.perdidinho__arregalados')).not.toBeNull();
-    expect(container.querySelector('.perdidinho__boca-o')).not.toBeNull();
+    expect(container.querySelector('[class*="perdidinho__boca"]')).toBeNull(); // sem boca em nenhum humor
 
     rerender(<Perdidinho humor="dormindo" falando passo="p" lado="centro" reduzirMovimento />);
     expect(container.querySelector('.perdidinho__fechados')).not.toBeNull();

@@ -56,8 +56,6 @@ export function olhosDoHumor(humor: HumorMascote): Olhos {
 
 /** Olhos que piscam (os outros já estão fechados ou em arco). */
 const PISCAM: ReadonlySet<Olhos> = new Set(['abertos', 'tristes', 'arregalados']);
-/** Humores que "falam" com a boquinha quando o texto aparece. */
-const FALAM: ReadonlySet<HumorMascote> = new Set(['acenando', 'explicando', 'apontando']);
 
 /** Olhar fixo de cada humor (null = livre: segue o mouse em ponteiro fino). */
 function olharDoHumor(humor: HumorMascote, lado: PropsMascote['lado']): Direcao | null {
@@ -93,7 +91,8 @@ const PROFUNDIDADE = [4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
  * Tudo vive em `gsap.context` revertido ao trocar de passo ou desmontar. Ciclos infinitos param
  * quando o mascote sai da tela. Com "reduzir movimento" (prop ou sistema) nada se move: só a expressão muda.
  */
-export function Perdidinho({ humor, falando, passo, lado, reduzirMovimento, decorativo = false, tamanho = 64 }: PropsPerdidinho) {
+/** Sem boca: a expressão é só dos olhos. `falando` faz parte do contrato do tour e é ignorado aqui. */
+export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = false, tamanho = 64 }: PropsPerdidinho) {
   const id = useId().replace(/:/g, '');
   const svg = useRef<SVGSVGElement>(null);
   const entrada = useRef<SVGGElement>(null);
@@ -102,7 +101,6 @@ export function Perdidinho({ humor, falando, passo, lado, reduzirMovimento, deco
   const sombra = useRef<SVGEllipseElement>(null);
   const olhar = useRef<SVGGElement>(null);
   const olhos = useRef<SVGGElement>(null);
-  const boca = useRef<SVGRectElement>(null);
   const zzz = useRef<SVGGElement>(null);
 
   // Estado de movimento entre execuções (não afeta o desenho, por isso não é state).
@@ -272,14 +270,6 @@ export function Perdidinho({ humor, falando, passo, lado, reduzirMovimento, deco
             .to(z, { opacity: 0, x: 2.5, y: -8, duration: 1.4, ease: 'sine.in' });
         });
       }
-
-      // "Fala": a boquinha abre e fecha em ritmo irregular quando o texto do passo aparece.
-      if (falando && FALAM.has(humor) && boca.current) {
-        gsap.timeline({ delay: humor === 'acenando' ? 1 : t0 + 0.25 })
-          .set(boca.current, { opacity: 1, scaleY: 0.35, transformOrigin: '50% 50%' })
-          .to(boca.current, { keyframes: { scaleY: [1, 0.45, 0.9, 0.3, 1, 0.55, 0.8, 0.35], easeEach: EASE.suave }, duration: 0.78, ease: 'none' })
-          .to(boca.current, { opacity: 0, duration: 0.12, ease: 'power1.in' });
-      }
     }, svg);
 
     return () => {
@@ -292,7 +282,7 @@ export function Perdidinho({ humor, falando, passo, lado, reduzirMovimento, deco
       meus.forEach((a) => registrados.delete(a));
       ctx.revert();
     };
-  }, [humor, falando, passo, lado, parado]);
+  }, [humor, passo, lado, parado]);
 
   // Respiração em repouso, ancorada na base (mais lenta e funda dormindo; curta e cansada triste).
   const ritmo = humor === 'dormindo' ? 'lento' : humor === 'triste' ? 'cansado' : 'normal';
@@ -449,9 +439,6 @@ export function Perdidinho({ humor, falando, passo, lado, reduzirMovimento, deco
                   )}
                 </g>
               </g>
-              {humor === 'triste' && <path className="perdidinho__traco" d="M25 49.5 Q28 47 31 49.5" strokeWidth="2" strokeLinecap="round" fill="none" />}
-              {humor === 'surpreso' && <ellipse className="perdidinho__boca-o" cx="28" cy="48.5" rx="2.2" ry="2.6" />}
-              <rect ref={boca} className="perdidinho__boca" x="25" y="45" width="6" height="3.4" rx="1.7" />
             </g>
           </g>
           {humor === 'dormindo' && (

@@ -26,8 +26,6 @@ pf-perdidinho {
   .perdidinho__brilho { stroke: var(--perdidinho-olho); }
   .perdidinho__olhos { fill: var(--perdidinho-olho); }
   .perdidinho__traco { stroke: var(--perdidinho-olho); }
-  .perdidinho__boca { fill: var(--perdidinho-olho); opacity: 0; }
-  .perdidinho__boca-o { fill: var(--perdidinho-olho); }
   .perdidinho__raio { fill: var(--perdidinho-raio); }
   .perdidinho__sombra { fill: var(--perdidinho-sombra); opacity: .22; }
   /* "z" do sono: na cor da face; parados (reduzir movimento) ficam visíveis, sem flutuar. */
