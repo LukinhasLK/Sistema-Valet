@@ -38,13 +38,13 @@ export default function Usuarios() {
   const unidades = useUnidades((s) => s.unidades);
   const socios = useSocios((s) => s.socios);
   const nomeSocio = (id?: number | null) => socios.find((x) => x.id === id)?.nome ?? '—';
-  /** Sócios que ainda não têm login (o de quem está sendo editado continua na lista). */
-  const sociosLivres = socios.filter((x) => x.id === editando?.socioId || !todos.some((u) => u.ativo !== false && u.socioId === x.id));
   const [mostrarInativos, setMostrarInativos] = useState(false);
   const usuarios = useMemo(() => todos.filter((u) => mostrarInativos || u.ativo !== false), [todos, mostrarInativos]);
   const [salvando, setSalvando] = useState(false);
   const [formAberto, setFormAberto] = useState(false);
   const [editando, setEditando] = useState<Usuario | null>(null);
+  /** Sócios que ainda não têm login (o de quem está sendo editado continua na lista). */
+  const sociosLivres = socios.filter((x) => x.id === editando?.socioId || !todos.some((u) => u.ativo !== false && u.socioId === x.id));
   const [paraExcluir, setParaExcluir] = useState<Usuario | null>(null);
   const [emailDuplicado, setEmailDuplicado] = useState(false);
   const f = useFormulario(
