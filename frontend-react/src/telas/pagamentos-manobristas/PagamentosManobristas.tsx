@@ -492,7 +492,7 @@ export default function PagamentosManobristas() {
                             </div>
                           ))}
                         </article>
-                      )) : <div className="tudo-pago" role="status"><PerdidinhoDiz humor="comemorando" tamanho={48} reduzirMovimento={reduzido()} titulo="Ninguém esperando pagamento" texto="Tudo pago por aqui." /></div>}
+                      )) : <div className="tudo-pago" role="status"><PerdidinhoDiz humor="feliz" tamanho={48} reduzirMovimento={reduzido()} titulo="Nenhuma diária a pagar" texto="As diárias reconhecidas já foram todas pagas." /></div>}
                     </div>
                   </section>
                   <div className="pf-card selecao">

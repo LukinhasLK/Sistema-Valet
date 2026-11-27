@@ -15,11 +15,12 @@ import { create } from 'zustand';
 /** Humores usados pelo tour guiado. */
 export type HumorTour = 'acenando' | 'explicando' | 'apontando' | 'comemorando' | 'pensando';
 /**
- * Todos os humores do mascote. Além dos do tour: 'triste' (erro, sem conexão), 'surpreso'
- * (novidade, algo inesperado) e 'dormindo' (estado vazio ou ocioso). Quem registrar um mascote
- * deve tratar os humores que não conhece como 'explicando'.
+ * Todos os humores do mascote. Além dos do tour: 'feliz' (deu certo, sem o alarde de
+ * 'comemorando'), 'triste' (erro, sem conexão), 'chorando' (falha grave, perda de dados),
+ * 'surpreso' (novidade, algo inesperado) e 'dormindo' (estado vazio ou ocioso). Quem registrar
+ * um mascote deve tratar os humores que não conhece como 'explicando'.
  */
-export type HumorMascote = HumorTour | 'triste' | 'surpreso' | 'dormindo';
+export type HumorMascote = HumorTour | 'feliz' | 'triste' | 'chorando' | 'surpreso' | 'dormindo';
 
 export interface PropsMascote {
   humor: HumorMascote;

@@ -35,11 +35,11 @@ pf-perdidinho-diz {
     color: var(--pf-text, #10283f);
     visibility: hidden;
 
-    /* Rabinho apontando para a boca do Perdidinho. */
+    /* Rabinho apontando para o rosto do Perdidinho (altura dos olhos). */
     &::before {
       content: '';
       position: absolute;
-      bottom: calc(var(--pdiz-tamanho) * .3);
+      bottom: calc(var(--pdiz-tamanho) * .38);
       left: calc(var(--pdiz-rabo) / -2 - 1px);
       width: var(--pdiz-rabo);
       height: var(--pdiz-rabo);

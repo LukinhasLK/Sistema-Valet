@@ -6,7 +6,7 @@ import { reduzido } from './compartilhado/movimento';
 import { podeAcessar, rotaInicial } from './nucleo/servicos/permissoes';
 
 /** Fora do pacote principal: só baixa se a tela "sem conexão" aparecer (o texto já está na tela enquanto carrega). */
-const FRASE_SEM_CONEXAO = 'Seu login continua salvo neste aparelho. Confira a internet e tente de novo.';
+const FRASE_SEM_CONEXAO = 'Seu login continua salvo neste aparelho. Confira a internet ou aguarde um instante e tente de novo.';
 /** Sem rede o pedaço pode não carregar: nesse caso fica só o texto, nunca uma tela quebrada. */
 const PerdidinhoDiz = lazy(() => import('./compartilhado/perdidinho/PerdidinhoDiz')
   .then((m) => ({ default: m.PerdidinhoDiz }))

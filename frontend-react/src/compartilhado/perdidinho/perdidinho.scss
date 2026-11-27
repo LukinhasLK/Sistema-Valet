@@ -9,6 +9,7 @@ pf-perdidinho {
   --perdidinho-lado: var(--pf-navy, #10283f);  /* espessura: mais escura que a face */
   --perdidinho-aresta: #8cc3e4;                /* fio de luz na aresta de trás */
   --perdidinho-olho: #ffffff;
+  --perdidinho-lagrima: #bfe3f7;               /* gota: azul bem claro */
   --perdidinho-raio: var(--pf-amber, #f2a516); /* âmbar do logo: só o raio */
   --perdidinho-sombra: var(--pf-navy, #10283f);
 
@@ -29,8 +30,13 @@ pf-perdidinho {
   .perdidinho__raio { fill: var(--perdidinho-raio); }
   .perdidinho__sombra { fill: var(--perdidinho-sombra); opacity: .22; }
   /* "z" do sono: na cor da face; parados (reduzir movimento) ficam visíveis, sem flutuar. */
-  .perdidinho__zzz { stroke: var(--perdidinho-face); opacity: .7; }
+  .perdidinho__zzz { stroke: var(--perdidinho-face-luz, #2a86c0); stroke-width: 2; opacity: .85; }
   .perdidinho--vivo .perdidinho__zzz > * { opacity: 0; }
+  /* Lágrimas: azul-claro com fio marinho (destaca na face azul). Paradas: uma em cada olho, no
+     canto de baixo; vivas, começam invisíveis e o GSAP as faz escorrer. Sem transform em CSS:
+     ele anularia o atributo transform que o GSAP usa no SVG. */
+  .perdidinho__lagrima { fill: var(--perdidinho-lagrima); stroke: var(--perdidinho-lado); }
+  .perdidinho--vivo .perdidinho__lagrima { opacity: 0; }
 
   @media (prefers-reduced-motion: no-preference) {
     /* O olhar desliza com um leve atraso (seguir o mouse, apontar, pensar, entristecer). */

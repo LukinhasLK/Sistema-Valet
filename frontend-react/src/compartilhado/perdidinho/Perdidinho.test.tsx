@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { gsap } from 'gsap';
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
-import { Perdidinho, direcaoDoAlvo, olhosDoHumor } from './Perdidinho';
+import { Perdidinho, direcaoDoAlvo, olhosDoHumor, sobrancelhasDoHumor } from './Perdidinho';
 
-const HUMORES: HumorMascote[] = ['acenando', 'explicando', 'apontando', 'comemorando', 'pensando', 'triste', 'surpreso', 'dormindo'];
+const HUMORES: HumorMascote[] = ['acenando', 'explicando', 'apontando', 'comemorando', 'pensando', 'feliz', 'triste', 'chorando', 'surpreso', 'dormindo'];
 
 /** Simula o sistema pedindo "reduzir movimento". */
 function sistemaReduzido() {
@@ -39,7 +39,7 @@ describe('Perdidinho', () => {
     const contexto = vi.spyOn(gsap, 'context');
     for (const humor of HUMORES) {
       const { container, unmount } = render(<Perdidinho humor={humor} falando passo="p1" lado="right" reduzirMovimento />);
-      const alegre = humor === 'acenando' || humor === 'comemorando';
+      const alegre = humor === 'acenando' || humor === 'comemorando' || humor === 'feliz';
       expect(!!container.querySelector('.perdidinho__alegre')).toBe(alegre);
       expect(container.querySelector('pf-perdidinho')?.getAttribute('data-olhos')).toBe(olhosDoHumor(humor));
       expect(container.querySelector('.perdidinho--vivo')).toBeNull();
@@ -81,7 +81,73 @@ describe('Perdidinho', () => {
     expect(container.querySelector('.perdidinho__olhos')).toBeNull();
   });
 
-  it.each(['triste', 'surpreso', 'dormindo'] as HumorMascote[])('"%s" anima com GSAP e limpa ao desmontar', (humor) => {
+  it.each(HUMORES)('"%s" não tem boca (a expressão é dos olhos)', (humor) => {
+    const { container } = render(<Perdidinho humor={humor} falando passo="p" lado="centro" reduzirMovimento={false} />);
+    expect(container.querySelector('[class*="boca"]')).toBeNull();
+  });
+
+  it.each(HUMORES)('"%s" só tem sobrancelha quando a expressão pede', (humor) => {
+    const { container } = render(<Perdidinho humor={humor} falando passo="p" lado="centro" reduzirMovimento />);
+    const sb = container.querySelector('.perdidinho__sobrancelhas');
+    const esperado = sobrancelhasDoHumor(humor);
+    expect(sb?.getAttribute('data-forma') ?? null).toBe(esperado);
+    if (sb) expect(sb.querySelectorAll('path')).toHaveLength(2);
+    expect(['triste', 'chorando', 'surpreso', 'pensando'].includes(humor)).toBe(!!esperado);
+  });
+
+  it('feliz: olhos em arco (^^), sem sobrancelha nem lágrima', () => {
+    const { container } = render(<Perdidinho humor="feliz" falando passo="p" lado="centro" reduzirMovimento />);
+    expect(container.querySelectorAll('.perdidinho__alegre path')).toHaveLength(2);
+    expect(container.querySelector('pf-perdidinho')?.getAttribute('data-olhos')).toBe('alegres');
+    expect(container.querySelector('.perdidinho__sobrancelhas, .perdidinho__lagrima')).toBeNull();
+  });
+
+  it('triste: olhos caídos, sobrancelhas de preocupação e olhar para baixo, sem lágrima', () => {
+    const { container } = render(<Perdidinho humor="triste" falando passo="p" lado="centro" reduzirMovimento />);
+    expect(container.querySelector('.perdidinho__tristes')).not.toBeNull();
+    expect(container.querySelector('.perdidinho__sobrancelhas')?.getAttribute('data-forma')).toBe('tristes');
+    expect((container.querySelector('.perdidinho__olhar') as SVGGElement).style.transform).toContain('2.08px');
+    expect(container.querySelector('.perdidinho__lagrima')).toBeNull();
+  });
+
+  it('chorando: base do triste + uma lágrima em cada olho', () => {
+    const { container } = render(<Perdidinho humor="chorando" falando passo="p" lado="centro" reduzirMovimento />);
+    expect(container.querySelector('.perdidinho__tristes')).not.toBeNull();
+    expect(container.querySelector('.perdidinho__sobrancelhas')?.getAttribute('data-forma')).toBe('tristes');
+    expect(container.querySelectorAll('.perdidinho__lagrima')).toHaveLength(2);
+    expect((container.querySelector('.perdidinho__olhar') as SVGGElement).style.transform).toContain('2.08px');
+  });
+
+  it('chorando com reduzir movimento: lágrimas paradas, sem gsap.to', () => {
+    const to = vi.spyOn(gsap, 'to');
+    const timeline = vi.spyOn(gsap, 'timeline');
+    const { container } = render(<Perdidinho humor="chorando" falando passo="p" lado="centro" reduzirMovimento />);
+    expect(container.querySelectorAll('.perdidinho__lagrima')).toHaveLength(2);
+    expect(container.querySelector('.perdidinho--vivo')).toBeNull();
+    expect(to).not.toHaveBeenCalled();
+    expect(timeline).not.toHaveBeenCalled();
+  });
+
+  it('chorando com movimento: as lágrimas escorrem (GSAP) e tudo é revertido ao desmontar', () => {
+    const timeline = vi.spyOn(gsap, 'timeline');
+    const contexto = vi.spyOn(gsap, 'context');
+    const { container, unmount } = render(<Perdidinho humor="chorando" falando passo="p" lado="centro" reduzirMovimento={false} />);
+    const linhas = timeline.mock.results.map((r) => r.value as gsap.core.Timeline);
+    const gotas = [...container.querySelectorAll('.perdidinho__lagrima')];
+    expect(gotas).toHaveLength(2);
+    gotas.forEach((g) => expect(linhas.some((tl) => tl.repeat() === -1 && tl.getTweensOf(g).length > 0)).toBe(true));
+    const reverter = contexto.mock.results.map((r) => vi.spyOn(r.value as gsap.Context, 'revert'));
+    unmount();
+    reverter.forEach((r) => expect(r).toHaveBeenCalled());
+  });
+
+  it('surpreso: olhos arregalados e sobrancelhas levantadas', () => {
+    const { container } = render(<Perdidinho humor="surpreso" falando passo="p" lado="centro" reduzirMovimento />);
+    expect(container.querySelectorAll('.perdidinho__arregalados ellipse')).toHaveLength(2);
+    expect(container.querySelector('.perdidinho__sobrancelhas')?.getAttribute('data-forma')).toBe('levantadas');
+  });
+
+  it.each(['feliz', 'triste', 'chorando', 'surpreso', 'dormindo'] as HumorMascote[])('"%s" anima com GSAP e limpa ao desmontar', (humor) => {
     const contexto = vi.spyOn(gsap, 'context');
     const { unmount } = render(<Perdidinho humor={humor} falando passo="p1" lado="centro" reduzirMovimento={false} />);
     expect(contexto).toHaveBeenCalled();

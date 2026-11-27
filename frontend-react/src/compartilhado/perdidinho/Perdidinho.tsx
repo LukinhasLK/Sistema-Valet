@@ -45,13 +45,24 @@ export function direcaoDoAlvo(lado: PropsMascote['lado']): Direcao {
 
 export function olhosDoHumor(humor: HumorMascote): Olhos {
   switch (humor) {
+    case 'feliz':
     case 'acenando':
     case 'comemorando': return 'alegres';
-    case 'triste': return 'tristes';
+    case 'triste':
+    case 'chorando': return 'tristes';
     case 'surpreso': return 'arregalados';
     case 'dormindo': return 'fechados';
     default: return 'abertos';
   }
+}
+
+/** Sobrancelhas: só nos humores em que elas fazem a expressão. */
+export type Sobrancelhas = 'tristes' | 'levantadas' | 'curiosa';
+export function sobrancelhasDoHumor(humor: HumorMascote): Sobrancelhas | null {
+  if (humor === 'triste' || humor === 'chorando') return 'tristes';
+  if (humor === 'surpreso') return 'levantadas';
+  if (humor === 'pensando') return 'curiosa';
+  return null;
 }
 
 /** Olhos que piscam (os outros já estão fechados ou em arco). */
@@ -61,7 +72,7 @@ const PISCAM: ReadonlySet<Olhos> = new Set(['abertos', 'tristes', 'arregalados']
 function olharDoHumor(humor: HumorMascote, lado: PropsMascote['lado']): Direcao | null {
   if (humor === 'pensando') return { x: -0.5, y: -1 };
   if (humor === 'apontando') return direcaoDoAlvo(lado);
-  if (humor === 'triste') return { x: 0, y: 0.8 };
+  if (humor === 'triste' || humor === 'chorando') return { x: 0, y: 0.8 };
   if (humor === 'dormindo') return { x: 0, y: 0 };
   return null;
 }
@@ -74,6 +85,10 @@ function poseAtual(el: Element): Pose {
   const ler = (prop: keyof Pose) => Number(gsap.getProperty(el, prop)) || 0;
   return { x: ler('x'), y: ler('y'), rotation: ler('rotation'), scaleX: ler('scaleX') || 1, scaleY: ler('scaleY') || 1 };
 }
+
+/** Gota com a ponta em (x, y): 4,8 de largura por 7 de altura (legível a partir de 40 px). */
+const gota = (x: number, y: number) =>
+  `M${x} ${y} C${x + 1.6} ${y + 2.4} ${x + 2.4} ${y + 3.6} ${x + 2.4} ${y + 4.6} A2.4 2.4 0 0 1 ${x - 2.4} ${y + 4.6} C${x - 2.4} ${y + 3.6} ${x - 1.6} ${y + 2.4} ${x} ${y} Z`;
 
 // Espessura: a mesma forma repetida em diagonal, atrás da face.
 const PROFUNDIDADE = [4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
@@ -101,6 +116,8 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
   const sombra = useRef<SVGEllipseElement>(null);
   const olhar = useRef<SVGGElement>(null);
   const olhos = useRef<SVGGElement>(null);
+  const sobrancelhas = useRef<SVGGElement>(null);
+  const lagrimas = useRef<SVGGElement>(null);
   const zzz = useRef<SVGGElement>(null);
 
   // Estado de movimento entre execuções (não afeta o desenho, por isso não é state).
@@ -112,6 +129,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
 
   const parado = reduzirMovimento || reduzido();
   const tipoOlhos = olhosDoHumor(humor);
+  const tipoSobrancelhas = sobrancelhasDoHumor(humor);
   const olharFixo = olharDoHumor(humor, lado);
   const olharX = olharFixo?.x ?? 0;
   const olharY = olharFixo?.y ?? 0;
@@ -230,6 +248,22 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
         loop({ delay: fimIntro + 3, repeatDelay: 4 }).add(pulo(5));
       }
 
+      if (humor === 'feliz') {
+        // Quique de alegria: dois saltinhos curtos (o segundo menor), inclinando de um lado e do
+        // outro, e de novo de tempos em tempos. Bem menor que o pulo do "comemorando".
+        const quique = (altura: number, giro: number) => gsap.timeline()
+          .to(corpo, { scaleX: 1.04, scaleY: 0.96, duration: 0.06, ease: EASE.entrada })
+          .to(corpo, { y: -altura, rotation: giro, scaleX: 0.96, scaleY: 1.04, duration: 0.14, ease: EASE.saida })
+          .add(sombraNoAr(altura / 11, 0.14), '<')
+          .to(corpo, { y: 0, rotation: 0, scaleX: 1, scaleY: 1, duration: 0.14, ease: EASE.entrada })
+          .add(sombraNoChao(0.14), '<')
+          .to(corpo, { scaleX: 1.05, scaleY: 0.95, duration: 0.05, ease: 'power1.out' })
+          .to(corpo, { scaleX: 1, scaleY: 1, duration: 0.24, ease: EASE.mola });
+        const duplo = () => gsap.timeline().add(quique(3.5, -2)).add(quique(2.5, 2), '-=0.16');
+        const tl = gsap.timeline({ delay: t0 }).add(duplo());
+        loop({ delay: t0 + tl.duration() + 2.2, repeatDelay: 2.6 }).add(duplo());
+      }
+
       if (humor === 'pensando') {
         // Cabeça de lado ("hmm"), oscilando bem devagar.
         gsap.timeline({ delay: t0 - 0.12 }).to(corpo, { rotation: -5, y: -1, duration: 0.45, ease: 'power2.out' });
@@ -237,14 +271,32 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
         loop({ delay: fimIntro, yoyo: true }).to(corpo, { rotation: -2, duration: 1.6, ease: EASE.suave });
       }
 
-      if (humor === 'triste') {
-        // Encolhe devagar (murcha) e suspira de tempos em tempos.
+      if (humor === 'triste' || humor === 'chorando') {
+        // Encolhe devagar (murcha).
         const murcho = { y: 1.5, scaleX: 1.03, scaleY: 0.94, rotation: -2 };
         gsap.to(corpo, { ...murcho, duration: 0.55, ease: 'power2.out', delay: t0 - 0.12 });
         const fimIntro = t0 + 0.43;
-        loop({ delay: fimIntro + 1.4, repeatDelay: 3.2 })
-          .to(corpo, { y: 2.2, scaleX: 1.045, scaleY: 0.91, duration: 0.7, ease: EASE.suave })
-          .to(corpo, { ...murcho, duration: 1.1, ease: EASE.suave });
+        if (humor === 'triste') {
+          // Suspira de tempos em tempos.
+          loop({ delay: fimIntro + 1.4, repeatDelay: 3.2 })
+            .to(corpo, { y: 2.2, scaleX: 1.045, scaleY: 0.91, duration: 0.7, ease: EASE.suave })
+            .to(corpo, { ...murcho, duration: 1.1, ease: EASE.suave });
+        } else {
+          // Soluço: dois trancos curtos para cima e volta a murchar.
+          loop({ delay: fimIntro + 0.6, repeatDelay: 1.8 })
+            .to(corpo, { y: 0.3, scaleX: 1.015, scaleY: 0.97, duration: 0.08, ease: EASE.saida })
+            .to(corpo, { ...murcho, duration: 0.16, ease: EASE.entrada })
+            .to(corpo, { y: 0.6, scaleX: 1.02, scaleY: 0.96, duration: 0.07, ease: EASE.saida }, '+=0.05')
+            .to(corpo, { ...murcho, duration: 0.22, ease: 'power2.inOut' });
+          // Lágrimas: brotam no canto de baixo de cada olho, escorrem e somem, alternando os olhos.
+          const gotas = lagrimas.current ? [...lagrimas.current.children] : [];
+          gotas.forEach((gota, i) => {
+            loop({ delay: 0.3 + i * 0.75, repeatDelay: 0.5 })
+              .fromTo(gota, { opacity: 0, y: 0, scale: 0.5, transformOrigin: '50% 0%' }, { opacity: 1, scale: 1, duration: 0.22, ease: 'power2.out' })
+              .to(gota, { y: 10, duration: 0.95, ease: EASE.entrada })
+              .to(gota, { opacity: 0, duration: 0.22, ease: 'power1.in' }, '-=0.22');
+          });
+        }
       }
 
       if (humor === 'surpreso') {
@@ -285,7 +337,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
   }, [humor, passo, lado, parado]);
 
   // Respiração em repouso, ancorada na base (mais lenta e funda dormindo; curta e cansada triste).
-  const ritmo = humor === 'dormindo' ? 'lento' : humor === 'triste' ? 'cansado' : 'normal';
+  const ritmo = humor === 'dormindo' ? 'lento' : humor === 'triste' || humor === 'chorando' ? 'cansado' : 'normal';
   useLayoutEffect(() => {
     const el = respira.current;
     if (parado || !el) return;
@@ -317,6 +369,13 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
       } else if (anterior && anterior !== humor) {
         gsap.from(el, { scaleY: 0.1, duration: 0.16, ease: EASE.saida });
       }
+      // Sobrancelhas chegam junto com os olhos: sobem de susto, caem na tristeza, arqueiam no "hmm".
+      const sb = sobrancelhas.current;
+      if (sb) {
+        if (tipoSobrancelhas === 'levantadas') gsap.from(sb, { y: 2.5, duration: 0.26, ease: 'back.out(3)', delay: 0.08 });
+        else if (tipoSobrancelhas === 'tristes') gsap.from(sb, { y: -1.5, opacity: 0, duration: 0.4, ease: 'power2.out' });
+        else gsap.from(sb, { y: 1, opacity: 0, duration: 0.3, ease: EASE.saida, delay: 0.1 });
+      }
       if (!PISCAM.has(tipoOlhos)) return;
 
       const lenta = tipoOlhos === 'tristes';
@@ -336,7 +395,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
       if (relogio) registrados.delete(relogio);
       ctx.revert();
     };
-  }, [humor, tipoOlhos, parado]);
+  }, [humor, tipoOlhos, tipoSobrancelhas, parado]);
 
   // Fora da tela, os ciclos infinitos param (economia em páginas longas e no celular).
   useEffect(() => {
@@ -384,7 +443,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
   }, [parado, olharLivre]);
 
   return (
-    <pf-perdidinho {...(decorativo ? { 'aria-hidden': true } : { role: 'img', 'aria-label': 'Perdidinho, o guia do Park Flash' })} data-humor={humor} data-olhos={tipoOlhos}>
+    <pf-perdidinho {...(decorativo ? { 'aria-hidden': true } : { role: 'img', 'aria-label': 'Perdidinho, o guia do Park Flash' })} data-humor={humor} data-olhos={tipoOlhos} data-sobrancelhas={tipoSobrancelhas ?? undefined}>
       <svg ref={svg} className={`perdidinho${parado ? '' : ' perdidinho--vivo'}`} viewBox="0 0 64 64" width={tamanho} height={tamanho} aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id={`${id}-face`} x1="0" y1="0" x2="1" y2="1">
@@ -401,7 +460,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
               </g>
               <path className="perdidinho__aresta" d="M22 10 H44 Q54 10 54 20 V42" strokeWidth="1" strokeOpacity="0.6" fill="none" strokeLinecap="round" />
               <rect x="6" y="14" width="44" height="44" rx="12" fill={`url(#${id}-face)`} />
-              <path className="perdidinho__brilho" d="M13 24 Q13.5 19 19 18.5" strokeOpacity="0.32" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+              <path className="perdidinho__brilho" d="M10.8 22.6 Q11.2 18.6 15.2 18" strokeOpacity="0.28" strokeWidth="2.2" strokeLinecap="round" fill="none" />
               {/* Raio âmbar do logo, no canto da face. */}
               <path className="perdidinho__raio" d="M44.6 44.5 L40.4 50.2 H43.2 L41.8 55.2 L46.2 49 H43.4 Z" />
               <g ref={olhar} className="perdidinho__olhar" style={{ transform: transformOlhar({ x: olharX, y: olharY }) }}>
@@ -438,6 +497,40 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
                     </g>
                   )}
                 </g>
+                {/* Sobrancelhas: traço curto e arredondado na cor dos olhos, só onde fazem a expressão. */}
+                {tipoSobrancelhas && (
+                  <g ref={sobrancelhas} className="perdidinho__sobrancelhas perdidinho__traco" data-forma={tipoSobrancelhas}
+                    strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none">
+                    {tipoSobrancelhas === 'tristes' && (
+                      // "/ \" invertidas: a ponta de dentro sobe (preocupação).
+                      <>
+                        <path d="M17 29.4 L23.4 25.8" />
+                        <path d="M32.6 25.8 L39 29.4" />
+                      </>
+                    )}
+                    {tipoSobrancelhas === 'levantadas' && (
+                      // Arcos altos e um pouco afastados do centro.
+                      <>
+                        <path d="M15.4 25.4 Q18.6 22.2 22.2 23.6" />
+                        <path d="M33.8 23.6 Q37.4 22.2 40.6 25.4" />
+                      </>
+                    )}
+                    {tipoSobrancelhas === 'curiosa' && (
+                      // Uma reta e a outra arqueada ("hmm").
+                      <>
+                        <path d="M17.2 25.6 L23.4 25" />
+                        <path d="M32.6 24.6 Q35.6 21.6 39 23.4" />
+                      </>
+                    )}
+                  </g>
+                )}
+                {humor === 'chorando' && (
+                  // Uma gota por olho, saindo do canto de baixo (azul-claro com contorno marinho fino).
+                  <g ref={lagrimas} className="perdidinho__lagrimas" strokeWidth="0.8" strokeLinejoin="round">
+                    <path className="perdidinho__lagrima" d={gota(18.6, 40.4)} />
+                    <path className="perdidinho__lagrima" d={gota(34.4, 40.4)} />
+                  </g>
+                )}
               </g>
             </g>
           </g>

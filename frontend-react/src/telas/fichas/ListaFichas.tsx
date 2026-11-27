@@ -431,7 +431,7 @@ export default function ListaFichas() {
                 <PerdidinhoDiz humor="explicando" tamanho={64} reduzirMovimento={reduzido()}
                   titulo="Nenhuma ficha lançada ainda"
                   texto={podeLancar
-                    ? 'Cada turno vira uma ficha, com tickets, recebimentos e equipe. Comece pela primeira.'
+                    ? 'Cada turno vira uma ficha, com tickets, recebimentos e equipe. Lance a primeira para começar.'
                     : 'As fichas registram o caixa de cada turno. Quando alguém lançar, elas aparecem aqui.'}
                   acao={podeLancar ? { rotulo: 'Lançar a primeira ficha', aoClicar: () => navegar('/app/fichas/nova') } : undefined} />
               </div>
