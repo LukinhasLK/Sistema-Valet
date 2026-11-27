@@ -150,11 +150,40 @@ try {
   await inicio.goto(`${BASE}/conheca`, { waitUntil: 'networkidle0' });
   ok('A apresentação continua em /conheca', !!(await inicio.$('pf-conheca .heroi')));
   ok('Apresentação mostra o Google Calendar', !!(await inicio.$('#agenda .agenda__exemplo')));
-  ok('Faixa de celulares com telas reais', (await inicio.$$('.faixa__celular img')).length >= 8);
-  await inicio.evaluate(() => document.querySelectorAll('.fluxo__etapa')[2]?.scrollIntoView({ block: 'center' }));
-  await esp(900);
-  const telaAtiva = await inicio.$eval('.fluxo__tela--ativa', (i) => i.getAttribute('src')).catch(() => '');
-  ok('Celular fixo mostra a tela da etapa', telaAtiva.endsWith('celular-fechamento.webp'), telaAtiva);
+  ok('Sem faixa de celulares', (await inicio.$$('.faixa')).length === 0);
+  const capturas = (await inicio.$$('img[src*="/midia/conheca/"]')).length;
+  ok('No máximo 2 capturas de tela na apresentação', capturas <= 2, `${capturas}`);
+
+  // Demo interativa do "Como funciona": tudo local, sem chamar a API.
+  const chamadasApi = [];
+  const vigiar = (req) => { if (req.url().includes('/api')) chamadasApi.push(req.url()); };
+  inicio.on('request', vigiar);
+  await inicio.evaluate(() => document.querySelector('#como-funciona .demo-reserva')?.scrollIntoView({ block: 'center' }));
+  await inicio.waitForSelector('.demo', { timeout: 8000 }).catch(() => {});
+  ok('Demo interativa aparece ao chegar em "Como funciona"', !!(await inicio.$('#como-funciona .demo')));
+  const passoDemo = () => inicio.$eval('.demo__palco', (e) => e.getAttribute('data-passo')).catch(() => '');
+  const tocar = async (nome) => {
+    const h = await inicio.evaluateHandle((n) => [...document.querySelectorAll('.demo button, .demo a')].find((b) => b.textContent.trim() === n), nome);
+    const el = h.asElement();
+    if (el) await el.click();
+    await esp(350);
+    return !!el;
+  };
+  ok('Demo: selo de dados fictícios visível', !!(await inicio.$('.demo__selo')));
+  await inicio.type('#demo-ticket-final', '1342'); await esp(300);
+  ok('Demo: 1342 resulta em 140 carros', (await inicio.$eval('.demo__total output', (o) => o.textContent)) === '140');
+  ok('Demo: Enviar para conferência', await tocar('Enviar para conferência') && (await passoDemo()) === '2');
+  ok('Demo: Conferir', await tocar('Conferir') && (await passoDemo()) === '3');
+  await tocar('Fechar caixa');
+  ok('Demo: ficha fecha (papel carimbado)', !!(await inicio.$('.demo .papel--fechada')));
+  await tocar('Ir para o pagamento');
+  ok('Demo: passo de pagamento', (await passoDemo()) === '4');
+  await tocar('Marcar como pago'); await tocar('Marcar como pago');
+  ok('Demo: os 2 manobristas pagos mostram o fim', !!(await inicio.$('.demo__fim')) && (await inicio.$$('.demo__equipe li[data-pago]')).length === 2);
+  await tocar('Recomeçar');
+  ok('Demo: Recomeçar volta ao passo 1 com foco no título', (await passoDemo()) === '1' && (await inicio.evaluate(() => document.activeElement?.textContent ?? '')).startsWith('Etapa 1 de 4'));
+  inicio.off('request', vigiar);
+  ok('Demo não chama a API', chamadasApi.length === 0, chamadasApi.join(' '));
   const linksTopo = await inicio.$$eval('.topo__nav a', (l) => l.map((x) => x.getAttribute('href')));
   ok('Menu da apresentação sem links para a raiz', linksTopo.includes('/google-calendar') && !linksTopo.some((h) => h?.startsWith('/#')), linksTopo.join(' '));
   await inicio.goto(`${BASE}/google-calendar`, { waitUntil: 'networkidle0' });
@@ -176,7 +205,11 @@ try {
   await lp.goto(`${BASE}/conheca`, { waitUntil: 'networkidle0' });
   await esp(200);
   const h1 = await lp.$eval('h1', (e) => e.textContent);
-  const corpo = await lp.evaluate(() => document.body.innerText);
+  // A demo usa valores fictícios em R$ que não são preço: fica fora da checagem.
+  const corpo = await lp.evaluate(() => {
+    const demo = document.querySelector('.demo')?.innerText ?? '';
+    return demo ? document.body.innerText.split(demo).join('') : document.body.innerText;
+  });
   ok('Landing pública com o slogan', h1.includes('Seu estacionamento') && h1.includes('sob controle'), h1);
   ok('Landing sem preços nem depoimentos', !/R\$\s?\d|depoimento|clientes atendidos/i.test(corpo));
 

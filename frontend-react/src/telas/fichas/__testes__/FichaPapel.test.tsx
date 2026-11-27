@@ -23,4 +23,10 @@ describe('FichaPapel: Perdidinho do fechamento', () => {
     expect(container.querySelector('.papel__linhas')!.contains(slot)).toBe(false);
     await waitFor(() => expect(slot.querySelector('pf-perdidinho')?.getAttribute('data-humor')).toBe('comemorando'));
   });
+
+  it('com mascote={false}, a ficha fecha sem Perdidinho', () => {
+    const { container } = render(<FichaPapel ficha={ficha} unidade="Centro" fechada mascote={false} />);
+    expect(container.querySelector('.papel--fechada')).not.toBeNull();
+    expect(container.querySelector('.papel__mascote')).toBeNull();
+  });
 });

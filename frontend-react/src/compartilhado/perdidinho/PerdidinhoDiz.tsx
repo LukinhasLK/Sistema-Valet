@@ -57,6 +57,8 @@ export interface PropsPerdidinhoDiz {
   acao?: { rotulo: string; aoClicar: () => void };
   aoFechar?: () => void;
   reduzirMovimento?: boolean;
+  /** Olhar fixo do Perdidinho (−1..1); sem ele, o olhar segue o humor. */
+  olhar?: { x: number; y: number };
   /** Anuncia o texto ao leitor de tela (região viva). Padrão: true. Use false em balões decorativos. */
   anunciar?: boolean;
 }
@@ -65,7 +67,7 @@ export interface PropsPerdidinhoDiz {
 export const SAIDA_MS = 140;
 
 export function PerdidinhoDiz({
-  humor, texto, titulo, lado = 'esquerda', tamanho = 56, acao, aoFechar, reduzirMovimento = false, anunciar = true,
+  humor, texto, titulo, lado = 'esquerda', tamanho = 56, acao, aoFechar, reduzirMovimento = false, olhar, anunciar = true,
 }: PropsPerdidinhoDiz) {
   const raiz = useRef<HTMLElement>(null);
   const [pronto, setPronto] = useState(false);
@@ -116,7 +118,7 @@ export function PerdidinhoDiz({
         <div className="pdiz__mascote" aria-hidden="true">
           {/* Com o tour aberto, só o Perdidinho do tour aparece: o espaço fica reservado, sem pular. */}
           {!tourAberto && <PerdidinhoTardio decorativo tamanho={tamanho} humor={humor} falando
-            passo={typeof texto === 'string' ? texto : humor} lado={lado === 'esquerda' ? 'left' : 'right'}
+            passo={typeof texto === 'string' ? texto : humor} lado={lado === 'esquerda' ? 'left' : 'right'} olhar={olhar}
             reduzirMovimento={parado} />}
         </div>
         <div className={`pdiz__balao${fechavel ? ' pdiz__balao--fechavel' : ''}`}>

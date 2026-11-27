@@ -9,13 +9,15 @@ interface Props {
   unidade: string;
   /** true depois que o servidor confirmou o fechamento: o canhoto rasga e a ficha é carimbada. */
   fechada: boolean;
+  /** false quando outro Perdidinho já está à vista (ex.: demo da apresentação). Padrão: true. */
+  mascote?: boolean;
 }
 
 /**
  * A ficha de caixa do turno desenhada como o papel do bloco: número de série, pautas
  * e o canhoto picotado que se destaca quando a ficha é fechada.
  */
-export function FichaPapel({ ficha, unidade, fechada }: Props) {
+export function FichaPapel({ ficha, unidade, fechada, mascote = true }: Props) {
   const turno = ficha.turno === 'noite' ? 'Noite' : 'Dia';
   const serie = String(ficha.id).padStart(6, '0');
 
@@ -28,7 +30,7 @@ export function FichaPapel({ ficha, unidade, fechada }: Props) {
               <p className="papel__tipo">Ficha de caixa</p>
               <p className="papel__onde">{unidade} · {dataBr(ficha.data)} · Turno {turno}</p>
             </div>
-            {fechada && (
+            {fechada && mascote && (
               <div className="papel__mascote" data-testid="papel-mascote" aria-hidden="true">
                 <PerdidinhoTardio decorativo tamanho={40} humor="comemorando" falando={false} passo="ficha-fechada"
                   lado="centro" reduzirMovimento={reduzido()} />
