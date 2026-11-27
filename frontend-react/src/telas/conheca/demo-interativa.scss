@@ -222,6 +222,8 @@ $demo-borda-hover: color-mix(in srgb, var(--pf-border-strong), var(--pf-text-fai
 
 /* Palco --------------------------------------------------------------------------- */
 .demo__palco {
+  /* Ao trocar de passo, o palco volta à vista abaixo do cabeçalho fixo da página. */
+  scroll-margin-top: 84px;
   --papel-fundo: var(--pf-bg);
   grid-area: palco;
   display: flex;

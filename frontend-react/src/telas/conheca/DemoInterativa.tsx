@@ -56,7 +56,9 @@ type Acao =
 
 const INICIAL: Estado = { passo: 1, final: '', devolvida: false, fechada: false, pagos: EQUIPE.map(() => false), interagiu: false, rodada: 0 };
 
-const valida = (final: string) => Number(final) > TICKET_INICIAL;
+/** Um turno tem no máximo alguns milhares de tickets: acima disso é erro de digitação. */
+const MAXIMO_NO_TURNO = 5000;
+const valida = (final: string) => Number(final) > TICKET_INICIAL && Number(final) - TICKET_INICIAL <= MAXIMO_NO_TURNO;
 
 function reduzir(e: Estado, a: Acao): Estado {
   switch (a.tipo) {
@@ -77,7 +79,9 @@ function guiaDe(e: Estado): { estado: string; humor: HumorMascote; texto: string
     case 1:
       if (e.devolvida) return { estado: 'devolvida', humor: 'triste', texto: 'Devolvida com o motivo. O operador corrige e envia de novo.' };
       if (!e.final) return { estado: 'inicio', humor: 'acenando', texto: 'Você é o operador. Digite o número do último ticket do turno.' };
-      if (!valida(e.final)) return { estado: 'invalido', humor: 'surpreso', texto: 'O ticket final precisa ser maior que o inicial.' };
+      if (!valida(e.final)) return Number(e.final) > TICKET_INICIAL
+        ? { estado: 'invalido', humor: 'surpreso', texto: 'Esse número parece alto demais para um turno. Confira.' }
+        : { estado: 'invalido', humor: 'surpreso', texto: 'O ticket final precisa ser maior que o inicial.' };
       return { estado: 'valido', humor: 'explicando', texto: `${numero(n)} carros: final menos inicial menos cancelados. O saldo já está calculado.` };
     case 2:
       return { estado: 'conferencia', humor: 'apontando', texto: 'Agora você é a gestão. Confira tickets, recebimentos e equipe.' };
@@ -99,6 +103,7 @@ export default function DemoInterativa() {
   const [e, enviar] = useReducer(reduzir, INICIAL);
   const reduzirMovimento = useMovimentoReduzido();
   const titulo = useRef<HTMLHeadingElement>(null);
+  const palco = useRef<HTMLDivElement>(null);
   const seguir = useRef<HTMLButtonElement>(null);
   const chaveFoco = useRef(`${e.passo}-${e.rodada}`);
   const fechadaAntes = useRef(e.fechada);
@@ -122,6 +127,11 @@ export default function DemoInterativa() {
     if (chave === chaveFoco.current) return;
     chaveFoco.current = chave;
     titulo.current?.focus({ preventScroll: true });
+    // Se o topo do palco (balão + título) ficou fora da vista ou sob o cabeçalho fixo, traz de volta.
+    const el = palco.current;
+    if (el && e.interagiu && el.getBoundingClientRect().top < 72) {
+      el.scrollIntoView({ block: 'start', behavior: reduzirMovimento ? 'auto' : 'smooth' });
+    }
   }, [e.passo, e.rodada]);
 
   // Ao fechar o caixa, o botão "Fechar caixa" some: o foco segue para a ação seguinte.
@@ -136,7 +146,8 @@ export default function DemoInterativa() {
   const [olhandoConteudo, setOlhandoConteudo] = useState(false);
   useEffect(() => {
     if (!e.interagiu || e.passo !== 1) { setAnuncio(''); return; }
-    const espera = setTimeout(() => setAnuncio(ok ? `Total: ${numero(carros)} carros` : ''), ESPERA_ANUNCIO_MS);
+    if (!ok) { setAnuncio(''); return; }
+    const espera = setTimeout(() => setAnuncio(`Total: ${numero(carros)} carros`), ESPERA_ANUNCIO_MS);
     return () => clearTimeout(espera);
   }, [e.interagiu, e.passo, ok, carros]);
 
@@ -181,7 +192,7 @@ export default function DemoInterativa() {
         ))}
       </ol>
 
-      <div className="demo__palco" data-passo={e.passo} data-estado={guia.estado}>
+      <div ref={palco} className="demo__palco" data-passo={e.passo} data-estado={guia.estado}>
         <div className="demo__guia">
           <PerdidinhoDiz humor={guia.humor} texto={guia.texto} lado="esquerda" tamanho={estreita ? 40 : 56}
             anunciar={e.interagiu} reduzirMovimento={reduzirMovimento}
