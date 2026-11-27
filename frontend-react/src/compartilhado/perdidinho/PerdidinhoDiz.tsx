@@ -80,7 +80,7 @@ export function PerdidinhoDiz({
   const parado = reduzirMovimento || reduzido();
   const fechavel = !!aoFechar;
   // Este Perdidinho tem os olhos: o do menu vira silhueta enquanto ele estiver à vista.
-  usePresencaPerdidinho(!fechado);
+  usePresencaPerdidinho(!fechado, raiz);
 
   useEffect(() => { aoFecharAtual.current = aoFechar; }, [aoFechar]);
 

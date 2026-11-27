@@ -94,7 +94,6 @@ pf-tour {
     transform: rotate(45deg);
   }
 
-  .convite__mascote { display: block; flex: none; width: 40px; height: 40px; margin: -2px 0 -2px -4px; pointer-events: none; svg { width: 40px; height: 40px; } }
   .convite__titulo { font-family: var(--pf-font-display); font-weight: 700; font-size: 14.5px; }
   .convite__texto { margin-top: 2px; font-size: 13px; color: var(--pf-text-muted); }
   .convite__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }

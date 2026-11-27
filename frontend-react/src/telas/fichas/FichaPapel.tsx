@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { dataBr, moeda, numero } from '../../compartilhado/formatos';
 import { reduzido } from '../../compartilhado/movimento';
 import { PerdidinhoTardio } from '../../compartilhado/perdidinho';
@@ -22,10 +23,11 @@ export function FichaPapel({ ficha, unidade, fechada, mascote = true }: Props) {
   const turno = ficha.turno === 'noite' ? 'Noite' : 'Dia';
   const serie = String(ficha.id).padStart(6, '0');
   // Com o mascote do carimbo à vista, o do menu vira silhueta (um Perdidinho com olhos por vez).
-  usePresencaPerdidinho(fechada && mascote);
+  const raiz = useRef<HTMLElement>(null);
+  usePresencaPerdidinho(fechada && mascote, raiz);
 
   return (
-    <pf-ficha-papel>
+    <pf-ficha-papel ref={raiz}>
       <div className={`papel${fechada ? ' papel--fechada' : ''}`}>
         <div className="papel__corpo">
           <header className="papel__topo">

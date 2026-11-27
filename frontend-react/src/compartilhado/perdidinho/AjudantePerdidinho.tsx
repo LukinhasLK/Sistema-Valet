@@ -133,7 +133,7 @@ export function AjudantePerdidinho({ variante }: Props) {
   const silenciado = useSilenciado();
   const campoFocado = useCampoFocado();
   const dormindo = useAdormecido(resumo.nivel === 'nada');
-  // No desktop o convite sai deste próprio Perdidinho (ele acena); no celular quem acena é o do cartão (presença) e este vira silhueta.
+  // O convite de primeiro acesso é anunciado por este próprio Perdidinho (ele acena), no desktop e no celular.
   const semOlhos = comPresenca || tourAtivo;
   const { olhar: alvoOlhar, senha, modo, saltos } = useAlvoDoOlhar(mascote, lado && !parado && !semOlhos);
   const timerAceno = useRef<ReturnType<typeof setTimeout>>();
@@ -165,10 +165,10 @@ export function AjudantePerdidinho({ variante }: Props) {
     return () => anim.cancel();
   }, [saltos]);
 
-  // Convite de primeiro acesso (desktop): UM aceno quando o balão nasce, depois o humor normal.
+  // Convite de primeiro acesso (desktop e celular): UM aceno quando o balão nasce, depois o humor normal.
   const [acenoConvite, setAcenoConvite] = useState(false);
   useEffect(() => {
-    if (!lado || !conviteAberto || parado || semOlhos) return;
+    if (!conviteAberto || parado || semOlhos) return;
     let fim: ReturnType<typeof setTimeout> | undefined;
     const inicio = setTimeout(() => {
       setAcenoConvite(true);
@@ -179,7 +179,7 @@ export function AjudantePerdidinho({ variante }: Props) {
       clearTimeout(fim);
       setAcenoConvite(false);
     };
-  }, [lado, conviteAberto, parado, semOlhos]);
+  }, [conviteAberto, parado, semOlhos]);
 
   // Aceno: uma vez por pendência urgente nova, com 10 min de intervalo, fora dos momentos quietos.
   useEffect(() => {

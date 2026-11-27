@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type RefObject } from 'react';
 import { create } from 'zustand';
 import { useAuth } from '../estado/auth';
 import { api, ErroHttp } from './api';
@@ -279,9 +279,24 @@ export function registrarPresenca(): () => void {
   };
 }
 
-/** Enquanto montado (e `ativa`), este Perdidinho é o que tem olhos: o do menu vira silhueta. */
-export function usePresencaPerdidinho(ativa = true): void {
-  useEffect(() => (ativa ? registrarPresenca() : undefined), [ativa]);
+/**
+ * Enquanto montado (e `ativa`), este Perdidinho é o que tem olhos: o do ajudante vira silhueta.
+ * Com `ref`, só conta enquanto o elemento está de fato à vista na tela (um Perdidinho lá embaixo,
+ * fora da vista, não apaga os olhos do ajudante). Sem `ref` (tela cheia), conta enquanto montado.
+ */
+export function usePresencaPerdidinho(ativa = true, ref?: RefObject<Element | null>): void {
+  useEffect(() => {
+    if (!ativa) return undefined;
+    const el = ref?.current;
+    if (!ref || !el || typeof IntersectionObserver === 'undefined') return registrarPresenca();
+    let desfazer: (() => void) | null = null;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !desfazer) desfazer = registrarPresenca();
+      else if (!e.isIntersecting && desfazer) { desfazer(); desfazer = null; }
+    });
+    obs.observe(el);
+    return () => { obs.disconnect(); desfazer?.(); };
+  }, [ativa, ref]);
 }
 
 /* ------------------------------------------------------------------------- */
