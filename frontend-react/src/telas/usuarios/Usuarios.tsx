@@ -237,7 +237,7 @@ export default function Usuarios() {
             <div className="pf-field">
               <label className="pf-label" htmlFor="us-senha">{editando ? 'Nova senha (opcional)' : 'Senha'}</label>
               <input id="us-senha" type="password" autoComplete="new-password"
-                placeholder={editando ? 'Deixe em branco para manter' : 'Mínimo de 10 caracteres'} {...f.campo('senha')} />
+                placeholder={editando ? 'Deixe em branco para manter' : 'De 10 a 72 caracteres'} {...f.campo('senha')} />
               {f.invalido('senha') && <span className="pf-error">A senha precisa ter de 10 a 72 caracteres.</span>}
             </div>
 

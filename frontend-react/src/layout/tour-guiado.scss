@@ -28,9 +28,17 @@ pf-tour {
     width: auto;
   }
 
-  .tour__mascote { position: absolute; left: -12px; top: -64px; width: 96px; height: 72px; pointer-events: none; }
+  .tour__mascote {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin: -6px 2px -6px -4px;
+    pointer-events: none;
+    svg { width: 44px; height: 44px; }
+  }
 
-  .tour__topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .tour__topo { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .tour__topo .tour__fechar { margin-left: auto; }
   .tour__passo { font-size: 12px; font-weight: 600; color: var(--pf-blue); }
   .tour__fechar {
     display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 7px;

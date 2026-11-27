@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
 import { Icone } from '../Icone';
 import { reduzido } from '../movimento';
+import { useOnboarding } from '../../nucleo/onboarding/estado';
 import { PerdidinhoTardio } from './index';
 import './perdidinho-diz.scss';
 
@@ -66,6 +67,7 @@ export function PerdidinhoDiz({
   const [pronto, setPronto] = useState(false);
   const [saindo, setSaindo] = useState(false);
   const [fechado, setFechado] = useState(false);
+  const tourAberto = useOnboarding((s) => s.ativo !== null);
   const aoFecharAtual = useRef(aoFechar);
   const espera = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const parado = reduzirMovimento || reduzido();
@@ -108,9 +110,10 @@ export function PerdidinhoDiz({
       style={{ '--pdiz-tamanho': `${tamanho}px` } as CSSProperties}>
       <div className="pdiz__linha">
         <div className="pdiz__mascote" aria-hidden="true">
-          <PerdidinhoTardio decorativo tamanho={tamanho} humor={humor} falando
+          {/* Com o tour aberto, só o Perdidinho do tour aparece: o espaço fica reservado, sem pular. */}
+          {!tourAberto && <PerdidinhoTardio decorativo tamanho={tamanho} humor={humor} falando
             passo={typeof texto === 'string' ? texto : humor} lado={lado === 'esquerda' ? 'left' : 'right'}
-            reduzirMovimento={parado} />
+            reduzirMovimento={parado} />}
         </div>
         <div className={`pdiz__balao${fechavel ? ' pdiz__balao--fechavel' : ''}`}>
           <div className="pdiz__conteudo" aria-live="polite" aria-atomic="true">

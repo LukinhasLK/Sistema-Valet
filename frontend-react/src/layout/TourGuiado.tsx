@@ -127,12 +127,13 @@ function Tour() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={TRANSICAO.mola}
       >
-        {Mascote && (
-          <div className="tour__mascote">
-            <Mascote humor={passo.humor ?? 'explicando'} falando passo={passo.id} lado={caixa ? passo.lado ?? 'bottom' : 'centro'} reduzirMovimento={reduzir} />
-          </div>
-        )}
         <div className="tour__topo">
+          {/* Dentro do cartão: o Perdidinho nunca sai da tela nem cobre o menu ou o item destacado. */}
+          {Mascote && (
+            <div className="tour__mascote">
+              <Mascote humor={passo.humor ?? 'explicando'} falando passo={passo.id} lado={caixa ? passo.lado ?? 'bottom' : 'centro'} reduzirMovimento={reduzir} />
+            </div>
+          )}
           <span className="tour__passo">Passo {ativo.indice + 1} de {total}</span>
           <button type="button" className="tour__fechar" onClick={onboardingServico.pausar} aria-label="Fechar e continuar depois" title="Continuar depois (Esc)">
             <Icone nome="fechar" tamanho={16} />

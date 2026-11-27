@@ -156,8 +156,18 @@ export default function ListaFichas() {
 
   // Leva o foco à etapa aberta (ou às ações) depois que ela aparece na tela.
   useEffect(() => {
-    if (pedidoFoco) (focoEtapa.current ?? acoesDaFicha.current)?.focus();
-  }, [pedidoFoco]);
+    if (pedidoFoco) (focoEtapa.current ?? acoesDaFicha.current)?.focus({ preventScroll: acao === 'FECHAR' });
+  }, [pedidoFoco, acao]);
+
+  // No fechamento, a ficha de papel fica no fim do painel: rola até ela ao abrir a etapa e de novo
+  // no carimbo, para o rasgo e o Perdidinho comemorando acontecerem à vista.
+  useEffect(() => {
+    if (acao !== 'FECHAR') return;
+    const quadro = requestAnimationFrame(() => {
+      document.querySelector('pf-ficha-papel')?.scrollIntoView({ block: 'center', behavior: reduzido() ? 'auto' : 'smooth' });
+    });
+    return () => cancelAnimationFrame(quadro);
+  }, [acao, rasgando]);
 
   const abrirDetalhe = useCallback((ficha: Ficha | null) => {
     setDetalhe(ficha);

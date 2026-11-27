@@ -90,7 +90,7 @@ export default function Perfil() {
 
           <div className="pf-field">
             <label className="pf-label" htmlFor="p-nova">Nova senha</label>
-            <input id="p-nova" type="password" autoComplete="new-password" placeholder="Mínimo de 10 caracteres" {...f.campo('novaSenha')} />
+            <input id="p-nova" type="password" autoComplete="new-password" placeholder="De 10 a 72 caracteres" {...f.campo('novaSenha')} />
             {f.invalido('novaSenha') && <span className="pf-error">A nova senha precisa ter de 10 a 72 caracteres.</span>}
           </div>
 
@@ -108,7 +108,7 @@ export default function Perfil() {
         <section className="pf-card perfil__card perfil__tour" aria-labelledby="perfil-sessoes">
           <span className="perfil__tour-icone"><Icone nome="seguro" tamanho={20} /></span>
           <div className="perfil__tour-texto">
-            <h2 id="perfil-sessoes" className="perfil__titulo">Aparelhos conectados</h2>
+            <h2 id="perfil-sessoes" className="perfil__titulo">Segurança da conta</h2>
             <p>Esqueceu a conta aberta em outro celular ou computador? Saia de todos de uma vez. O link do Google Calendar também para de funcionar.</p>
             <div className="perfil__tour-acoes">
               <button type="button" className="pf-btn pf-btn--ghost pf-btn--sm" onClick={() => setConfirmarSaida(true)}>Sair de todos os aparelhos</button>
