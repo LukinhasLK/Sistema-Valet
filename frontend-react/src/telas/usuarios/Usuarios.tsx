@@ -122,7 +122,7 @@ export default function Usuarios() {
           </button>
         </CabecalhoPagina>
 
-        <label className="pf-btn pf-btn--ghost">
+        <label className="pf-btn pf-btn--ghost usuarios__inativos">
           <input type="checkbox" checked={mostrarInativos} onChange={(e) => setMostrarInativos(e.target.checked)} />
           Incluir contas desativadas
         </label>

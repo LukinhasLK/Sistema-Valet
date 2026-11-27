@@ -1,5 +1,7 @@
 /* Gerado de src/app/features/usuarios/usuarios.component.scss — escopado em <pf-usuarios>. */
 pf-usuarios {
+/* A opção ficava colada na tabela: mesmo respiro (16px) usado entre os blocos das outras telas. */
+.usuarios__inativos { margin-bottom: 16px; }
 .tabela { overflow: hidden; }
 .cards { display: flex; flex-direction: column; gap: 10px; }
 
