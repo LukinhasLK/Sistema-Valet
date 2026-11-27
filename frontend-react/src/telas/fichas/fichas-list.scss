@@ -1,4 +1,6 @@
 pf-fichas-list {
+
+.fichas-vazio { display: flex; justify-content: center; padding: 32px 20px; }
   display: block;
 
   .lista { margin-top: 16px; }

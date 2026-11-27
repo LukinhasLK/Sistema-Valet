@@ -647,4 +647,6 @@ html:has(pf-modal [aria-modal='true']) { overflow: hidden; }
   text-align: center;
   h1 { font-size: 22px; }
   p { color: var(--pf-text-muted); max-width: 36ch; margin: 0 auto 8px; }
+  .sem-conexao__mascote { display: flex; justify-content: center; margin-bottom: 8px; p { max-width: none; margin: 0; } }
+  .pf-btn { justify-self: center; }
 }

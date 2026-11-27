@@ -16,6 +16,8 @@ import {
 import { MESES } from '../../nucleo/servicos/periodo';
 import { Icone } from '../../compartilhado/Icone';
 import { PixManobrista } from './PixManobrista';
+import { reduzido } from '../../compartilhado/movimento';
+import { PerdidinhoDiz } from '../../compartilhado/perdidinho/PerdidinhoDiz';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { CampoSelecao } from '../../compartilhado/CampoSelecao';
 import './pagamentos-manobristas.scss';
@@ -490,7 +492,7 @@ export default function PagamentosManobristas() {
                             </div>
                           ))}
                         </article>
-                      )) : <EstadoVazio solto compacto ilustracao="tudo-certo" titulo="Ninguém esperando pagamento" texto="Nenhum saldo pendente para os filtros aplicados." />}
+                      )) : <div className="tudo-pago" role="status"><PerdidinhoDiz humor="comemorando" tamanho={48} reduzirMovimento={reduzido()} titulo="Ninguém esperando pagamento" texto="Tudo pago por aqui." /></div>}
                     </div>
                   </section>
                   <div className="pf-card selecao">

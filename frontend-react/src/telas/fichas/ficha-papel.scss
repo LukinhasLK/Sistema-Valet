@@ -41,6 +41,20 @@ pf-ficha-papel {
 .papel__tipo { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: -0.01em; color: var(--tinta); }
 .papel__onde { font-size: 12.5px; color: #4b5b69; margin-top: 2px; }
 
+.papel__topo > div:first-child { flex: 1 1 auto; min-width: 0; }
+
+/* Perdidinho do fechamento: no vão do cabeçalho (nunca sobre os valores), entra depois do carimbo. */
+.papel__mascote {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  margin-top: -2px;
+  opacity: 0;
+  animation: papel-mascote-entra 0.25s ease-out 0.45s forwards; /* entra junto com o carimbo */
+}
+
+@keyframes papel-mascote-entra { to { opacity: 1; } }
+
 .papel__serie {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -157,5 +171,6 @@ pf-ficha-papel {
 @media (prefers-reduced-motion: reduce) {
   .papel--fechada .papel__canhoto { animation: none; opacity: 0; }
   .papel--fechada .papel__carimbo { animation: none; transform: rotate(-9deg); opacity: 0.88; }
+  .papel__mascote { animation: none; opacity: 1; }
 }
 }

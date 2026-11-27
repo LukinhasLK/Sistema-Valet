@@ -12,7 +12,14 @@ import { create } from 'zustand';
  * O componente recebe `PropsMascote` e deve respeitar `reduzirMovimento`.
  * Enquanto nada for registrado, o tour funciona normalmente, sem mascote.
  */
-export type HumorMascote = 'acenando' | 'explicando' | 'apontando' | 'comemorando' | 'pensando';
+/** Humores usados pelo tour guiado. */
+export type HumorTour = 'acenando' | 'explicando' | 'apontando' | 'comemorando' | 'pensando';
+/**
+ * Todos os humores do mascote. Além dos do tour: 'triste' (erro, sem conexão), 'surpreso'
+ * (novidade, algo inesperado) e 'dormindo' (estado vazio ou ocioso). Quem registrar um mascote
+ * deve tratar os humores que não conhece como 'explicando'.
+ */
+export type HumorMascote = HumorTour | 'triste' | 'surpreso' | 'dormindo';
 
 export interface PropsMascote {
   humor: HumorMascote;

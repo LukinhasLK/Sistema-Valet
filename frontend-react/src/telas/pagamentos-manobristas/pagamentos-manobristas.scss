@@ -1,6 +1,8 @@
 /* Gerado de src/app/features/pagamentos-manobristas/pagamentos-manobristas.component.scss — escopado em <pf-pagamentos-manobristas>. */
 pf-pagamentos-manobristas {
 
+.tudo-pago { display: flex; justify-content: center; padding: 20px 12px; }
+
 .abas, .acoes, .paginacao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .abas { margin-bottom: 14px; }
 .filtros {

@@ -1,4 +1,6 @@
 import { dataBr, moeda, numero } from '../../compartilhado/formatos';
+import { reduzido } from '../../compartilhado/movimento';
+import { PerdidinhoTardio } from '../../compartilhado/perdidinho';
 import { Ficha } from '../../nucleo/modelos';
 import './ficha-papel.scss';
 
@@ -26,6 +28,12 @@ export function FichaPapel({ ficha, unidade, fechada }: Props) {
               <p className="papel__tipo">Ficha de caixa</p>
               <p className="papel__onde">{unidade} · {dataBr(ficha.data)} · Turno {turno}</p>
             </div>
+            {fechada && (
+              <div className="papel__mascote" data-testid="papel-mascote" aria-hidden="true">
+                <PerdidinhoTardio decorativo tamanho={40} humor="comemorando" falando={false} passo="ficha-fechada"
+                  lado="centro" reduzirMovimento={reduzido()} />
+              </div>
+            )}
             <p className="papel__serie" aria-label={`Ficha número ${ficha.id}`}>Nº {serie}</p>
           </header>
 

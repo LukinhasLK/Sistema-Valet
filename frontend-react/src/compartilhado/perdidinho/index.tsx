@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import type { PropsMascote } from '../../nucleo/onboarding/mascote';
+import type { PropsPerdidinho } from './Perdidinho';
 
 /**
  * Carrega o Perdidinho (e o GSAP) só quando o tour mostra o mascote: o pacote principal do
@@ -8,7 +8,8 @@ import type { PropsMascote } from '../../nucleo/onboarding/mascote';
  */
 const Perdidinho = lazy(() => import('./Perdidinho').then((m) => ({ default: m.Perdidinho })));
 
-export function PerdidinhoTardio(props: PropsMascote) {
+/** Aceita também `decorativo` e `tamanho` (usado pelo PerdidinhoDiz); o tour só passa `PropsMascote`. */
+export function PerdidinhoTardio(props: PropsPerdidinho) {
   return (
     <Suspense fallback={null}>
       <Perdidinho {...props} />

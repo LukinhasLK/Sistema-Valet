@@ -1,8 +1,16 @@
-import { lazy, ReactNode, useState } from 'react';
+import { lazy, ReactNode, Suspense, useState } from 'react';
 import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import { LayoutApp } from './layout/LayoutApp';
 import { authServico, useAuth } from './nucleo/estado/auth';
+import { reduzido } from './compartilhado/movimento';
 import { podeAcessar, rotaInicial } from './nucleo/servicos/permissoes';
+
+/** Fora do pacote principal: só baixa se a tela "sem conexão" aparecer (o texto já está na tela enquanto carrega). */
+const FRASE_SEM_CONEXAO = 'Seu login continua salvo neste aparelho. Confira a internet e tente de novo.';
+/** Sem rede o pedaço pode não carregar: nesse caso fica só o texto, nunca uma tela quebrada. */
+const PerdidinhoDiz = lazy(() => import('./compartilhado/perdidinho/PerdidinhoDiz')
+  .then((m) => ({ default: m.PerdidinhoDiz }))
+  .catch(() => ({ default: () => <p>{FRASE_SEM_CONEXAO}</p> })));
 
 const Login = lazy(() => import('./telas/login/Login'));
 const Dashboard = lazy(() => import('./telas/dashboard/Dashboard'));
@@ -36,7 +44,7 @@ function ComSessao({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function SemConexao() {
+export function SemConexao() {
   const [tentando, setTentando] = useState(false);
   async function tentar() {
     setTentando(true);
@@ -46,7 +54,11 @@ function SemConexao() {
   return (
     <main className="sem-conexao" role="alert">
       <h1>Sem conexão com o servidor</h1>
-      <p>Seu login continua salvo neste aparelho. Confira a internet e tente de novo.</p>
+      <div className="sem-conexao__mascote">
+        <Suspense fallback={<p>{FRASE_SEM_CONEXAO}</p>}>
+          <PerdidinhoDiz humor={tentando ? 'pensando' : 'triste'} tamanho={72} texto={FRASE_SEM_CONEXAO} reduzirMovimento={reduzido()} />
+        </Suspense>
+      </div>
       <button type="button" className="pf-btn pf-btn--primary" onClick={tentar} disabled={tentando}>
         {tentando ? 'Tentando…' : 'Tentar de novo'}
       </button>

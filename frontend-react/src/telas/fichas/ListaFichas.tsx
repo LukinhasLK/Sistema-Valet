@@ -10,6 +10,7 @@ import { dataBr, dataHora, moeda, numero } from '../../compartilhado/formatos';
 import { Icone } from '../../compartilhado/Icone';
 import { Modal } from '../../compartilhado/Modal';
 import { pulso } from '../../compartilhado/movimento';
+import { PerdidinhoDiz } from '../../compartilhado/perdidinho/PerdidinhoDiz';
 import { Paginacao, usePaginar } from '../../compartilhado/Paginacao';
 import { IconeSituacao, Situacao } from '../../compartilhado/Situacao';
 import { lerFiltro, useFiltrosUrl } from '../../compartilhado/useFiltrosUrl';
@@ -256,7 +257,7 @@ export default function ListaFichas() {
       if (acao === 'FECHAR') {
         // O momento do fechamento: o canhoto se destaca e a ficha é carimbada.
         setRasgando(true);
-        await new Promise((fim) => setTimeout(fim, reduzido() ? 450 : 1150));
+        await new Promise((fim) => setTimeout(fim, reduzido() ? 600 : 1800)); // dá tempo de ver o carimbo e o Perdidinho comemorando
       }
       if (detalheAtual.current?.id === ficha.id) {
         abrirDetalhe(atual);
@@ -426,10 +427,14 @@ export default function ListaFichas() {
         <div ref={lista} className="lista" data-tour="lista-fichas">
           {fichas.length === 0 ? (
             todas.length === 0 ? (
-              <EstadoVazio ilustracao="fichas" titulo="Nenhuma ficha lançada ainda"
-                texto="As fichas registram o caixa de cada turno: numeração dos tickets, cancelados, recebimentos e a equipe.">
-                {podeLancar && <Link className="pf-btn pf-btn--primary" to="/app/fichas/nova"><Icone nome="plus" tamanho={16} />Lançar a primeira ficha</Link>}
-              </EstadoVazio>
+              <div className="pf-card fichas-vazio" role="status">
+                <PerdidinhoDiz humor="explicando" tamanho={64} reduzirMovimento={reduzido()}
+                  titulo="Nenhuma ficha lançada ainda"
+                  texto={podeLancar
+                    ? 'Cada turno vira uma ficha, com tickets, recebimentos e equipe. Comece pela primeira.'
+                    : 'As fichas registram o caixa de cada turno. Quando alguém lançar, elas aparecem aqui.'}
+                  acao={podeLancar ? { rotulo: 'Lançar a primeira ficha', aoClicar: () => navegar('/app/fichas/nova') } : undefined} />
+              </div>
             ) : (
               <EstadoVazio ilustracao="busca" titulo="Nenhuma ficha com esses filtros"
                 texto={busca ? `Nada encontrado para “${busca}” no período.` : 'Não há fichas neste período com os filtros escolhidos.'}>

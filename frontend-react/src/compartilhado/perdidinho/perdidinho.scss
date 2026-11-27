@@ -1,7 +1,7 @@
 /*
  * Perdidinho, o guia do Park Flash: cubinho 2,5D em SVG.
  * Cores da marca (tokens globais) com reservas, para funcionar também fora do tema.
- * Os movimentos de gesto ficam no GSAP (Perdidinho.tsx); aqui só o piscar e o olhar.
+ * Os gestos, a respiração e o piscar ficam no GSAP (Perdidinho.tsx); aqui só o deslize do olhar.
  */
 pf-perdidinho {
   --perdidinho-face-luz: #2a86c0;              /* brilho da face (azul da marca clareado) */
@@ -25,23 +25,17 @@ pf-perdidinho {
   .perdidinho__aresta { stroke: var(--perdidinho-aresta); }
   .perdidinho__brilho { stroke: var(--perdidinho-olho); }
   .perdidinho__olhos { fill: var(--perdidinho-olho); }
-  .perdidinho__alegre { stroke: var(--perdidinho-olho); }
+  .perdidinho__traco { stroke: var(--perdidinho-olho); }
   .perdidinho__boca { fill: var(--perdidinho-olho); opacity: 0; }
+  .perdidinho__boca-o { fill: var(--perdidinho-olho); }
   .perdidinho__raio { fill: var(--perdidinho-raio); }
   .perdidinho__sombra { fill: var(--perdidinho-sombra); opacity: .22; }
+  /* "z" do sono: na cor da face; parados (reduzir movimento) ficam visíveis, sem flutuar. */
+  .perdidinho__zzz { stroke: var(--perdidinho-face); opacity: .7; }
+  .perdidinho--vivo .perdidinho__zzz > * { opacity: 0; }
 
   @media (prefers-reduced-motion: no-preference) {
-    /* O olhar desliza (seguir o mouse, apontar, pensar); só com movimento permitido. */
-    .perdidinho--vivo .perdidinho__olhar { transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
-    .perdidinho--vivo .perdidinho__olhos {
-      transform-box: fill-box;
-      transform-origin: center;
-      animation: perdidinho-piscar 4.6s ease-in-out infinite;
-    }
+    /* O olhar desliza com um leve atraso (seguir o mouse, apontar, pensar, entristecer). */
+    .perdidinho--vivo .perdidinho__olhar { transition: transform .45s cubic-bezier(.22, 1, .36, 1) 60ms; }
   }
-}
-
-@keyframes perdidinho-piscar {
-  0%, 91%, 100% { transform: scaleY(1); }
-  94% { transform: scaleY(.12); }
 }
