@@ -1,0 +1,47 @@
+/*
+ * Perdidinho, o guia do Park Flash: cubinho 2,5D em SVG.
+ * Cores da marca (tokens globais) com reservas, para funcionar também fora do tema.
+ * Os movimentos de gesto ficam no GSAP (Perdidinho.tsx); aqui só o piscar e o olhar.
+ */
+pf-perdidinho {
+  --perdidinho-face-luz: #2a86c0;              /* brilho da face (azul da marca clareado) */
+  --perdidinho-face: var(--pf-blue, #186a9d);  /* face */
+  --perdidinho-lado: var(--pf-navy, #10283f);  /* espessura: mais escura que a face */
+  --perdidinho-aresta: #8cc3e4;                /* fio de luz na aresta de trás */
+  --perdidinho-olho: #ffffff;
+  --perdidinho-raio: var(--pf-amber, #f2a516); /* âmbar do logo: só o raio */
+  --perdidinho-sombra: var(--pf-navy, #10283f);
+
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  pointer-events: none;
+
+  .perdidinho { display: block; overflow: visible; }
+
+  .perdidinho__luz-a { stop-color: var(--perdidinho-face-luz); }
+  .perdidinho__luz-b { stop-color: var(--perdidinho-face); }
+  .perdidinho__lado { fill: var(--perdidinho-lado); }
+  .perdidinho__aresta { stroke: var(--perdidinho-aresta); }
+  .perdidinho__brilho { stroke: var(--perdidinho-olho); }
+  .perdidinho__olhos { fill: var(--perdidinho-olho); }
+  .perdidinho__alegre { stroke: var(--perdidinho-olho); }
+  .perdidinho__boca { fill: var(--perdidinho-olho); opacity: 0; }
+  .perdidinho__raio { fill: var(--perdidinho-raio); }
+  .perdidinho__sombra { fill: var(--perdidinho-sombra); opacity: .22; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* O olhar desliza (seguir o mouse, apontar, pensar); só com movimento permitido. */
+    .perdidinho--vivo .perdidinho__olhar { transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
+    .perdidinho--vivo .perdidinho__olhos {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: perdidinho-piscar 4.6s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes perdidinho-piscar {
+  0%, 91%, 100% { transform: scaleY(1); }
+  94% { transform: scaleY(.12); }
+}

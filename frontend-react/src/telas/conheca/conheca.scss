@@ -153,7 +153,7 @@ pf-conheca {
   }
   .faixa__trilho {
     display: flex;
-    gap: 22px;
+    gap: 18px;
     width: max-content;
     padding: 18px 0 30px;
     animation: faixa-passa 70s linear infinite;
@@ -161,23 +161,23 @@ pf-conheca {
   .faixa:hover .faixa__trilho { animation-play-state: paused; }
   .faixa__celular {
     flex: none;
-    width: 190px;
+    width: 150px;
     margin: 0;
-    padding: 6px;
-    border-radius: 26px;
+    padding: 5px;
+    border-radius: 22px;
     background: var(--pf-navy);
-    box-shadow: 0 22px 44px rgba(16, 40, 63, .18);
-    img { display: block; width: 100%; height: auto; border-radius: 20px; }
-    &:nth-child(even) { transform: translateY(18px); }
+    box-shadow: 0 18px 36px rgba(16, 40, 63, .17);
+    img { display: block; width: 100%; height: auto; border-radius: 17px; }
+    &:nth-child(even) { transform: translateY(14px); }
   }
   /* metade do trilho + metade do espaço: as telas repetidas encaixam sem salto */
-  @keyframes faixa-passa { to { transform: translateX(calc(-50% - 11px)); } }
+  @keyframes faixa-passa { to { transform: translateX(calc(-50% - 9px)); } }
 
   /* Fluxo ------------------------------------------------------------------- */
   .fluxo__corpo {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 72px;
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: 88px;
     align-items: start;
   }
   .fluxo__corpo .fluxo__lista { gap: 0; }
@@ -189,23 +189,23 @@ pf-conheca {
     &--ativa .fluxo__numero { background: var(--pf-blue); border-color: var(--pf-blue); color: #fff; }
     &--ativa h3 { color: var(--pf-blue-press, var(--pf-blue)); }
   }
-  .fluxo__palco { position: sticky; top: calc(50vh - 290px); }
+  .fluxo__palco { position: sticky; top: calc(50vh - 250px); }
   .fluxo__celular {
     position: relative;
     margin: 0;
-    padding: 7px;
-    border-radius: 34px;
+    padding: 6px;
+    border-radius: 29px;
     background: var(--pf-navy);
-    box-shadow: 0 34px 70px rgba(16, 40, 63, .25);
+    box-shadow: 0 28px 58px rgba(16, 40, 63, .24);
     aspect-ratio: 390 / 800;
   }
   .fluxo__tela {
     position: absolute;
-    inset: 7px;
-    width: calc(100% - 14px);
-    height: calc(100% - 14px);
+    inset: 6px;
+    width: calc(100% - 12px);
+    height: calc(100% - 12px);
     object-fit: cover;
-    border-radius: 27px;
+    border-radius: 23px;
     opacity: 0;
     transform: translateY(10px) scale(.98);
     transition: opacity .45s ease, transform .45s var(--pf-ease-out);
@@ -213,6 +213,8 @@ pf-conheca {
   }
   .fluxo__legenda { margin-top: 14px; text-align: center; font-size: 13px; font-weight: 600; color: var(--pf-blue); }
   .fluxo__tela-movel { display: none; }
+  /* Perdidinho ao lado do celular fixo, no espaço entre a lista e o palco (decorativo). */
+  .fluxo__guia { position: absolute; z-index: 1; left: -70px; bottom: 64px; line-height: 0; pointer-events: none; }
 
   @media (prefers-reduced-motion: reduce) {
     .faixa__trilho { animation: none; }
@@ -472,21 +474,24 @@ pf-conheca {
     .heroi h1 { font-size: 40px; }
     .heroi__sub { font-size: 16px; }
     .heroi__celular { right: -6px; bottom: -70px; width: 38%; }
-    .faixa__celular { width: 140px; border-radius: 20px; padding: 5px; img { border-radius: 15px; } }
+    .faixa__celular { width: 112px; border-radius: 17px; padding: 4px; img { border-radius: 13px; } &:nth-child(even) { transform: translateY(10px); } }
     .fluxo__corpo { grid-template-columns: 1fr; gap: 0; }
     .fluxo__palco { display: none; }
     .fluxo__etapa { min-height: 0; }
     .fluxo__corpo .fluxo__lista { gap: 40px; }
     .fluxo__tela-movel {
+      position: relative;
       display: block;
-      width: min(220px, 62vw);
+      width: min(180px, 50vw);
       margin: 18px 0 0;
       padding: 5px;
-      border-radius: 24px;
+      border-radius: 21px;
       background: var(--pf-navy);
-      box-shadow: 0 20px 40px rgba(16, 40, 63, .18);
-      img { display: block; width: 100%; height: auto; border-radius: 19px; }
+      box-shadow: 0 18px 36px rgba(16, 40, 63, .17);
+      img { display: block; width: 100%; height: auto; border-radius: 16px; }
     }
+    /* No celular ele fica menor, encostado à direita da tela da etapa, longe do texto. */
+    .fluxo__guia { left: calc(100% + 12px); bottom: 12px; }
     .secao { padding: 64px 0; }
     .recursos__grade { grid-template-columns: 1fr; }
     .celular { grid-template-columns: 1fr; }

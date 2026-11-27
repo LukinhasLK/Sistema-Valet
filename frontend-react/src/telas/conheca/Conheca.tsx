@@ -4,6 +4,8 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Icone } from '../../compartilhado/Icone';
 import { Logo } from '../../compartilhado/Logo';
+import { Perdidinho } from '../../compartilhado/perdidinho/Perdidinho';
+import type { HumorMascote } from '../../nucleo/onboarding/mascote';
 import { movimentoLivre } from '../../compartilhado/movimento';
 import { useAuth } from '../../nucleo/estado/auth';
 import { rotaInicial } from '../../nucleo/servicos/permissoes';
@@ -24,6 +26,22 @@ const ETAPAS = [
   { icone: 'sucesso', tela: 'celular-fechamento', titulo: 'Feche o caixa', texto: 'Ao confirmar o fechamento, a ficha fica bloqueada para alterações e o histórico de quem fez o quê permanece registrado.' },
   { icone: 'pagamentos', tela: 'celular-pagamentos', titulo: 'Pague a equipe', texto: 'As diárias reconhecidas aparecem com a chave Pix do manobrista. Você paga pelo seu banco e confirma no sistema.' },
 ];
+
+/** Como o Perdidinho reage a cada etapa do "Como funciona" (ele fica ao lado do celular). */
+const HUMOR_DA_ETAPA: HumorMascote[] = ['acenando', 'explicando', 'apontando', 'comemorando'];
+
+/** Verdadeiro quando a consulta de mídia vale (acompanha mudanças de largura). */
+function useMidia(consulta: string): boolean {
+  const [vale, setVale] = useState(() => window.matchMedia(consulta).matches);
+  useEffect(() => {
+    const m = window.matchMedia(consulta);
+    const aoMudar = () => setVale(m.matches);
+    aoMudar();
+    m.addEventListener('change', aoMudar);
+    return () => m.removeEventListener('change', aoMudar);
+  }, [consulta]);
+  return vale;
+}
 
 /** Telas reais (dados de demonstração) que passam na faixa abaixo do título. Geradas por ferramentas/capturas-celular.mjs. */
 const FAIXA = ['celular-painel', 'celular-lista', 'celular-fechamento', 'celular-calendario', 'celular-lucro', 'celular-pagamentos', 'celular-sociedade', 'celular-nova-ficha'];
@@ -93,6 +111,14 @@ export default function Conheca() {
   const rotuloEntrar = logado ? 'Abrir o sistema' : 'Entrar';
   // Etapa do "Como funciona" que está no meio da tela: o celular fixo mostra a tela dela.
   const [etapaAtiva, setEtapaAtiva] = useState(0);
+  // Um só Perdidinho por vez: ao lado do celular fixo (desktop) ou da tela da etapa (celular).
+  const telaEstreita = useMidia('(max-width: 640px)');
+  const guia = (tamanho: number) => (
+    <span className="fluxo__guia">
+      <Perdidinho decorativo tamanho={tamanho} humor={HUMOR_DA_ETAPA[etapaAtiva]} falando={false}
+        passo={`etapa-${etapaAtiva}`} lado="left" reduzirMovimento={false} />
+    </span>
+  );
 
   useEffect(() => {
     const etapas = [...(raiz.current?.querySelectorAll<HTMLElement>('.fluxo__etapa') ?? [])];
@@ -200,12 +226,14 @@ export default function Conheca() {
                       <p>{etapa.texto}</p>
                       <figure className="fluxo__tela-movel" aria-hidden="true">
                         <img src={`/midia/conheca/${etapa.tela}.webp`} width={390} height={800} loading="lazy" alt="" />
+                        {telaEstreita && i === etapaAtiva && guia(44)}
                       </figure>
                     </div>
                   </li>
                 ))}
               </ol>
               <div className="fluxo__palco" aria-hidden="true">
+                {!telaEstreita && guia(56)}
                 <figure className="fluxo__celular">
                   {ETAPAS.map((etapa, i) => (
                     <img key={etapa.tela} src={`/midia/conheca/${etapa.tela}.webp`} width={390} height={800} loading="lazy" alt=""
