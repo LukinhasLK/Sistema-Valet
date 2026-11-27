@@ -649,7 +649,7 @@ export default function NovaFicha() {
                       {invalido('valorFinalCaixa') && <span className="pf-error">Informe um valor válido com até dois decimais.</span>}
                     </div>
                   </div>
-                  <p className="secao__vazio">Os valores de caixa servem para conferência. A receita soma dinheiro, cartão e Pix.</p>
+                  <p className="secao__vazio secao__dica">Os valores de caixa servem para conferência. A receita soma dinheiro, cartão e Pix.</p>
                   <div className="pf-field">
                     <label className="pf-label" htmlFor="ficha-observacoes">Observações</label>
                     <textarea id="ficha-observacoes" maxLength={500} rows={3} {...f.campo('observacoes')} />

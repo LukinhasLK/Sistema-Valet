@@ -18,6 +18,16 @@ export interface ProgressoTour {
 }
 
 const CHAVE = 'parkflash.onboarding';
+/** "Lembrar depois" vale para a sessão do navegador inteira (sobrevive a recarregar a página). */
+const CHAVE_ADIADO = 'parkflash.v3.conviteAdiado';
+
+function lerAdiado(): boolean {
+  try { return sessionStorage.getItem(CHAVE_ADIADO) === '1'; } catch { return false; }
+}
+function definirAdiado(valor: boolean): void {
+  try { if (valor) sessionStorage.setItem(CHAVE_ADIADO, '1'); else sessionStorage.removeItem(CHAVE_ADIADO); } catch { /* ignora */ }
+  useOnboarding.setState({ conviteAdiado: valor });
+}
 
 type Mapa = Record<string, ProgressoTour>;
 
@@ -27,6 +37,8 @@ interface EstadoOnboarding {
   ativo: { usuario: number; roteiro: PassoTour[]; indice: number } | null;
   /** Convite de boas-vindas dispensado nesta sessão ("lembrar depois"). */
   conviteAdiado: boolean;
+  /** Desktop: o convite recolheu para o Perdidinho (sem interação por um tempo); clicar nele reabre. */
+  conviteRecolhido: boolean;
 }
 
 const novo = (): ProgressoTour => ({ versao: VERSAO_ROTEIRO, status: 'nao_iniciado', passo: 0, atualizadoEm: new Date().toISOString(), dicasVistas: [] });
@@ -34,7 +46,8 @@ const novo = (): ProgressoTour => ({ versao: VERSAO_ROTEIRO, status: 'nao_inicia
 export const useOnboarding = create<EstadoOnboarding>(() => ({
   progresso: carregar<Mapa>(CHAVE, {}),
   ativo: null,
-  conviteAdiado: false,
+  conviteAdiado: lerAdiado(),
+  conviteRecolhido: false,
 }));
 
 function gravar(usuario: number, alteracao: Partial<ProgressoTour>): void {
@@ -54,11 +67,18 @@ export function progressoDe(mapa: Mapa, usuario: number | undefined): ProgressoT
 }
 
 /** O convite de primeiro acesso (ou de continuar o tour) está à vista? Quem o mostra e quem "fala" por ele usam a mesma regra. */
-export function useConviteVisivel(usuario: number | undefined): boolean {
+export function useConvitePendente(usuario: number | undefined): boolean {
   const ativo = useOnboarding((s) => s.ativo);
   const adiado = useOnboarding((s) => s.conviteAdiado);
   const status = useOnboarding((s) => progressoDe(s.progresso, usuario).status);
   return usuario !== undefined && !ativo && !adiado && (status === 'nao_iniciado' || status === 'pausado' || status === 'em_andamento');
+}
+
+/** Convite pendente e aberto (não recolhido para o Perdidinho). */
+export function useConviteVisivel(usuario: number | undefined): boolean {
+  const pendente = useConvitePendente(usuario);
+  const recolhido = useOnboarding((s) => s.conviteRecolhido);
+  return pendente && !recolhido;
 }
 
 export const onboardingServico = {
@@ -67,7 +87,8 @@ export const onboardingServico = {
     if (usuario === undefined) return;
     const roteiro = roteiroDo(nivel);
     gravar(usuario, { status: 'em_andamento', passo: 0, versao: VERSAO_ROTEIRO });
-    useOnboarding.setState({ ativo: { usuario, roteiro, indice: 0 }, conviteAdiado: true });
+    useOnboarding.setState({ ativo: { usuario, roteiro, indice: 0 } });
+    definirAdiado(true);
   },
 
   /** Continua de onde parou ("continuar depois"). */
@@ -77,7 +98,8 @@ export const onboardingServico = {
     const p = progressoDe(useOnboarding.getState().progresso, usuario);
     const indice = Math.min(p.passo, roteiro.length - 1);
     gravar(usuario, { status: 'em_andamento', passo: indice });
-    useOnboarding.setState({ ativo: { usuario, roteiro, indice }, conviteAdiado: true });
+    useOnboarding.setState({ ativo: { usuario, roteiro, indice } });
+    definirAdiado(true);
   },
 
   irPara(indice: number) {
@@ -106,14 +128,16 @@ export const onboardingServico = {
     if (!ativo) return;
     gravar(ativo.usuario, { status: 'pausado', passo: ativo.indice });
     // O convite para continuar só volta na próxima sessão (ou pelo perfil / paleta).
-    useOnboarding.setState({ ativo: null, conviteAdiado: true });
+    useOnboarding.setState({ ativo: null });
+    definirAdiado(true);
   },
 
   pular(usuario?: number) {
     const alvo = usuario ?? useOnboarding.getState().ativo?.usuario;
     if (alvo === undefined) return;
     gravar(alvo, { status: 'pulado' });
-    useOnboarding.setState({ ativo: null, conviteAdiado: true });
+    useOnboarding.setState({ ativo: null });
+    definirAdiado(true);
   },
 
   concluir() {
@@ -125,7 +149,12 @@ export const onboardingServico = {
 
   /** "Lembrar depois": esconde o convite só nesta sessão. */
   adiarConvite() {
-    useOnboarding.setState({ conviteAdiado: true });
+    definirAdiado(true);
+  },
+
+  /** Desktop: recolhe o convite para o Perdidinho (continua pendente) ou o reabre. */
+  recolherConvite(recolhido: boolean) {
+    useOnboarding.setState({ conviteRecolhido: recolhido });
   },
 
   marcarDica(usuario: number | undefined, dica: string) {
@@ -137,6 +166,7 @@ export const onboardingServico = {
   /** Ao sair da conta: o tour em exibição é pausado (o progresso fica salvo). */
   encerrarSessao() {
     if (useOnboarding.getState().ativo) onboardingServico.pausar();
-    useOnboarding.setState({ conviteAdiado: false });
+    definirAdiado(false);
+    useOnboarding.setState({ conviteRecolhido: false });
   },
 };

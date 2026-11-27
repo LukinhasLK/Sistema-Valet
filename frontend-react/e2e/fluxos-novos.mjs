@@ -275,7 +275,7 @@ try {
   const rotuloAj = await dono.$eval(botaoAj, (e) => e.getAttribute('aria-label')).catch(() => '');
   ok('Ajudante no canto direito com número de pendências', /Pendências: [1-9]/.test(rotuloAj), rotuloAj);
   const lugar = await dono.$eval(botaoAj, (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e.closest('pf-ajudante-perdidinho')); return { dir: Math.round(innerWidth - r.right), baixo: Math.round(innerHeight - r.bottom), l: Math.round(r.width), pos: c.position }; });
-  ok('Ajudante fixo no canto inferior direito, alvo de 48 px ou mais', lugar.pos === 'fixed' && lugar.dir === 20 && lugar.baixo === 20 && lugar.l >= 48, JSON.stringify(lugar));
+  ok('Ajudante fixo no canto inferior direito, alvo de 48 px ou mais', lugar.pos === 'fixed' && lugar.dir === 16 && lugar.baixo === 16 && lugar.l >= 48, JSON.stringify(lugar));
   await dono.click(botaoAj); await esp(500);
   const painelAj = await dono.evaluate(() => {
     const d = document.querySelector('pf-painel-atencao [role=dialog]');

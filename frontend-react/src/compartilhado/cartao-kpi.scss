@@ -13,7 +13,7 @@ pf-kpi-card {
     min-height: 100px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
     overflow: hidden;
     transition: border-color var(--pf-dur-fast) ease, box-shadow var(--pf-dur-base) ease, transform var(--pf-dur-base) var(--pf-ease-out);
@@ -35,7 +35,7 @@ pf-kpi-card {
     .kpi:hover { border-color: #d5dde5; box-shadow: var(--pf-shadow-md); transform: translateY(-1px); }
   }
 
-  .kpi__topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .kpi__topo { display: flex; align-items: center; min-height: 26px; justify-content: space-between; gap: 8px; }
 
   .kpi__label {
     font-size: 12.5px;
@@ -77,5 +77,6 @@ pf-kpi-card {
     .kpi__value { font-size: 19px; }
     .kpi__label { font-size: 11.5px; }
     .kpi__icone { width: 22px; height: 22px; }
+    .kpi__topo { min-height: 22px; }
   }
 }

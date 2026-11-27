@@ -7,7 +7,7 @@ import { Icone } from '../Icone';
 import { CURVA, DURACAO } from '../movimento';
 import { useUsuario } from '../../nucleo/estado/auth';
 import { useInterface } from '../../nucleo/estado/interface';
-import { onboardingServico, useConviteVisivel, useOnboarding } from '../../nucleo/onboarding/estado';
+import { onboardingServico, useConvitePendente, useConviteVisivel, useOnboarding } from '../../nucleo/onboarding/estado';
 import { roteiroDo } from '../../nucleo/onboarding/roteiros';
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
 import {
@@ -109,7 +109,7 @@ interface Props {
 }
 
 /**
- * Perdidinho ajudante: o lugar das pendências. Desktop: companheiro fixo no canto inferior direito (mascote de 48 px);
+ * Perdidinho ajudante: o lugar das pendências. Desktop: companheiro fixo no canto inferior direito (mascote de 42 px);
  * celular: botão no topo. Humor conforme o nível mais alto (feliz, explicando, pensando, surpreso), selo com o número
  * de pendências e um painel "Precisa da sua atenção". No desktop o olhar acompanha onde a pessoa age (foco/clique) e
  * os olhos se fecham em campo de senha. Nunca é modal sozinho, não faz som e só acena uma vez por pendência urgente.
@@ -129,6 +129,7 @@ export function AjudantePerdidinho({ variante }: Props) {
   const comPresenca = usePresenca((s) => s.total > 0);
   const tourAtivo = useOnboarding((s) => s.ativo !== null);
   const conviteAberto = useConviteVisivel(usuario?.id);
+  const convitePendente = useConvitePendente(usuario?.id);
   const paletaAberta = useInterface((s) => s.paletaAberta);
   const silenciado = useSilenciado();
   const campoFocado = useCampoFocado();
@@ -183,7 +184,7 @@ export function AjudantePerdidinho({ variante }: Props) {
 
   // Aceno: uma vez por pendência urgente nova, com 10 min de intervalo, fora dos momentos quietos.
   useEffect(() => {
-    if (parado || semOlhos || conviteAberto || !usuario) return;
+    if (parado || semOlhos || convitePendente || !usuario) return;
     const urgentes = itens.filter((i) => i.nivel === 'URGENTE').map((i) => i.id);
     if (!urgentes.length) return;
     const quieto = campoFocado || tourAtivo || paletaAberta || aberto || ROTA_QUIETA.test(pathname)
@@ -194,7 +195,7 @@ export function AjudantePerdidinho({ variante }: Props) {
     setAcenando(true);
     clearTimeout(timerAceno.current);
     timerAceno.current = setTimeout(() => setAcenando(false), ACENO_MS);
-  }, [itens, carregadoEm, silenciado, campoFocado, tourAtivo, paletaAberta, aberto, pathname, parado, semOlhos, conviteAberto, usuario]);
+  }, [itens, carregadoEm, silenciado, campoFocado, tourAtivo, paletaAberta, aberto, pathname, parado, semOlhos, convitePendente, usuario]);
 
   // Anúncio para leitor de tela: só quando o total de urgentes AUMENTA (inclusive ao entrar na sessão).
   useEffect(() => {
@@ -226,7 +227,7 @@ export function AjudantePerdidinho({ variante }: Props) {
   const mostraNumero = resumo.contador > 0;
   const urgente = resumo.nivel === 'urgente';
   const temTour = roteiroDo(usuario.nivel).length > 0;
-  const tamanho = lado ? 48 : 28;
+  const tamanho = lado ? 42 : 28;
   // Olhar: desktop acompanha a ação (sem ação, livre = segue o cursor); movimento reduzido ou celular: neutro e fixo.
   const olhar = lado && !parado ? alvoOlhar : { x: 0, y: 0 };
   const olharCss = OLHAR_CSS[modo];
@@ -237,7 +238,12 @@ export function AjudantePerdidinho({ variante }: Props) {
       <Dica texto="Precisa da sua atenção" lado={lado ? 'left' : 'bottom'} desligada={!lado}>
         <button ref={botao} type="button" className="ajud__botao" aria-label={resumo.rotulo} aria-haspopup="dialog"
           aria-expanded={aberto} aria-controls={aberto ? idPainel : undefined} data-tour="ajudante"
-          onClick={() => (aberto ? fechar() : abrir())}>
+          onClick={() => {
+            // Convite recolhido (desktop): o primeiro clique o reabre; com ele à vista, o clique abre o painel como sempre.
+            if (lado && convitePendente && !conviteAberto && !aberto) onboardingServico.recolherConvite(false);
+            else if (aberto) fechar();
+            else abrir();
+          }}>
           <span ref={mascote} className="ajud__mascote" aria-hidden="true" style={{
             '--ajud-tamanho': `${tamanho}px`, '--perdidinho-olhar-dur': olharCss.dur, '--perdidinho-olhar-atraso': olharCss.atraso,
           } as CSSProperties}>

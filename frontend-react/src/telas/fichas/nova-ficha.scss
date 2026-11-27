@@ -49,6 +49,8 @@ pf-nova-ficha {
 
 .secao__aviso { margin-top: 12px; }
 .secao__vazio { font-size: 13px; color: var(--pf-text-muted); }
+/* Dica entre campos: respiro de 12 px acima (dos inputs) e abaixo (do próximo rótulo). */
+.secao__dica { margin: 12px 0; }
 
 .grid {
   display: grid;
@@ -102,15 +104,17 @@ pf-nova-ficha {
   flex-direction: column;
   gap: 9px;
 
+  /* Rótulo à esquerda (pode quebrar) e valor sempre à direita, na mesma linha de base. */
   div {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
     gap: 10px;
     font-size: 13px;
   }
 
   dt { color: var(--pf-text-muted); margin: 0; }
-  dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 
   .neg dd { color: var(--pf-text-muted); }
 }

@@ -15,6 +15,8 @@ import './tour-guiado.scss';
 interface Caixa { left: number; top: number; width: number; height: number }
 
 const FOLGA = 6;
+/** Desktop: o convite recolhe para o Perdidinho depois de tanto tempo sem interação. */
+const RECOLHER_CONVITE_MS = 12000;
 
 /** Primeiro elemento visível com o `data-tour` pedido (o celular e o desktop têm alvos diferentes). */
 function acharAlvo(alvo: string | undefined): HTMLElement | null {
@@ -173,8 +175,32 @@ function Convite() {
   const progresso = useOnboarding((s) => progressoDe(s.progresso, usuario?.id));
   const pausado = progresso.status === 'pausado' || progresso.status === 'em_andamento';
   const primeiroNome = usuario?.nome.split(' ')[0] ?? '';
+  const aside = useRef<HTMLElement>(null);
+
+  // Desktop: enquanto aberto, a área de conteúdo reserva a altura do balão (dá para rolar além dele)...
+  useEffect(() => {
+    const el = aside.current;
+    if (isMobile || !el) return;
+    const raiz = document.documentElement;
+    const aplicar = () => raiz.style.setProperty('--pf-convite-reserva', `${el.offsetHeight + 12}px`);
+    aplicar();
+    const obs = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(aplicar) : null;
+    obs?.observe(el);
+    return () => { obs?.disconnect(); raiz.style.removeProperty('--pf-convite-reserva'); };
+  }, [isMobile]);
+
+  // ...e recolhe sozinho para o Perdidinho após ~12 s sem interação (passar o mouse ou foco dentro pausa a contagem; não move o foco).
+  const [pausa, setPausa] = useState(false);
+  useEffect(() => {
+    if (isMobile || pausa) return;
+    const t = setTimeout(() => onboardingServico.recolherConvite(true), RECOLHER_CONVITE_MS);
+    return () => clearTimeout(t);
+  }, [isMobile, pausa]);
+
   return (
-    <motion.aside className="convite" data-origem={isMobile ? 'cartao' : 'ajudante'} aria-labelledby="convite-titulo"
+    <motion.aside ref={aside} className="convite"
+      onPointerEnter={() => setPausa(true)} onPointerLeave={() => setPausa(aside.current?.contains(document.activeElement) ?? false)}
+      onFocusCapture={() => setPausa(true)} onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setPausa(false); }} data-origem={isMobile ? 'cartao' : 'ajudante'} aria-labelledby="convite-titulo"
       // Celular: cartão sobe com mola. Desktop: balão nasce do Perdidinho (cauda no canto inferior direito).
       initial={isMobile ? { opacity: 0, y: reduzir ? 0 : 16 } : { opacity: 0, y: reduzir ? 0 : 6, scale: reduzir ? 1 : 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: reduzir ? 0 : 10, transition: TRANSICAO.saida }}

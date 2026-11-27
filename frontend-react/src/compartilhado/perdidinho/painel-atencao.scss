@@ -12,13 +12,13 @@ pf-painel-atencao {
     overscroll-behavior: contain;
   }
 
-  /* Ancorado acima do companheiro (botão de 60 px a 20 px das bordas + 10 px de respiro), alinhado à direita.
+  /* Ancorado acima do companheiro (botão de 52 px a 16 px das bordas + 10 px de respiro), alinhado à direita.
      * z-index 55: acima do companheiro (50) e do conteúdo; abaixo de modais (100), convite (800), paleta (900), tour (950), toasts (1000). */
   .painel--desktop {
     position: fixed;
     z-index: 55;
-    right: calc(20px + env(safe-area-inset-right));
-    bottom: calc(20px + 60px + 10px + env(safe-area-inset-bottom));
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(16px + 52px + 10px + env(safe-area-inset-bottom));
     transform-origin: bottom right;
     width: 360px;
     max-width: calc(100vw - 24px);

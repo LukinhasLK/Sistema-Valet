@@ -46,6 +46,14 @@ pf-dashboard {
   .dash__head { flex-wrap: wrap; }
 }
 
+/* 9 indicadores: 3 colunas fecham a linha (3 × 3), sem cartão órfão; alturas iguais por linha (stretch). */
+.pf-grid-kpi.dash__kpis {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.pf-grid-kpi.dash__kpis--poucos { grid-template-columns: repeat(2, 1fr); }
+
 .dash__graficos {
   display: grid;
   grid-template-columns: 730fr 382fr;
@@ -91,6 +99,7 @@ pf-dashboard {
 @media (max-width: 767px) {
   .dash__head { margin-bottom: 16px; }
   .dash__saudacao { font-size: 21px; }
+  .pf-grid-kpi.dash__kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .dash__graficos, .dash__info { grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
   .info__valor { font-size: 19px; }
 }

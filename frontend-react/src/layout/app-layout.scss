@@ -12,8 +12,9 @@ pf-app-layout {
     min-width: 0;
   }
 
-  /* Desktop: folga embaixo para o Perdidinho fixo (20 + 60 px) nunca cobrir o último botão ou linha da página. */
-  .content:not(.content--mobile) { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  /* Desktop: folga embaixo para o Perdidinho fixo (16 + 52 px) nunca cobrir o último botão ou linha da página.
+     Com o convite do tour aberto, soma a altura dele (--pf-convite-reserva, medida em TourGuiado) para dar para rolar além. */
+  .content:not(.content--mobile) { padding-bottom: calc(68px + var(--pf-convite-reserva, 0px) + env(safe-area-inset-bottom)); }
 
   .content--mobile {
     padding-bottom: calc(var(--pf-bottomnav-h) + env(safe-area-inset-bottom));

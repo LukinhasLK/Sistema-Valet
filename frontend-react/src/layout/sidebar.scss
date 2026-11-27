@@ -80,6 +80,12 @@ pf-sidebar {
     flex-direction: column;
     gap: 14px;
     scrollbar-width: thin;
+    /* Pista de rolagem: sombra no topo/fim só quando há mais conteúdo naquela direção (capas "local" cobrem a sombra no limite). */
+    background:
+      linear-gradient(var(--pf-surface) 30%, rgba(255, 255, 255, 0)) center top / 100% 26px no-repeat local,
+      linear-gradient(rgba(255, 255, 255, 0), var(--pf-surface) 70%) center bottom / 100% 26px no-repeat local,
+      radial-gradient(farthest-side at 50% 0, rgba(16, 40, 63, .16), rgba(16, 40, 63, 0)) center top / 100% 9px no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, rgba(16, 40, 63, .16), rgba(16, 40, 63, 0)) center bottom / 100% 9px no-repeat scroll;
   }
 
   .grupo { display: flex; flex-direction: column; gap: 1px; }
@@ -189,6 +195,14 @@ pf-sidebar {
   .sidebar__user-role {
     font-size: 11.5px;
     color: var(--pf-text-muted);
+  }
+
+  /* Telas baixas (notebook): itens e grupos mais compactos para o menu inteiro caber sem rolar. */
+  @media (max-height: 800px) {
+    .sidebar__brand { height: 48px; }
+    .sidebar__nav { gap: 6px; padding-top: 2px; padding-bottom: 8px; }
+    .grupo__titulo { padding-top: 3px; padding-bottom: 1px; }
+    .nav-item { height: 30px; }
   }
 
   /* Recolhido: só ícones, com dicas ao passar o mouse --------------------- */

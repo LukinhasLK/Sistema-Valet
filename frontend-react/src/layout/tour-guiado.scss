@@ -62,9 +62,9 @@ pf-tour {
   /* Convite de primeiro acesso ----------------------------------------- */
   .convite {
     position: fixed;
-    /* Desktop: balão ancorado acima do Perdidinho do canto (botão de 60 px a 20 px da borda + 12 px de respiro). */
-    right: calc(20px + env(safe-area-inset-right));
-    bottom: calc(20px + 60px + 12px + env(safe-area-inset-bottom));
+    /* Desktop: balão ancorado acima do Perdidinho do canto (botão de 52 px a 16 px da borda + 12 px de respiro). */
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(16px + 52px + 12px + env(safe-area-inset-bottom));
     z-index: 800;
     display: flex;
     gap: 12px;
@@ -76,15 +76,15 @@ pf-tour {
     box-shadow: var(--pf-shadow-lg);
   }
 
-  /* Nasce do companheiro: a escala parte da ponta da cauda, que fica sobre o centro do botão (30 px da borda direita). */
-  .convite[data-origem='ajudante'] { transform-origin: calc(100% - 30px) calc(100% + 7px); }
+  /* Nasce do companheiro: a escala parte da ponta da cauda, que fica sobre o centro do botão (42 px da borda direita). */
+  .convite[data-origem='ajudante'] { transform-origin: calc(100% - 42px) calc(100% + 7px); }
   .convite[data-origem='cartao'] { transform-origin: 50% 100%; }
 
-  /* Cauda do balão: aponta para o Perdidinho (centro do botão de 60 px: right 24 + 12/2 = 30 px). */
+  /* Cauda do balão: aponta para o Perdidinho (centro do botão de 52 px: right 36 + 12/2 = 42 px). */
   .convite[data-origem='ajudante']::after {
     content: '';
     position: absolute;
-    right: 24px;
+    right: 36px;
     bottom: -7px;
     width: 12px;
     height: 12px;

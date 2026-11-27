@@ -11,8 +11,13 @@ pf-relatorios {
 
 .cards-resumo {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  /* 6 colunas: 3 cartões na 1ª linha e os 2 restantes dividem a 2ª (sem órfão); alturas iguais (stretch). */
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
+  align-items: stretch;
+
+  > * { grid-column: span 2; }
+  > :nth-child(4):nth-last-child(2), > :nth-child(5):nth-last-child(1) { grid-column: span 3; }
 }
 
 .tabela { margin-top: 16px; overflow: hidden; }
@@ -66,7 +71,7 @@ pf-relatorios {
 }
 
 @media (max-width: 767px) {
-  .cards-resumo { grid-template-columns: 1fr; gap: 12px; }
+  .cards-resumo { grid-template-columns: 1fr; gap: 12px; > *, > :nth-child(4):nth-last-child(2), > :nth-child(5):nth-last-child(1) { grid-column: auto; } }
 }
 
 }

@@ -203,7 +203,7 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            <section className="pf-grid-kpi" data-tour="kpis-dashboard">
+            <section className={`pf-grid-kpi dash__kpis${valoresOcultos ? ' dash__kpis--poucos' : ''}`} data-tour="kpis-dashboard">
               {!valoresOcultos && (
                 <>
                   <CartaoKpi rotulo="Faturamento hoje" icone="dinheiro" valor={moeda(consulta.dados.brutoHoje)} numero={consulta.dados.brutoHoje} formato={moeda} />

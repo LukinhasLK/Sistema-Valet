@@ -69,16 +69,16 @@ pf-ajudante-perdidinho {
   /* Desktop: canto inferior direito, respeitando a área segura. O conteúdo reserva espaço embaixo (app-layout.scss). */
   &[data-variante='lado'] {
     position: fixed;
-    right: calc(20px + env(safe-area-inset-right));
-    bottom: calc(20px + env(safe-area-inset-bottom));
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(16px + env(safe-area-inset-bottom));
     z-index: 50;
     transition: opacity var(--pf-dur-base) ease, visibility var(--pf-dur-base) ease;
 
     .ajud__botao {
-      width: 60px;
-      height: 60px;
+      width: 52px;
+      height: 52px;
       padding: 0;
-      border-radius: 18px;
+      border-radius: 16px;
       box-shadow: var(--pf-shadow-lg);
       transition:
         background-color var(--pf-dur-fast) ease, border-color var(--pf-dur-fast) ease,
