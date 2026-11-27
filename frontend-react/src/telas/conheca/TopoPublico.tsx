@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { Icone } from '../../compartilhado/Icone';
@@ -19,8 +19,24 @@ const LINKS = [
 export function TopoPublico() {
   const nivel = useAuth((s) => s.usuario?.nivel ?? null);
   const [aberto, setAberto] = useState(false);
+  const botaoMenu = useRef<HTMLButtonElement>(null);
   const destino = nivel ? rotaInicial(nivel) : '/login';
+
+  // Esc fecha o menu móvel e devolve o foco ao botão que o abriu.
+  useEffect(() => {
+    if (!aberto) return;
+    const aoTecla = (ev: KeyboardEvent) => {
+      if (ev.key !== 'Escape') return;
+      setAberto(false);
+      botaoMenu.current?.focus();
+    };
+    document.addEventListener('keydown', aoTecla);
+    return () => document.removeEventListener('keydown', aoTecla);
+  }, [aberto]);
+
   return (
+    <>
+    <a className="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
     <header className="topo">
       <Link to="/conheca" onClick={() => setAberto(false)}><Logo tamanho={19} /></Link>
       <nav className="topo__nav" aria-label="Seções">
@@ -30,13 +46,13 @@ export function TopoPublico() {
       </nav>
       <div className="topo__acoes">
         <Link className="pf-btn pf-btn--primary pf-btn--sm" to={destino}>{nivel ? 'Abrir o sistema' : 'Entrar'}</Link>
-        <button type="button" className="topo__menu" aria-label={aberto ? 'Fechar menu' : 'Abrir menu'} aria-expanded={aberto} onClick={() => setAberto((a) => !a)}>
+        <button ref={botaoMenu} type="button" className="topo__menu" aria-label="Menu" aria-expanded={aberto} onClick={() => setAberto((a) => !a)}>
           <Icone nome={aberto ? 'fechar' : 'mais'} tamanho={20} />
         </button>
       </div>
       <AnimatePresence>
         {aberto && (
-          <motion.nav className="topo__gaveta" aria-label="Menu" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={TRANSICAO.rapida}>
+          <motion.nav className="topo__gaveta" aria-label="Seções e páginas" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={TRANSICAO.rapida}>
             {LINKS.map((l) => <Link key={l.para} to={l.para} onClick={() => setAberto(false)}>{l.rotulo}</Link>)}
             <Link to="/google-calendar" onClick={() => setAberto(false)}>Google Calendar</Link>
             <Link to="/planos" onClick={() => setAberto(false)}>Planos</Link>
@@ -44,5 +60,6 @@ export function TopoPublico() {
         )}
       </AnimatePresence>
     </header>
+    </>
   );
 }

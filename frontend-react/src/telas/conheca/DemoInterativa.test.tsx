@@ -48,7 +48,7 @@ describe('DemoInterativa', () => {
     clicar('Ir para o pagamento');
     expect(document.activeElement).toBe(titulo(4, 'Pague a equipe'));
     expect(container.querySelector('.demo__fim')).toBeNull();
-    const pagar = screen.getAllByRole('button', { name: 'Marcar como pago' });
+    const pagar = screen.getAllByRole('button', { name: /^Marcar diária de .* como paga$/ });
     expect(pagar.length).toBe(2);
     fireEvent.click(pagar[0]);
     expect(container.querySelector('.demo__guia')?.textContent).toContain('Pago. Falta 1 diária.');

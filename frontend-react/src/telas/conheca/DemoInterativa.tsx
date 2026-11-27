@@ -116,6 +116,11 @@ export default function DemoInterativa() {
     manobristas: EQUIPE.map((m) => ({ manobristaId: m.id, diaria: m.diaria })), despesasAdicionais: [],
   });
   const guia = guiaDe(e);
+  // O balão é a única fonte de anúncio do progresso dos pagamentos e do motivo da devolução, então fica vivo
+  // nas trocas de passo. Só se cala enquanto se digita o ticket (passo 1): ali o texto muda a cada tecla e o
+  // total já é anunciado, com espera, pelo status abaixo (evita anúncio duplo e rajada).
+  const digitando = e.passo === 1 && !e.devolvida && !!e.final;
+  const anunciarBalao = e.interagiu && !digitando;
   const etapa = ETAPAS[e.passo - 1];
   const recebimentos = DINHEIRO + CARTAO + PIX;
   const fim = e.passo === 4 && e.pagos.every(Boolean);
@@ -195,7 +200,7 @@ export default function DemoInterativa() {
       <div ref={palco} className="demo__palco" data-passo={e.passo} data-estado={guia.estado}>
         <div className="demo__guia">
           <PerdidinhoDiz humor={guia.humor} texto={guia.texto} lado="esquerda" tamanho={estreita ? 40 : 56}
-            anunciar={e.interagiu} reduzirMovimento={reduzirMovimento}
+            anunciar={anunciarBalao} reduzirMovimento={reduzirMovimento}
             olhar={olhandoConteudo ? { x: 0.2, y: 1 } : undefined} />
         </div>
 
@@ -276,10 +281,11 @@ export default function DemoInterativa() {
                 {EQUIPE.map((m, i) => (
                   <li key={m.id} data-pago={e.pagos[i] || undefined}>
                     <div>
-                      <p id={`demo-m-${m.id}`} className="demo__equipe-nome">{m.nome} · {moeda(m.diaria)}</p>
+                      <p className="demo__equipe-nome">{m.nome} · {moeda(m.diaria)}</p>
                       <p className="demo__equipe-pix">Chave Pix: {m.pix}</p>
                     </div>
-                    <button type="button" className="pf-btn pf-btn--ghost demo__acao" aria-describedby={`demo-m-${m.id}`}
+                    <button type="button" className="pf-btn pf-btn--ghost demo__acao"
+                      aria-label={e.pagos[i] ? `Diária de ${m.nome} paga` : `Marcar diária de ${m.nome} como paga`}
                       aria-disabled={e.pagos[i] || undefined}
                       onClick={() => { if (!e.pagos[i]) enviar({ tipo: 'pagar', indice: i }); }}>
                       {e.pagos[i] ? <><Icone nome="check" tamanho={16} />Pago</> : 'Marcar como pago'}

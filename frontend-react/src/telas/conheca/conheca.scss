@@ -28,20 +28,21 @@ pf-conheca {
     justify-content: space-between;
     gap: 16px;
     width: 100%;
-    padding: 14px max(20px, calc((100vw - 1160px) / 2));
+    /* 8 px + links de 44 px + 8 px = os mesmos ~60 px de antes (14 px + conteúdo de 32 px + 14 px). */
+    min-height: 61px;
+    padding: 8px max(20px, calc((100vw - 1160px) / 2));
     background: rgba(255, 255, 255, .86);
     backdrop-filter: saturate(1.4) blur(14px);
     border-bottom: 1px solid rgba(229, 233, 238, .8);
     a { text-decoration: none; }
-    position: sticky;
   }
 
   .topo__acoes { display: flex; align-items: center; gap: 6px; }
   .topo__menu {
     display: none;
     place-items: center;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border: 0;
     border-radius: 10px;
     background: transparent;
@@ -58,15 +59,16 @@ pf-conheca {
     background: var(--pf-surface);
     border-bottom: 1px solid var(--pf-border);
     box-shadow: 0 16px 30px rgba(16, 40, 63, .08);
-    a { padding: 12px 4px; border-bottom: 1px solid var(--pf-border); font-size: 16px; font-weight: 600; color: var(--pf-text); }
+    a { display: flex; align-items: center; min-height: 48px; padding: 0 4px; border-bottom: 1px solid var(--pf-border); font-size: 16px; font-weight: 600; color: var(--pf-text); }
     a:last-child { border-bottom: 0; }
   }
   .topo__nav .ativo { color: var(--pf-blue); }
 
   .topo__nav {
     display: flex;
-    gap: 26px;
-    a { white-space: nowrap; font-size: 14px; font-weight: 500; color: var(--pf-text-muted); transition: color var(--pf-dur-fast) ease; &:hover { color: var(--pf-text); } }
+    gap: 10px;
+    /* Alvo de 44 px de altura; o padding lateral de 8 px mantém o vão visual de ~26 px entre os rótulos. */
+    a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; border-radius: 8px; white-space: nowrap; font-size: 14px; font-weight: 500; color: var(--pf-text-muted); transition: color var(--pf-dur-fast) ease; &:hover { color: var(--pf-text); } }
   }
 
   /* Herói ------------------------------------------------------------------- */
@@ -105,7 +107,16 @@ pf-conheca {
   }
 
   .heroi__sub { margin-top: 20px; max-width: 500px; font-size: 17px; line-height: 1.6; color: $texto-corpo; }
-  .heroi__acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; .pf-btn { height: 46px; padding: 0 20px; font-size: 15px; } }
+  .heroi__acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+
+  /* Botões principais das páginas públicas: 46 px em todas (o login usa o mesmo valor).
+     O "Entrar" do topo (--sm) e os botões da demo têm medidas próprias. */
+  :is(.heroi__acoes, .chamada__acoes, .gc__acoes, .plano, .planos__cliente) .pf-btn,
+  .pf-btn.agenda__mais {
+    height: 46px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
 
   .heroi__visual { position: relative; min-width: 0; }
 
@@ -292,21 +303,7 @@ pf-conheca {
       var(--pf-navy);
     h2 { color: var(--pf-on-dark); font-size: clamp(26px, 3vw, 38px); font-weight: 800; letter-spacing: -.03em; }
     p { margin: 12px auto 26px; max-width: 460px; color: #c5d3e0; font-size: 16px; }
-    .pf-btn { height: 46px; padding: 0 22px; background: var(--pf-surface); color: var(--pf-navy); &:hover { background: var(--pf-blue-soft); } }
-  }
-
-  .rodape {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    width: var(--largura);
-    margin: 0 auto;
-    padding: 28px 0 40px;
-    border-top: 1px solid var(--pf-border);
-    font-size: 13px;
-    color: var(--pf-text-muted);
+    .pf-btn { background: var(--pf-surface); color: var(--pf-navy); &:hover { background: var(--pf-blue-soft); } }
   }
 
   /* Responsivo --------------------------------------------------------------- */
@@ -317,8 +314,9 @@ pf-conheca {
 
   @media (max-width: 640px) {
     .lp { --largura: calc(100vw - 32px); }
-    .topo__nav { display: none; }
-    .heroi h1 { font-size: 40px; }
+    /* Em 320 px, 40 px fixos não cabiam "estacionamento,": o título acompanha a largura até 40 px. */
+    .heroi h1 { font-size: clamp(30px, 10.5vw, 40px); }
+    .heroi > * { min-width: 0; }
     .heroi__sub { font-size: 16px; }
     .secao { padding: 64px 0; }
     .demo-reserva { min-height: 692px; }
@@ -459,7 +457,6 @@ pf-conheca {
   /* Na caixa escura, o anel de foco padrão (azul translúcido) some: anel branco opaco. */
   .chamada__caixa :is(a, button):focus-visible { outline: 2px solid var(--pf-on-dark); outline-offset: 3px; box-shadow: none; }
   .chamada__caixa .chamada__secundario { background: transparent; color: var(--pf-on-dark); border: 1px solid rgba(255, 255, 255, .35); &:hover { background: rgba(255, 255, 255, .1); } }
-  .rodape nav { display: flex; gap: 18px; a { color: var(--pf-text-muted); text-decoration: none; font-weight: 600; &:hover { color: var(--pf-blue); } } }
 
   /* Planos -------------------------------------------------------------------- */
   /* Página do Google Calendar ------------------------------------------------- */
@@ -567,7 +564,16 @@ pf-conheca {
     h1 { margin-top: 10px; font-size: clamp(32px, 4vw, 48px); font-weight: 800; letter-spacing: -.035em; line-height: 1.08; }
     > p:last-child { margin-top: 14px; font-size: 16.5px; line-height: 1.6; color: var(--pf-text-muted); }
   }
-  .planos__grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+  .planos__grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
+  /* Lado a lado, cada cartão herda as linhas da grade (subgrid): título, resumo, preço, ação e aviso
+     ficam na mesma altura nos três, e a lista ocupa o resto. A ordem visual segue a do DOM. */
+  @supports (grid-template-rows: subgrid) {
+    @media (min-width: 961px) {
+      .planos__grade { row-gap: 0; }
+      .plano { display: grid; grid-template-rows: subgrid; grid-row: span 6; row-gap: 14px; align-content: start; }
+      .plano > ul { align-self: start; }
+    }
+  }
   .plano {
     position: relative;
     display: flex;
@@ -608,18 +614,25 @@ pf-conheca {
     letter-spacing: -.03em;
     span { margin-left: 4px; font-size: 14px; font-weight: 600; color: var(--pf-text-muted); letter-spacing: 0; }
   }
-  .plano__aviso { padding: 10px 12px; border-radius: 10px; background: var(--pf-bg); font-size: 13.5px; color: var(--pf-text-muted); text-align: center; }
+  .plano__preco[data-sem-preco] { font-size: 18px; font-weight: 700; letter-spacing: -.01em; color: var(--pf-text-muted); }
+  /* Nota pequena logo abaixo da ação (sem caixa: a ação clicável é o que importa). */
+  .plano__aviso { margin-top: -6px; font-size: 12.5px; color: var(--pf-text-muted); text-align: center; }
 
-  .comparacao { margin-top: 72px; h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; letter-spacing: -.03em; margin-bottom: 20px; } }
-  .comparacao__tabela { overflow-x: auto; border: 1px solid var(--pf-border); border-radius: 16px; }
-  .comparacao table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .comparacao { min-width: 0; margin-top: 72px; h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; letter-spacing: -.03em; margin-bottom: 20px; } }
+  .comparacao__tabela { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--pf-border); border-radius: 16px; }
+  /* A tabela rola no celular e por isso recebe foco pelo teclado: anel visível. */
+  .comparacao__tabela:focus-visible { outline: 2px solid var(--pf-blue); outline-offset: 3px; }
+  .comparacao table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14.5px; }
   .comparacao th, .comparacao td { padding: 14px 18px; border-bottom: 1px solid var(--pf-border); text-align: center; }
   .comparacao thead th { background: var(--pf-bg); font-family: var(--pf-font-display); font-size: 15px; }
   .comparacao tbody th { text-align: left; font-weight: 500; color: $texto-corpo; }
   .comparacao tbody tr:last-child > * { border-bottom: 0; }
   .comparacao th:first-child { text-align: left; }
+  /* Primeira coluna presa à esquerda quando a tabela rola no celular; fundo opaco para o texto não vazar. */
+  .comparacao tbody th:first-child { background: var(--pf-background); }
   .comparacao .sim { color: var(--pf-success); display: inline-grid; }
-  .comparacao .nao { color: var(--pf-text-faint); }
+  /* --pf-text-muted: 4,8:1 sobre branco (o --pf-text-faint de antes dava ~2,6:1). */
+  .comparacao .nao { color: var(--pf-text-muted); }
 
   .planos__cliente {
     display: flex;
@@ -644,10 +657,28 @@ pf-conheca {
   }
 
   @media (max-width: 640px) {
-    .topo__menu { display: grid; }
     .recursos__grade--4 { grid-template-columns: 1fr; }
     .planos { padding-top: 36px; }
     .comparacao th, .comparacao td { padding: 12px 10px; font-size: 13px; }
+    .comparacao table { width: max(100%, calc(9.5rem + 3 * 4.5rem)); }
+    .comparacao th:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      min-width: 9.5rem;
+      box-shadow: inset -1px 0 0 var(--pf-border);
+    }
+    .comparacao :is(td, thead th:not(:first-child)) { min-width: 4.5rem; }
+    .gc__acoes .pf-btn { width: 100%; }
+  }
+
+  /* Menu do topo: gaveta até 960 px (zoom de 200% em 1366 px = 683 px cortava os últimos links). */
+  @media (max-width: 960px) {
+    .topo__nav { display: none; }
+    .topo__menu { display: grid; }
+  }
+  @media (max-width: 640px) {
+    .topo .pf-btn--sm { min-height: 40px; padding: 0 14px; }
   }
 }
 
@@ -655,3 +686,28 @@ pf-conheca {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: none; }
 }
+
+/* Pular para o conteúdo: fora da tela até receber foco, então aparece no canto superior esquerdo,
+   acima do topo fixo. Sem movimento: surge na hora (não depende de animação para ser usado). */
+.pular-conteudo {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: var(--pf-navy);
+  color: var(--pf-on-dark);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 16px));
+  &:focus { transform: none; }
+  &:focus-visible { outline: 2px solid var(--pf-on-dark); outline-offset: -5px; box-shadow: 0 0 0 3px var(--pf-navy), 0 8px 20px rgba(16, 40, 63, .3); }
+}
+
+/* O <main> recebe o foco programático do "pular"; sem anel em volta da página inteira. */
+pf-conheca main[tabindex='-1']:focus { outline: none; }

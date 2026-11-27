@@ -2,11 +2,12 @@ import { useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { Icone } from '../../compartilhado/Icone';
-import { Logo } from '../../compartilhado/Logo';
+import { useSeo } from '../../compartilhado/useSeo';
 import { movimentoLivre } from '../../compartilhado/movimento';
 import { useAuth } from '../../nucleo/estado/auth';
 import { podeAcessar } from '../../nucleo/servicos/permissoes';
 import { AgendaExemplo } from './AgendaExemplo';
+import { RodapePublico } from './RodapePublico';
 import { TopoPublico } from './TopoPublico';
 import './conheca.scss';
 
@@ -85,6 +86,11 @@ const PERGUNTAS = [
 
 /** Página pública sobre a integração com o Google Calendar (e outras agendas). */
 export default function GoogleCalendar() {
+  useSeo({
+    titulo: 'Google Calendar — Park Flash',
+    descricao: 'Acompanhe eventos e escalas do Park Flash na sua agenda do Google Calendar por um link pessoal no formato padrão iCalendar.',
+    caminho: '/google-calendar',
+  });
   const raiz = useRef<HTMLDivElement>(null);
   const nivel = useAuth((s) => s.usuario?.nivel ?? null);
   const podeGerar = podeAcessar(nivel, 'eventos');
@@ -107,7 +113,7 @@ export default function GoogleCalendar() {
     <pf-conheca>
       <div ref={raiz} className="lp">
         <TopoPublico />
-        <main className="gc">
+        <main id="conteudo" tabIndex={-1} className="gc">
           <section className="gc__heroi">
             <div className="gc__heroi-texto">
               <p className="sobre">Integração com o Google Calendar</p>
@@ -227,11 +233,7 @@ export default function GoogleCalendar() {
             <Link className="pf-btn pf-btn--primary" to={destino}>{rotuloAcao}<Icone nome="seta" tamanho={16} /></Link>
           </section>
         </main>
-        <footer className="rodape">
-          <Logo tamanho={15} />
-          <nav aria-label="Rodapé"><Link to="/conheca">Apresentação</Link><Link to="/planos">Planos</Link><Link to="/login">Entrar</Link></nav>
-          <p>Google Calendar é marca do Google. O Park Flash publica um link de agenda no formato padrão (iCalendar).</p>
-        </footer>
+        <RodapePublico atual="/google-calendar" nota="Google Calendar é marca do Google. O Park Flash publica um link de agenda no formato padrão (iCalendar)." />
       </div>
     </pf-conheca>
   );

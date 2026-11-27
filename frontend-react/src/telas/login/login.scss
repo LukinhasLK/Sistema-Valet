@@ -171,7 +171,8 @@ pf-login {
     padding: 10px 12px;
   }
 
-  .card__entrar { height: 44px; margin-top: 4px; }
+  /* 46 px: a mesma altura dos botões principais das páginas públicas. */
+  .card__entrar { height: 46px; margin-top: 4px; }
 
   .girando {
     width: 15px;
@@ -182,7 +183,16 @@ pf-login {
     animation: pf-girar .7s linear infinite;
   }
 
-  .card__esqueci { align-self: center; }
+  /* Alvo de 44 px de altura sem mudar o desenho: a margem negativa devolve o espaço extra,
+     então o texto fica onde estava (linha de ~16 px + 2 × 14 px). */
+  .card__esqueci {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -14px;
+    padding: 0 8px;
+  }
 
   .card__ajuda {
     font-size: 13px;
@@ -198,11 +208,21 @@ pf-login {
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    /* Mesmo truque do "Esqueci": 44 px de alvo, ~13 px devolvidos em cima e embaixo. */
+    min-height: 44px;
+    margin-block: -13px;
+    padding: 0 8px;
+    border-radius: 8px;
     font-size: 13px;
     font-weight: 600;
     color: var(--pf-text-muted);
     text-decoration: none;
     &:hover { color: var(--pf-blue); }
+  }
+
+  /* No layout largo o painel azul já mostra a logo: a do cartão seria repetida. */
+  @media (min-width: 960px) {
+    .card__brand { display: none; }
   }
 
   /* Celular ---------------------------------------------------------------- */

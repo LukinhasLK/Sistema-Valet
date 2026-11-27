@@ -6,6 +6,7 @@ import { Logo } from '../../compartilhado/Logo';
 import { CURVA, reduzido } from '../../compartilhado/movimento';
 import { authServico, useAuth } from '../../nucleo/estado/auth';
 import { useIsMobile, useMovimentoReduzido } from '../../nucleo/estado/layout';
+import { useSeo } from '../../compartilhado/useSeo';
 import { PerdidinhoTardio } from '../../compartilhado/perdidinho';
 import { mensagemDeErro } from '../../nucleo/servicos/api';
 import { rotaInicial } from '../../nucleo/servicos/permissoes';
@@ -36,7 +37,12 @@ export default function Login() {
   const movimentoReduzido = useMovimentoReduzido();
   const navegar = useNavigate();
   const [parametros] = useSearchParams();
-  const raiz = useRef<HTMLDivElement>(null);
+  const raiz = useRef<HTMLElement>(null);
+  useSeo({
+    titulo: 'Entrar — Park Flash',
+    descricao: 'Entre no Park Flash com o acesso fornecido pelo proprietário da sua operação.',
+    caminho: '/login',
+  });
 
   const [identificador, setIdentificador] = useState('');
   const [senha, setSenha] = useState('');
@@ -180,6 +186,8 @@ export default function Login() {
     setErro('');
     if (invalido.identificador || invalido.senha) {
       setTocados({ identificador: true, senha: true });
+      // Leva o foco ao primeiro campo com problema (o erro aparece ligado a ele por aria-describedby).
+      document.getElementById(invalido.identificador ? 'identificador' : 'senha')?.focus();
       return;
     }
     setEntrando(true);
@@ -205,7 +213,7 @@ export default function Login() {
 
   return (
     <pf-login>
-      <div ref={raiz} className={`login${isMobile ? ' login--mobile' : ''}`}>
+      <main ref={raiz} id="conteudo" className={`login${isMobile ? ' login--mobile' : ''}`}>
         {/* Painel de marca: coluna esquerda no desktop, topo no celular */}
         <section className="brand">
           <div className="brand__inner">
@@ -260,7 +268,7 @@ export default function Login() {
                   aria-describedby={tocados.senha && invalido.senha ? 'erro-senha' : undefined}
                   onChange={(e) => { setSenha(e.target.value); aoDigitar(); }} onBlur={() => setTocados((t) => ({ ...t, senha: true }))} />
                 <button type="button" className="campo-senha__ver" onClick={() => setVerSenha((v) => !v)}
-                  aria-label={verSenha ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={verSenha}>
+                  aria-label="Mostrar senha" aria-pressed={verSenha}>
                   <Icone nome={verSenha ? 'ocultar' : 'ver'} tamanho={17} />
                 </button>
               </div>
@@ -282,9 +290,9 @@ export default function Login() {
               </p>
             )}
           </form>
-          {!isMobile && <Link to="/conheca" className="painel__conheca">Conheça o Park Flash <Icone nome="externo" tamanho={14} /></Link>}
+          <Link to="/conheca" className="painel__conheca">Ainda não usa? Conheça o Park Flash <Icone nome="seta" tamanho={14} /></Link>
         </section>
-      </div>
+      </main>
     </pf-login>
   );
 }

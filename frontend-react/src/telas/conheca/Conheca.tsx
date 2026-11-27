@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Icone } from '../../compartilhado/Icone';
-import { Logo } from '../../compartilhado/Logo';
+import { useSeo } from '../../compartilhado/useSeo';
 import { PerdidinhoTardio } from '../../compartilhado/perdidinho';
 import { PerdidinhoDiz } from '../../compartilhado/perdidinho/PerdidinhoDiz';
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
@@ -11,6 +11,7 @@ import { movimentoLivre, reduzido } from '../../compartilhado/movimento';
 import { useAuth } from '../../nucleo/estado/auth';
 import { rotaInicial } from '../../nucleo/servicos/permissoes';
 import { AgendaExemplo } from './AgendaExemplo';
+import { RodapePublico } from './RodapePublico';
 import { TopoPublico } from './TopoPublico';
 import './conheca.scss';
 
@@ -126,6 +127,11 @@ const PERGUNTAS = [
 const TEXTO_GUIA_FAQ = 'Ficou com alguma dúvida? Abra uma pergunta.';
 
 export default function Conheca() {
+  useSeo({
+    titulo: 'Park Flash — Gestão para estacionamentos e valet',
+    descricao: 'Park Flash reúne fichas de caixa por turno, equipe, pagamentos de manobristas e relatórios do seu estacionamento em um só lugar.',
+    caminho: '/conheca',
+  });
   const raiz = useRef<HTMLDivElement>(null);
   const { hash } = useLocation();
   const logado = useAuth((s) => s.usuario?.nivel ?? null);
@@ -189,7 +195,7 @@ export default function Conheca() {
       <div ref={raiz} className="lp">
         <TopoPublico />
 
-        <main>
+        <main id="conteudo" tabIndex={-1}>
           <section className="heroi">
             <div className="heroi__texto">
               <p className="sobre" data-anima>Gestão para estacionamentos e serviços de valet</p>
@@ -367,11 +373,7 @@ export default function Conheca() {
           </section>
         </main>
 
-        <footer className="rodape">
-          <Logo tamanho={15} />
-          <nav aria-label="Rodapé"><Link to="/planos">Planos</Link><Link to="/login">Entrar</Link></nav>
-          <p>A demonstração e as imagens usam dados fictícios.</p>
-        </footer>
+        <RodapePublico atual="/conheca" nota="A demonstração e as imagens usam dados fictícios." />
       </div>
     </pf-conheca>
   );

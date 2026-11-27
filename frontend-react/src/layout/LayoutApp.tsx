@@ -5,6 +5,7 @@ import { Icone } from '../compartilhado/Icone';
 import { Logo } from '../compartilhado/Logo';
 import { AjudantePerdidinho } from '../compartilhado/perdidinho/AjudantePerdidinho';
 import { entradaDeTela } from '../compartilhado/movimento';
+import { useNoindex } from '../compartilhado/useSeo';
 import { inicialDe, useUsuario } from '../nucleo/estado/auth';
 import { useAtualizacaoAutomatica } from '../nucleo/estado/atualizacao';
 import { interfaceServico } from '../nucleo/estado/interface';
@@ -52,6 +53,7 @@ function Tela({ conteudo }: { conteudo: React.RefObject<HTMLElement> }) {
 }
 
 export function LayoutApp() {
+  useNoindex();
   const isMobile = useIsMobile();
   const usuario = useUsuario();
   const disponivel = useNotificacoesDisponiveis();
