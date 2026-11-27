@@ -33,8 +33,12 @@ class SociedadeIntegracaoTest {
     @Autowired private ObjectMapper json;
 
     private String login(String email) throws Exception {
+        return login(email, "123456");
+    }
+
+    private String login(String email, String senha) throws Exception {
         String corpo = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"identificador\":\"" + email + "\",\"senha\":\"123456\"}"))
+                        .content("{\"identificador\":\"" + email + "\",\"senha\":\"" + senha + "\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return json.readTree(corpo).get("token").asText();
     }
@@ -99,7 +103,7 @@ class SociedadeIntegracaoTest {
     void cadastroDoLoginDeSocio() throws Exception {
         String dono = login(PROPRIETARIO);
         String base = """
-                {"nome":"Henrique","email":"%s","nivel":"Sócio","senha":"123456","unidadeIds":[1]%s}""";
+                {"nome":"Henrique","email":"%s","nivel":"Sócio","senha":"senha-do-socio","unidadeIds":[1]%s}""";
         mvc.perform(com(post("/api/usuarios"), dono).content(base.formatted("henrique@email.com", "")))
                 .andExpect(status().isBadRequest());
         mvc.perform(com(post("/api/usuarios"), dono).content(base.formatted("henrique@email.com", ",\"socioId\":3")))
@@ -109,7 +113,7 @@ class SociedadeIntegracaoTest {
         mvc.perform(com(post("/api/usuarios"), dono).content(base.formatted("outro@email.com", ",\"socioId\":3")))
                 .andExpect(status().isConflict());
 
-        JsonNode s = ler(com(get("/api/sociedade?mes=6&ano=2026"), login("henrique@email.com")));
+        JsonNode s = ler(com(get("/api/sociedade?mes=6&ano=2026"), login("henrique@email.com", "senha-do-socio")));
         assertThat(s.get("socioId").asLong()).isEqualTo(3);
 
         // desativar o login libera o sócio para um login novo

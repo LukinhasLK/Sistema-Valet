@@ -54,7 +54,7 @@ export default function Usuarios() {
       nome: !v.nome,
       email: !v.email || !emailValido(v.email),
       // Senha obrigatória só no cadastro; na edição, vazio mantém a atual.
-      senha: editando ? !!v.senha && v.senha.length < 6 : !v.senha || v.senha.length < 6,
+      senha: editando ? !!v.senha && (v.senha.length < 10 || v.senha.length > 72) : !v.senha || v.senha.length < 10 || v.senha.length > 72,
     }),
   );
 
@@ -237,8 +237,8 @@ export default function Usuarios() {
             <div className="pf-field">
               <label className="pf-label" htmlFor="us-senha">{editando ? 'Nova senha (opcional)' : 'Senha'}</label>
               <input id="us-senha" type="password" autoComplete="new-password"
-                placeholder={editando ? 'Deixe em branco para manter' : 'Mínimo de 6 caracteres'} {...f.campo('senha')} />
-              {f.invalido('senha') && <span className="pf-error">A senha precisa ter ao menos 6 caracteres.</span>}
+                placeholder={editando ? 'Deixe em branco para manter' : 'Mínimo de 10 caracteres'} {...f.campo('senha')} />
+              {f.invalido('senha') && <span className="pf-error">A senha precisa ter de 10 a 72 caracteres.</span>}
             </div>
 
             <div className="modal-form__acoes">

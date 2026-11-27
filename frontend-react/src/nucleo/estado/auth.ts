@@ -101,6 +101,12 @@ export const authServico = {
 
   trocarSenha: (senhaAtual: string, novaSenha: string) => api.put<void>('/auth/senha', { senhaAtual, novaSenha }),
 
+  /** Encerra o login em todos os aparelhos (e o link de agenda) e sai deste também. */
+  async sairDeTodos(): Promise<void> {
+    await api.post<void>('/auth/sair-de-todos');
+    authServico.logout();
+  },
+
   /**
    * Saída pedida pelo usuário: além de encerrar a sessão, revoga a inscrição de push
    * deste aparelho (o servidor deixa de enviar notificações desse usuário para cá).

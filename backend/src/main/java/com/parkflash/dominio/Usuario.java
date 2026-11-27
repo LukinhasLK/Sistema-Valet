@@ -64,6 +64,11 @@ public class Usuario {
     public NivelAcesso getNivel() { return nivel; }
     public void setNivel(NivelAcesso nivel) { this.nivel = nivel; }
     public String getSenhaHash() { return senhaHash; }
+    /** Invalida todos os tokens e links de agenda já emitidos para este usuário. */
+    public void encerrarSessoes() {
+        this.sessaoVersao = UUID.randomUUID().toString();
+    }
+
     public void setSenhaHash(String senhaHash) {
         this.senhaHash = senhaHash;
         this.sessaoVersao = UUID.randomUUID().toString();

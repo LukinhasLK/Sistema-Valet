@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CabecalhoPagina } from '../../compartilhado/CabecalhoPagina';
+import { Confirmar } from '../../compartilhado/Confirmar';
 import { useFormulario } from '../../compartilhado/useFormulario';
 import { corDoAvatar } from '../../layout/itens-menu';
 import { authServico, inicialDe, useNivel, useUsuario } from '../../nucleo/estado/auth';
@@ -21,9 +22,21 @@ export default function Perfil() {
   const navegar = useNavigate();
   const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [confirmarSaida, setConfirmarSaida] = useState(false);
+
+  async function sairDeTodos() {
+    setConfirmarSaida(false);
+    try {
+      await authServico.sairDeTodos();
+      navegar('/login');
+      avisos.sucesso('Você saiu de todos os aparelhos.');
+    } catch (erro) {
+      avisos.erro(erro, 'Não foi possível sair dos outros aparelhos.');
+    }
+  }
   const f = useFormulario(VAZIO, (v) => ({
     senhaAtual: !v.senhaAtual,
-    novaSenha: !v.novaSenha || v.novaSenha.length < 6,
+    novaSenha: !v.novaSenha || v.novaSenha.length < 10 || v.novaSenha.length > 72,
     confirmacao: !v.confirmacao,
     _form: v.novaSenha !== v.confirmacao,
   }));
@@ -77,8 +90,8 @@ export default function Perfil() {
 
           <div className="pf-field">
             <label className="pf-label" htmlFor="p-nova">Nova senha</label>
-            <input id="p-nova" type="password" autoComplete="new-password" placeholder="Mínimo de 6 caracteres" {...f.campo('novaSenha')} />
-            {f.invalido('novaSenha') && <span className="pf-error">A nova senha precisa ter ao menos 6 caracteres.</span>}
+            <input id="p-nova" type="password" autoComplete="new-password" placeholder="Mínimo de 10 caracteres" {...f.campo('novaSenha')} />
+            {f.invalido('novaSenha') && <span className="pf-error">A nova senha precisa ter de 10 a 72 caracteres.</span>}
           </div>
 
           <div className="pf-field">
@@ -91,6 +104,23 @@ export default function Perfil() {
 
           <button type="submit" className="pf-btn pf-btn--primary" disabled={salvando}>Salvar nova senha</button>
         </form>
+
+        <section className="pf-card perfil__card perfil__tour" aria-labelledby="perfil-sessoes">
+          <span className="perfil__tour-icone"><Icone nome="seguro" tamanho={20} /></span>
+          <div className="perfil__tour-texto">
+            <h2 id="perfil-sessoes" className="perfil__titulo">Aparelhos conectados</h2>
+            <p>Esqueceu a conta aberta em outro celular ou computador? Saia de todos de uma vez. O link do Google Calendar também para de funcionar.</p>
+            <div className="perfil__tour-acoes">
+              <button type="button" className="pf-btn pf-btn--ghost pf-btn--sm" onClick={() => setConfirmarSaida(true)}>Sair de todos os aparelhos</button>
+            </div>
+          </div>
+        </section>
+
+        {confirmarSaida && (
+          <Confirmar titulo="Sair de todos os aparelhos?" rotuloConfirmar="Sair de todos"
+            mensagem="Todos os aparelhos, inclusive este, vão pedir login de novo. Se você usa o link do Google Calendar, gere um novo depois."
+            aoConfirmar={sairDeTodos} aoCancelar={() => setConfirmarSaida(false)} />
+        )}
 
         {podeAcessar(nivel, 'eventos') && <AgendaGoogle />}
 

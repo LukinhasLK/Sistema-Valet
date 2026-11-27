@@ -72,6 +72,11 @@ public class TratadorDeErros {
         return resposta(HttpStatus.CONFLICT, "Operação viola um vínculo ou registro já existente.");
     }
 
+    @ExceptionHandler(MuitasTentativasException.class)
+    ResponseEntity<ErroApi> muitasTentativas(MuitasTentativasException e) {
+        return resposta(HttpStatus.TOO_MANY_REQUESTS, e.getMessage());
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     ResponseEntity<ErroApi> naoAutenticado(AuthenticationException e) {
         return resposta(HttpStatus.UNAUTHORIZED, e.getMessage());

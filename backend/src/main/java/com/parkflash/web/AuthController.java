@@ -42,4 +42,11 @@ public class AuthController {
     public void trocarSenha(@AuthenticationPrincipal UsuarioLogado usuario, @Valid @RequestBody TrocarSenhaRequest pedido) {
         auth.trocarSenha(usuario.id(), pedido);
     }
+
+    @PostMapping("/sair-de-todos")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Encerra o login em todos os aparelhos (e o link de agenda) do usuário")
+    public void sairDeTodos(@AuthenticationPrincipal UsuarioLogado usuario) {
+        auth.encerrarTodasAsSessoes(usuario.id());
+    }
 }

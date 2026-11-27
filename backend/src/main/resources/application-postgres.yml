@@ -12,3 +12,10 @@ parkflash:
   jwt:
     # Fora do ambiente de desenvolvimento o segredo é obrigatório (sem valor padrão).
     segredo: ${JWT_SEGREDO}
+
+# Mapa da API (Swagger) só em desenvolvimento.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

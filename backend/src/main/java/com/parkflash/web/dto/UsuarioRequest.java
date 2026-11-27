@@ -15,7 +15,7 @@ public record UsuarioRequest(
         @NotBlank @Size(max = 100) String nome,
         @NotBlank @Email @Size(max = 150) String email,
         @NotNull NivelAcesso nivel,
-        @Pattern(regexp = "^$|^.{6,}$", message = "precisa ter pelo menos 6 caracteres") String senha,
+        @Pattern(regexp = "^$|^.{10,72}$", message = "precisa ter de 10 a 72 caracteres") String senha,
         @Size(max = 500) Set<@NotNull Long> unidadeIds,
         /** Obrigatório no nível Sócio: qual sócio este login representa. */
         @Positive Long socioId) {

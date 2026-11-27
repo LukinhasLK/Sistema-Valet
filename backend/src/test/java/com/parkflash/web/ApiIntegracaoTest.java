@@ -182,22 +182,22 @@ class ApiIntegracaoTest {
     void novoUsuarioEntraComSenhaGuardadaComoHashETrocaASenha() throws Exception {
         String proprietario = token(PROPRIETARIO);
         mvc.perform(comToken(post("/api/usuarios"), proprietario)
-                        .content("{\"nome\":\"Ana\",\"email\":\"Ana@Email.com\",\"nivel\":\"Gerente\",\"senha\":\"segredo1\"}"))
+                        .content("{\"nome\":\"Ana\",\"email\":\"Ana@Email.com\",\"nivel\":\"Gerente\",\"senha\":\"segredo-forte1\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.email").value("ana@email.com"))
                 .andExpect(jsonPath("$.senha").doesNotExist());
 
         mvc.perform(comToken(post("/api/usuarios"), proprietario)
-                        .content("{\"nome\":\"Ana 2\",\"email\":\"ana@email.com\",\"nivel\":\"Operador\",\"senha\":\"segredo1\"}"))
+                        .content("{\"nome\":\"Ana 2\",\"email\":\"ana@email.com\",\"nivel\":\"Operador\",\"senha\":\"segredo-forte1\"}"))
                 .andExpect(status().isConflict());
 
-        String ana = token("ana@email.com", "segredo1");
-        mvc.perform(comToken(put("/api/auth/senha"), ana).content("{\"senhaAtual\":\"errada\",\"novaSenha\":\"nova1234\"}"))
+        String ana = token("ana@email.com", "segredo-forte1");
+        mvc.perform(comToken(put("/api/auth/senha"), ana).content("{\"senhaAtual\":\"errada\",\"novaSenha\":\"nova-senha-1234\"}"))
                 .andExpect(status().isBadRequest());
-        mvc.perform(comToken(put("/api/auth/senha"), ana).content("{\"senhaAtual\":\"segredo1\",\"novaSenha\":\"nova1234\"}"))
+        mvc.perform(comToken(put("/api/auth/senha"), ana).content("{\"senhaAtual\":\"segredo-forte1\",\"novaSenha\":\"nova-senha-1234\"}"))
                 .andExpect(status().isNoContent());
         mvc.perform(comToken(get("/api/auth/me"), ana)).andExpect(status().isUnauthorized());
-        token("ana@email.com", "nova1234");
+        token("ana@email.com", "nova-senha-1234");
     }
 
     @Test

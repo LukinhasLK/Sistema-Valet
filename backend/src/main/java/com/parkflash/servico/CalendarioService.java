@@ -71,8 +71,10 @@ public class CalendarioService {
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         OffsetDateTime agora = OffsetDateTime.now(relogio);
         jdbc.sql("DELETE FROM agenda_link WHERE usuario_id = :id").param("id", usuarioId).update();
-        jdbc.sql("INSERT INTO agenda_link (usuario_id, token_hash, criado_em) VALUES (:id, :hash, :criado)")
-                .param("id", usuarioId).param("hash", hash(token)).param("criado", agora).update();
+        String sessao = usuarios.findById(usuarioId).map(Usuario::getSessaoVersao)
+                .orElseThrow(() -> new NaoEncontradoException("Usuário não encontrado."));
+        jdbc.sql("INSERT INTO agenda_link (usuario_id, token_hash, criado_em, sessao_versao) VALUES (:id, :hash, :criado, :sessao)")
+                .param("id", usuarioId).param("hash", hash(token)).param("criado", agora).param("sessao", sessao).update();
         return new NovoLink(token, agora);
     }
 
@@ -81,12 +83,16 @@ public class CalendarioService {
         jdbc.sql("DELETE FROM agenda_link WHERE usuario_id = :id").param("id", usuarioId).update();
     }
 
+    private record LinkSalvo(long usuarioId, String sessaoVersao) {}
+
     /** Conteúdo .ics do link. Token desconhecido, usuário inativo ou sem acesso à agenda: 404. */
     @Transactional(readOnly = true)
     public String ics(String token) {
-        Usuario usuario = jdbc.sql("SELECT usuario_id FROM agenda_link WHERE token_hash = :hash")
-                .param("hash", hash(token)).query(Long.class).optional()
-                .flatMap(usuarios::findById)
+        var link = jdbc.sql("SELECT usuario_id, sessao_versao FROM agenda_link WHERE token_hash = :hash")
+                .param("hash", hash(token)).query(LinkSalvo.class).optional();
+        // Trocar a senha ou "sair de todos os aparelhos" muda a versão da sessão e derruba o link.
+        Usuario usuario = link.flatMap(l -> usuarios.findById(l.usuarioId())
+                        .filter(u -> u.getSessaoVersao().equals(l.sessaoVersao())))
                 .filter(Usuario::isAtivo)
                 .filter(u -> PODEM_ASSINAR.contains(u.getNivel()))
                 .orElseThrow(() -> new NaoEncontradoException("Link de agenda inválido ou revogado."));
