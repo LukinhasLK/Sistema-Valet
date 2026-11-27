@@ -98,4 +98,12 @@ describe('PerdidinhoDiz', () => {
     expect(raiz.getAttribute('data-lado')).toBe('direita');
     expect(raiz.style.getPropertyValue('--pdiz-tamanho')).toBe('48px');
   });
+
+  it('com anunciar={false} o balão não é região viva (decorativo)', () => {
+    render(<PerdidinhoDiz humor="pensando" texto="Ficou com dúvida?" anunciar={false} reduzirMovimento />);
+    const conteudo = screen.getByText('Ficou com dúvida?').closest('.pdiz__conteudo')!;
+    expect(conteudo.hasAttribute('aria-live')).toBe(false);
+    expect(conteudo.hasAttribute('aria-atomic')).toBe(false);
+    expect(document.querySelector('[aria-live]')).toBeNull();
+  });
 });

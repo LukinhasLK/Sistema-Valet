@@ -1,3 +1,6 @@
+/* expo.out (curva do GSAP na página) em CSS, para o Perdidinho do FAQ e da chamada. */
+$guia-curva: cubic-bezier(.16, 1, .3, 1);
+
 pf-conheca {
   display: block;
   background: #fff;
@@ -497,6 +500,7 @@ pf-conheca {
     .celular { grid-template-columns: 1fr; }
     .celular__imagem { width: min(280px, 80%); justify-self: center; }
     .chamada__caixa { padding: 44px 22px; }
+    .chamada__guia { right: 20px; }
   }
 
   /* Selos do herói */
@@ -583,7 +587,69 @@ pf-conheca {
     p { padding: 0 20px 18px; font-size: 15px; line-height: 1.6; color: var(--pf-text-muted); }
   }
 
+  /* Perdidinho do FAQ e da chamada final ------------------------------------------
+   * Entrada: opacity + translateY 12px, 420 ms, mesma curva expo.out da página (GSAP),
+   * escrita em CSS. Sem scroll, sem loop. Reduzir movimento: aparece já na pose final. */
+  /* FAQ: balão abaixo do h2. A cópia invisível do texto (.perguntas__reserva) ocupa a mesma
+     célula do grid que o PerdidinhoDiz, com as mesmas medidas do balão: CLS zero ao montar. */
+  .perguntas__guia {
+    --guia-tamanho: 48px;
+    container-type: inline-size;
+    display: grid;
+    max-width: 360px;
+    margin-top: 20px;
+    > * { grid-area: 1 / 1; min-width: 0; }
+  }
+  .perguntas__reserva {
+    visibility: hidden;
+    pointer-events: none;
+    min-height: var(--guia-tamanho);
+    /* Borda 1 px + padding 12/14 do balão; mascote + 12 px de vão à esquerda. */
+    padding: 13px 15px 13px calc(var(--guia-tamanho) + 12px + 15px);
+    font-size: 14px;
+    line-height: 1.45;
+    text-wrap: pretty;
+  }
+  /* Espaço estreito: o PerdidinhoDiz põe o balão em cima e o mascote embaixo (8 px de vão). */
+  @container (max-width: 319px) {
+    .perguntas__reserva { min-height: 0; padding: 13px 15px calc(13px + 8px + var(--guia-tamanho)); }
+  }
+  .perguntas__guia-entra { align-self: start; }
+
+  /* Chamada: o Perdidinho senta na borda de cima da caixa, à direita, metade para fora.
+     Fica no invólucro (a caixa tem overflow: hidden). Contorno branco + sombra escura para
+     não sumir nem no azul da caixa nem no branco da página. */
+  .chamada__moldura { position: relative; }
+  .chamada__guia {
+    --guia-tamanho: 64px;
+    position: absolute;
+    z-index: 2;
+    top: calc(var(--guia-tamanho) / -2);
+    right: 40px;
+    width: var(--guia-tamanho);
+    height: var(--guia-tamanho);
+    line-height: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 6px 10px rgba(16, 40, 63, .28));
+    opacity: 0;
+    visibility: hidden;
+    /* Saída (quando o do FAQ volta à tela) mais curta que a entrada. */
+    transition: opacity 140ms var(--pf-ease-out), visibility 0s linear 140ms;
+    &[data-visivel] { opacity: 1; visibility: visible; transition: opacity 420ms $guia-curva; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .perguntas__guia-entra { animation: guia-entra 420ms $guia-curva both; }
+    .chamada__guia { transform: translateY(12px); transition-property: opacity, visibility, transform; }
+    .chamada__guia[data-visivel] { transform: none; transition: opacity 420ms $guia-curva, transform 420ms $guia-curva; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chamada__guia, .chamada__guia[data-visivel] { transition: none; }
+  }
+
   .chamada__acoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  /* Na caixa escura, o anel de foco padrão (azul translúcido) some: anel branco opaco. */
+  .chamada__caixa :is(a, button):focus-visible { outline: 2px solid #fff; outline-offset: 3px; box-shadow: none; }
   .chamada__caixa .chamada__secundario { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, .35); &:hover { background: rgba(255, 255, 255, .1); } }
   .rodape nav { display: flex; gap: 18px; a { color: var(--pf-text-muted); text-decoration: none; font-weight: 600; &:hover { color: var(--pf-blue); } } }
 
@@ -776,4 +842,9 @@ pf-conheca {
     .planos { padding-top: 36px; }
     .comparacao th, .comparacao td { padding: 12px 10px; font-size: 13px; }
   }
+}
+
+@keyframes guia-entra {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
 }

@@ -33,6 +33,8 @@ import './perdidinho-diz.scss';
  *
  * Comportamento:
  * - O texto fica numa região `aria-live="polite"`: é anunciado ao aparecer e quando `texto` muda.
+ *   Com `anunciar={false}` (balão decorativo, texto fixo), a região não é viva: o texto é lido
+ *   só na ordem normal da página.
  * - O foco nunca é roubado. Com `aoFechar`, aparece o botão "Fechar" e Esc também fecha
  *   (Esc é ignorado quando há um diálogo modal aberto, que tem prioridade).
  *   Ao fechar, o componente some sozinho e chama `aoFechar` (após a saída de 140 ms; imediato
@@ -55,13 +57,15 @@ export interface PropsPerdidinhoDiz {
   acao?: { rotulo: string; aoClicar: () => void };
   aoFechar?: () => void;
   reduzirMovimento?: boolean;
+  /** Anuncia o texto ao leitor de tela (região viva). Padrão: true. Use false em balões decorativos. */
+  anunciar?: boolean;
 }
 
 /** Duração da saída (igual à animação `pdiz-sai` do SCSS). */
 export const SAIDA_MS = 140;
 
 export function PerdidinhoDiz({
-  humor, texto, titulo, lado = 'esquerda', tamanho = 56, acao, aoFechar, reduzirMovimento = false,
+  humor, texto, titulo, lado = 'esquerda', tamanho = 56, acao, aoFechar, reduzirMovimento = false, anunciar = true,
 }: PropsPerdidinhoDiz) {
   const raiz = useRef<HTMLElement>(null);
   const [pronto, setPronto] = useState(false);
@@ -116,7 +120,7 @@ export function PerdidinhoDiz({
             reduzirMovimento={parado} />}
         </div>
         <div className={`pdiz__balao${fechavel ? ' pdiz__balao--fechavel' : ''}`}>
-          <div className="pdiz__conteudo" aria-live="polite" aria-atomic="true">
+          <div className="pdiz__conteudo" {...(anunciar ? { 'aria-live': 'polite', 'aria-atomic': true } : {})}>
             {titulo && <p className="pdiz__titulo">{titulo}</p>}
             <p className="pdiz__texto">{texto}</p>
           </div>

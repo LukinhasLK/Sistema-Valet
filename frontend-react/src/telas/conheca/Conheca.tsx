@@ -1,12 +1,14 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Icone } from '../../compartilhado/Icone';
 import { Logo } from '../../compartilhado/Logo';
 import { Perdidinho } from '../../compartilhado/perdidinho/Perdidinho';
+import { PerdidinhoTardio } from '../../compartilhado/perdidinho';
+import { PerdidinhoDiz } from '../../compartilhado/perdidinho/PerdidinhoDiz';
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
-import { movimentoLivre } from '../../compartilhado/movimento';
+import { movimentoLivre, reduzido } from '../../compartilhado/movimento';
 import { useAuth } from '../../nucleo/estado/auth';
 import { rotaInicial } from '../../nucleo/servicos/permissoes';
 import { AgendaExemplo } from './AgendaExemplo';
@@ -42,6 +44,37 @@ function useMidia(consulta: string): boolean {
   }, [consulta]);
   return vale;
 }
+
+/** Vira verdadeiro (uma vez) quando `fracao` do elemento aparece na tela. Sem IntersectionObserver, já nasce verdadeiro. */
+function useEntrouNaTela(ref: RefObject<Element>, fracao: number): boolean {
+  const [entrou, setEntrou] = useState(() => !('IntersectionObserver' in window));
+  useEffect(() => {
+    const el = ref.current;
+    if (entrou || !el) return;
+    const observador = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setEntrou(true); observador.disconnect(); }
+    }, { threshold: fracao });
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, [ref, fracao, entrou]);
+  return entrou;
+}
+
+/** Verdadeiro enquanto qualquer parte do elemento está na tela (acompanha a rolagem). */
+function useNaTela(ref: RefObject<Element>, ativo: boolean): boolean {
+  const [naTela, setNaTela] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!ativo || !el || !('IntersectionObserver' in window)) { setNaTela(false); return; }
+    const observador = new IntersectionObserver(([e]) => setNaTela(e.isIntersecting));
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, [ref, ativo]);
+  return naTela;
+}
+
+/** Espera antes de o Perdidinho da chamada ficar feliz com "Ver planos" (passar o mouse de raspão não conta). */
+const ESPERA_FELIZ_MS = 150;
 
 /** Telas reais (dados de demonstração) que passam na faixa abaixo do título. Geradas por ferramentas/capturas-celular.mjs. */
 const FAIXA = ['celular-painel', 'celular-lista', 'celular-fechamento', 'celular-calendario', 'celular-lucro', 'celular-pagamentos', 'celular-sociedade', 'celular-nova-ficha'];
@@ -103,6 +136,8 @@ const PERGUNTAS = [
   { p: 'E se a internet cair no meio da ficha?', r: 'O que já foi digitado fica salvo no aparelho. Ao voltar para a tela, o sistema oferece continuar de onde parou.' },
 ];
 
+const TEXTO_GUIA_FAQ = 'Ficou com alguma dúvida? Abra uma pergunta.';
+
 export default function Conheca() {
   const raiz = useRef<HTMLDivElement>(null);
   const { hash } = useLocation();
@@ -116,9 +151,32 @@ export default function Conheca() {
   const guia = (tamanho: number) => (
     <span className="fluxo__guia">
       <Perdidinho decorativo tamanho={tamanho} humor={HUMOR_DA_ETAPA[etapaAtiva]} falando={false}
-        passo={`etapa-${etapaAtiva}`} lado="left" reduzirMovimento={false} />
+        passo={`etapa-${etapaAtiva}`} lado="left" reduzirMovimento={reduzido()} />
     </span>
   );
+
+  // FAQ: o Perdidinho pensa até a primeira pergunta aberta, e daí explica (o texto não muda).
+  const secaoFaq = useRef<HTMLElement>(null);
+  const guiaFaq = useRef<HTMLDivElement>(null);
+  const faqMontado = useEntrouNaTela(secaoFaq, 0.4);
+  const faqNaTela = useNaTela(guiaFaq, faqMontado);
+  const [faqAberto, setFaqAberto] = useState(false);
+
+  // Chamada final: acena; fica feliz ao mirar "Ver planos". Some enquanto o do FAQ estiver na tela
+  // (as duas seções são vizinhas; nunca dois Perdidinhos à vista ao mesmo tempo).
+  const secaoChamada = useRef<HTMLElement>(null);
+  const chamadaMontada = useEntrouNaTela(secaoChamada, 0.5);
+  const [humorChamada, setHumorChamada] = useState<HumorMascote>('acenando');
+  const esperaFeliz = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(esperaFeliz.current), []);
+  const mirarPlanos = () => {
+    clearTimeout(esperaFeliz.current);
+    esperaFeliz.current = setTimeout(() => setHumorChamada('feliz'), ESPERA_FELIZ_MS);
+  };
+  const soltarPlanos = () => {
+    clearTimeout(esperaFeliz.current);
+    setHumorChamada('acenando');
+  };
 
   useEffect(() => {
     const etapas = [...(raiz.current?.querySelectorAll<HTMLElement>('.fluxo__etapa') ?? [])];
@@ -350,14 +408,25 @@ export default function Conheca() {
             </div>
           </section>
 
-          <section className="secao perguntas" data-revelar>
+          <section ref={secaoFaq} className="secao perguntas" data-revelar>
             <div className="secao__cabeca" data-item>
               <p className="sobre">Perguntas frequentes</p>
               <h2>Antes de começar</h2>
+              {/* O espaço do balão fica reservado (cópia invisível do texto), então nada pula ao montar. */}
+              <div ref={guiaFaq} className="perguntas__guia" style={{ '--guia-tamanho': `${telaEstreita ? 40 : 48}px` } as CSSProperties}>
+                <div className="perguntas__reserva" aria-hidden="true">{TEXTO_GUIA_FAQ}</div>
+                {faqMontado && (
+                  <div className="perguntas__guia-entra">
+                    <PerdidinhoDiz humor={faqAberto ? 'explicando' : 'pensando'} texto={TEXTO_GUIA_FAQ}
+                      lado="esquerda" tamanho={telaEstreita ? 40 : 48} anunciar={false} />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="perguntas__lista">
               {PERGUNTAS.map((q) => (
-                <details key={q.p} className="pergunta" data-item>
+                <details key={q.p} className="pergunta" data-item
+                  onToggle={(e) => { if (e.currentTarget.open) setFaqAberto(true); }}>
                   <summary>{q.p}<Icone nome="abrir" tamanho={18} /></summary>
                   <p>{q.r}</p>
                 </details>
@@ -365,13 +434,24 @@ export default function Conheca() {
             </div>
           </section>
 
-          <section className="secao chamada" data-revelar>
-            <div className="chamada__caixa" data-item>
-              <h2>Pronto para organizar o próximo turno?</h2>
-              <p>Veja os planos ou entre com o acesso fornecido pelo proprietário da sua operação.</p>
-              <div className="chamada__acoes">
-                <Link className="pf-btn pf-btn--primary" to="/planos">Ver planos<Icone nome="seta" tamanho={16} /></Link>
-                <Link className="pf-btn chamada__secundario" to={destino}>{rotuloEntrar}</Link>
+          <section ref={secaoChamada} className="secao chamada" data-revelar>
+            {/* A caixa corta o que passa da borda (overflow): o Perdidinho fica no invólucro, sentado na borda de cima. */}
+            <div className="chamada__moldura">
+              <div className="chamada__guia" aria-hidden="true" data-visivel={(chamadaMontada && !faqNaTela) || undefined}
+                style={{ '--guia-tamanho': `${telaEstreita ? 48 : 64}px` } as CSSProperties}>
+                {chamadaMontada && (
+                  <PerdidinhoTardio decorativo tamanho={telaEstreita ? 48 : 64} humor={humorChamada} falando={false}
+                    passo={`chamada-${humorChamada}`} lado="centro" reduzirMovimento={reduzido()} />
+                )}
+              </div>
+              <div className="chamada__caixa" data-item>
+                <h2>Pronto para organizar o próximo turno?</h2>
+                <p>Veja os planos ou entre com o acesso fornecido pelo proprietário da sua operação.</p>
+                <div className="chamada__acoes">
+                  <Link className="pf-btn pf-btn--primary" to="/planos" onMouseEnter={mirarPlanos} onFocus={mirarPlanos}
+                    onMouseLeave={soltarPlanos} onBlur={soltarPlanos}>Ver planos<Icone nome="seta" tamanho={16} /></Link>
+                  <Link className="pf-btn chamada__secundario" to={destino}>{rotuloEntrar}</Link>
+                </div>
               </div>
             </div>
           </section>

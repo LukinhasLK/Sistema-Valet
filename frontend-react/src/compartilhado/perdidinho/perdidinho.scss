@@ -39,7 +39,10 @@ pf-perdidinho {
   .perdidinho--vivo .perdidinho__lagrima { opacity: 0; }
 
   @media (prefers-reduced-motion: no-preference) {
-    /* O olhar desliza com um leve atraso (seguir o mouse, apontar, pensar, entristecer). */
-    .perdidinho--vivo .perdidinho__olhar { transition: transform .45s cubic-bezier(.22, 1, .36, 1) 60ms; }
+    /* O olhar desliza com um leve atraso (seguir o mouse, apontar, pensar, entristecer).
+       Ajustável por fora: --perdidinho-olhar-dur e --perdidinho-olhar-atraso (ex.: 220ms e 0ms). */
+    .perdidinho--vivo .perdidinho__olhar {
+      transition: transform var(--perdidinho-olhar-dur, .45s) cubic-bezier(.22, 1, .36, 1) var(--perdidinho-olhar-atraso, 60ms);
+    }
   }
 }

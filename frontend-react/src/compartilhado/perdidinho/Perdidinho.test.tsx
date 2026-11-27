@@ -180,4 +180,87 @@ describe('Perdidinho', () => {
       restaurar();
     }
   });
+  describe('controles opcionais', () => {
+    it('olhos="espiando": esquerdo fechado (traço) e direito aberto e menor, sem piscar', () => {
+      const delayed = vi.spyOn(gsap, 'delayedCall');
+      const { container } = render(<Perdidinho humor="acenando" falando passo="p" lado="centro" reduzirMovimento={false} olhos="espiando" />);
+      expect(container.querySelector('pf-perdidinho')?.getAttribute('data-olhos')).toBe('espiando');
+      const espiando = container.querySelector('.perdidinho__espiando');
+      expect(espiando?.querySelectorAll('path.perdidinho__traco')).toHaveLength(1);
+      const aberto = espiando?.querySelector('rect');
+      expect([aberto?.getAttribute('width'), aberto?.getAttribute('height')]).toEqual(['6', '8']);
+      expect(container.querySelector('.perdidinho__alegre')).toBeNull();
+      expect(delayed).not.toHaveBeenCalled();
+    });
+
+    it('olhos substitui os do humor e a troca pisca (scaleY) sem remontar', () => {
+      const from = vi.spyOn(gsap, 'from');
+      const { container, rerender } = render(<Perdidinho humor="explicando" falando passo="p" lado="centro" reduzirMovimento={false} olhos="fechados" />);
+      expect(container.querySelector('.perdidinho__fechados')).not.toBeNull();
+      from.mockClear();
+      rerender(<Perdidinho humor="explicando" falando passo="p" lado="centro" reduzirMovimento={false} olhos="abertos" />);
+      expect(container.querySelector('pf-perdidinho')?.getAttribute('data-olhos')).toBe('abertos');
+      expect(from.mock.calls.some(([, v]) => (v as gsap.TweenVars).scaleY === 0.1)).toBe(true);
+    });
+
+    it('olhar fixo substitui o do humor e não segue o ponteiro', () => {
+      const original = window.matchMedia;
+      window.matchMedia = ((q: string) => ({ ...original(q), matches: q.includes('pointer: fine') })) as typeof window.matchMedia;
+      const ouvir = vi.spyOn(window, 'addEventListener');
+      try {
+        const { container } = render(<Perdidinho humor="pensando" falando passo="p" lado="centro" reduzirMovimento={false} olhar={{ x: 1, y: 0 }} />);
+        expect((container.querySelector('.perdidinho__olhar') as SVGGElement).style.transform).toBe('translate(3.20px, 0.00px)');
+        expect(ouvir.mock.calls.some(([tipo]) => tipo === 'pointermove')).toBe(false);
+      } finally {
+        window.matchMedia = original;
+      }
+    });
+
+    it('sem olhar fixo (humor livre) segue o ponteiro em ponteiro fino', () => {
+      const original = window.matchMedia;
+      window.matchMedia = ((q: string) => ({ ...original(q), matches: q.includes('pointer: fine') })) as typeof window.matchMedia;
+      const ouvir = vi.spyOn(window, 'addEventListener');
+      try {
+        render(<Perdidinho humor="acenando" falando passo="p" lado="centro" reduzirMovimento={false} />);
+        expect(ouvir.mock.calls.some(([tipo]) => tipo === 'pointermove')).toBe(true);
+      } finally {
+        window.matchMedia = original;
+      }
+    });
+
+    it('ciclos={false} desliga os loops do gesto, mas respiração e piscar continuam', () => {
+      const timeline = vi.spyOn(gsap, 'timeline');
+      const to = vi.spyOn(gsap, 'to');
+      const delayed = vi.spyOn(gsap, 'delayedCall');
+      render(<Perdidinho humor="feliz" falando passo="p" lado="centro" reduzirMovimento={false} ciclos={false} />);
+      const linhas = timeline.mock.results.map((r) => r.value as gsap.core.Timeline);
+      expect(linhas.some((tl) => tl.repeat() === -1)).toBe(false);
+      expect(to.mock.results.some((r) => (r.value as gsap.core.Tween).repeat() === -1)).toBe(true); // respiração
+      expect(delayed).not.toHaveBeenCalled(); // "feliz" tem olhos em arco: não pisca
+      timeline.mockClear();
+      render(<Perdidinho humor="explicando" falando passo="p2" lado="centro" reduzirMovimento={false} ciclos={false} />);
+      expect(delayed).toHaveBeenCalled(); // olhos abertos continuam piscando
+    });
+
+    it('virado anima a camada própria em 200 ms; com reduzir movimento é instantâneo', () => {
+      const to = vi.spyOn(gsap, 'to');
+      const { rerender } = render(<Perdidinho humor="explicando" falando passo="p" lado="centro" reduzirMovimento={false} />);
+      to.mockClear();
+      rerender(<Perdidinho humor="explicando" falando passo="p" lado="centro" reduzirMovimento={false} virado />);
+      const virar = to.mock.calls.find(([, v]) => (v as gsap.TweenVars).rotation === -6);
+      expect(virar?.[1]).toMatchObject({ x: -2, duration: 0.2, ease: 'power2.out' });
+
+      const set = vi.spyOn(gsap, 'set');
+      const { container } = render(<Perdidinho humor="explicando" falando passo="p" lado="centro" reduzirMovimento virado />);
+      expect(set.mock.calls.some(([, v]) => (v as gsap.TweenVars).rotation === -6)).toBe(true);
+      expect(container.querySelector('.perdidinho--vivo')).toBeNull();
+    });
+
+    it('sem as props novas, nada muda (retrocompatível)', () => {
+      const set = vi.spyOn(gsap, 'set');
+      const { container } = render(<Perdidinho humor="dormindo" falando passo="p" lado="centro" reduzirMovimento />);
+      expect(container.querySelector('pf-perdidinho')?.getAttribute('data-olhos')).toBe('fechados');
+      expect(set).not.toHaveBeenCalled();
+    });
+  });
 });

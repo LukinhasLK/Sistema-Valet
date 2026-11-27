@@ -1,4 +1,4 @@
-import { FormEvent, useLayoutEffect, useRef, useState } from 'react';
+import { CSSProperties, FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { animate, stagger } from 'motion';
 import { Icone } from '../../compartilhado/Icone';
@@ -6,8 +6,10 @@ import { Logo } from '../../compartilhado/Logo';
 import { CURVA, reduzido } from '../../compartilhado/movimento';
 import { authServico, useAuth } from '../../nucleo/estado/auth';
 import { useIsMobile, useMovimentoReduzido } from '../../nucleo/estado/layout';
+import { PerdidinhoTardio } from '../../compartilhado/perdidinho';
 import { mensagemDeErro } from '../../nucleo/servicos/api';
 import { rotaInicial } from '../../nucleo/servicos/permissoes';
+import { CenaVaga } from './CenaVaga';
 import './login.scss';
 
 /** Recursos reais do sistema (nada de números ou promessas que o produto não entrega). */
@@ -17,6 +19,18 @@ const DESTAQUES = [
   { icone: 'relatorios', texto: 'Relatórios mensais e divisão de lucro' },
 ];
 
+const REPOUSO_ENTRADA_MS = 1600;
+const OCIOSO_MS = 60_000;
+const ERRO_MS = 4000;
+const SURPRESA_MS = 500;
+const SUCESSO_MS = 250;
+const OLHAR_EMAIL = { x: 1, y: -0.2 };
+const OLHAR_ESPIANDO = { x: 1, y: 0.2 };
+const OLHAR_NEUTRO = { x: 0, y: 0 };
+const OLHAR_VAR = { '--perdidinho-olhar-dur': '220ms', '--perdidinho-olhar-atraso': '0ms' } as CSSProperties;
+
+type Foco = 'nenhum' | 'email' | 'senha';
+
 export default function Login() {
   const isMobile = useIsMobile();
   const movimentoReduzido = useMovimentoReduzido();
@@ -24,7 +38,6 @@ export default function Login() {
   const [parametros] = useSearchParams();
   const raiz = useRef<HTMLDivElement>(null);
 
-  const [usarImagem, setUsarImagem] = useState(false);
   const [identificador, setIdentificador] = useState('');
   const [senha, setSenha] = useState('');
   const [verSenha, setVerSenha] = useState(false);
@@ -32,6 +45,23 @@ export default function Login() {
   const [erro, setErro] = useState('');
   const [ajudaSenha, setAjudaSenha] = useState(false);
   const [entrando, setEntrando] = useState(false);
+
+  // Estado do mascote (ele só recebe props; nada aqui é anunciado).
+  const [foco, setFoco] = useState<Foco>('nenhum');
+  const [acenando, setAcenando] = useState(true);
+  const [triste, setTriste] = useState(false);
+  const [feliz, setFeliz] = useState(false);
+  const [dormindo, setDormindo] = useState(false);
+  const [surpreso, setSurpreso] = useState(false);
+  const timers = useRef(new Set<number>());
+  const timerErro = useRef(0);
+  const dormindoRef = useRef(false);
+
+  const agendar = (fn: () => void, ms: number) => {
+    const id = window.setTimeout(() => { timers.current.delete(id); fn(); }, ms);
+    timers.current.add(id);
+    return id;
+  };
 
   const invalido = {
     identificador: !identificador,
@@ -54,12 +84,96 @@ export default function Login() {
     return () => controles.forEach((c) => c.complete());
   }, [isMobile]);
 
-  function iniciarManobra(video: HTMLVideoElement) {
-    if (video.ended || !video.paused) return;
-    video.play().catch(() => {
-      if (video.isConnected) setUsarImagem(true);
-    });
+  // Pré-carrega o pedaço do mascote sem bloquear nada; o aceno vira repouso após 1,6 s.
+  useEffect(() => {
+    import('../../compartilhado/perdidinho/Perdidinho').catch(() => {});
+    const t = agendar(() => setAcenando(false), REPOUSO_ENTRADA_MS);
+    const ativos = timers.current;
+    return () => {
+      window.clearTimeout(t);
+      ativos.forEach((id) => window.clearTimeout(id));
+      ativos.clear();
+    };
+  }, []);
+
+  // Ocioso por 60 s (só no desktop): dorme; qualquer atividade acorda com um susto de 0,5 s.
+  useEffect(() => {
+    if (isMobile) return;
+    let ultima = Date.now();
+    const acordar = () => {
+      ultima = Date.now();
+      if (!dormindoRef.current) return;
+      dormindoRef.current = false;
+      setDormindo(false);
+      setSurpreso(true);
+      agendar(() => setSurpreso(false), SURPRESA_MS);
+    };
+    const aoVoltar = () => { if (document.visibilityState === 'visible') acordar(); };
+    const verificar = window.setInterval(() => {
+      if (!dormindoRef.current && Date.now() - ultima >= OCIOSO_MS) {
+        dormindoRef.current = true;
+        setDormindo(true);
+      }
+    }, 5000);
+    window.addEventListener('keydown', acordar);
+    window.addEventListener('pointermove', acordar, { passive: true });
+    window.addEventListener('pointerdown', acordar, { passive: true });
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => {
+      window.clearInterval(verificar);
+      window.removeEventListener('keydown', acordar);
+      window.removeEventListener('pointermove', acordar);
+      window.removeEventListener('pointerdown', acordar);
+      document.removeEventListener('visibilitychange', aoVoltar);
+      dormindoRef.current = false;
+    };
+  }, [isMobile]);
+
+  function falhou(mensagem: string) {
+    setErro(mensagem);
+    setTriste(true);
+    window.clearTimeout(timerErro.current);
+    timers.current.delete(timerErro.current);
+    timerErro.current = agendar(() => setTriste(false), ERRO_MS);
   }
+
+  function aoDigitar() {
+    if (!triste) return;
+    window.clearTimeout(timerErro.current);
+    timers.current.delete(timerErro.current);
+    setTriste(false);
+  }
+
+  function aoFocar(campo: Foco) { setFoco(campo); }
+  function aoDesfocar(e: React.FocusEvent<HTMLElement>) {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFoco('nenhum');
+  }
+
+  // Props do mascote derivadas do estado.
+  const senhaViva = foco === 'senha' || (verSenha && senha !== '');
+  const espiando = verSenha && senhaViva;
+  const humorMascote = feliz ? 'feliz'
+    : triste ? 'triste'
+    : !isMobile && dormindo ? 'dormindo'
+    : !isMobile && surpreso ? 'surpreso'
+    : !isMobile && acenando ? 'acenando'
+    : 'explicando';
+  const emRepouso = humorMascote === 'explicando' || humorMascote === 'acenando';
+  const olharFixo = isMobile ? OLHAR_NEUTRO
+    : !emRepouso ? undefined
+    : foco === 'email' ? OLHAR_EMAIL
+    : espiando ? OLHAR_ESPIANDO
+    : undefined;
+  const olhosMascote = !emRepouso || (!isMobile && foco === 'email') ? undefined
+    : espiando ? 'espiando' as const
+    : foco === 'senha' ? 'fechados' as const
+    : undefined;
+  const olharFinal = isMobile && espiando ? OLHAR_ESPIANDO : olharFixo;
+  const mascote = (tamanho: number) => (
+    <PerdidinhoTardio humor={humorMascote} falando={false} passo="login" lado="centro" decorativo tamanho={tamanho}
+      reduzirMovimento={movimentoReduzido} ciclos={false}
+      olhar={olharFinal} olhos={olhosMascote} virado={emRepouso && foco === 'senha' && !espiando} />
+  );
 
   async function entrar(evento: FormEvent) {
     evento.preventDefault();
@@ -71,16 +185,22 @@ export default function Login() {
     setEntrando(true);
     try {
       if (!(await authServico.login(identificador, senha))) {
-        setErro('E-mail/usuário ou senha incorretos.');
+        falhou('E-mail/usuário ou senha incorretos.');
         return;
       }
     } catch (e) {
-      setErro(mensagemDeErro(e));
+      falhou(mensagemDeErro(e));
       return;
     } finally {
       setEntrando(false);
     }
-    navegar(parametros.get('redirectTo') ?? rotaInicial(useAuth.getState().usuario?.nivel), { replace: true });
+    const destino = parametros.get('redirectTo') ?? rotaInicial(useAuth.getState().usuario?.nivel);
+    window.clearTimeout(timerErro.current);
+    setTriste(false);
+    setFeliz(true);
+    // O mascote comemora, mas a navegação nunca espera por ele (no máximo 250 ms; 0 com reduzir movimento).
+    if (movimentoReduzido || reduzido()) navegar(destino, { replace: true });
+    else agendar(() => navegar(destino, { replace: true }), SUCESSO_MS);
   }
 
   return (
@@ -89,19 +209,16 @@ export default function Login() {
         {/* Painel de marca: coluna esquerda no desktop, topo no celular */}
         <section className="brand">
           <div className="brand__inner">
-            <div data-anima><Logo escuro tamanho={isMobile ? 21 : 24} /></div>
+            <div data-anima className="brand__topo">
+              <Logo escuro tamanho={isMobile ? 21 : 24} />
+              {isMobile && <div className="brand__mascote-mini" aria-hidden="true" style={OLHAR_VAR}>{mascote(44)}</div>}
+            </div>
             <h1 className="brand__headline" data-anima>Seu estacionamento, <span>sob controle.</span></h1>
             {!isMobile && <p className="brand__sub" data-anima>Fichas, equipe, pagamentos e relatórios em um só lugar — feito para a rotina de quem opera.</p>}
           </div>
           {!isMobile && (
             <div className="brand__scene" aria-hidden="true">
-              {movimentoReduzido || usarImagem ? (
-                <img src="/midia/login/manobra-final.png" width={960} height={600} alt="" />
-              ) : (
-                <video src="/midia/login/manobra-3d.mp4" width={960} height={600} autoPlay muted playsInline
-                  disablePictureInPicture tabIndex={-1}
-                  onCanPlay={(e) => iniciarManobra(e.currentTarget)} onError={() => setUsarImagem(true)} />
-              )}
+              <div style={OLHAR_VAR}><CenaVaga>{mascote(132)}</CenaVaga></div>
             </div>
           )}
           {!isMobile && (
@@ -129,18 +246,19 @@ export default function Login() {
                 type="text" autoComplete="username" placeholder="seu@email.com" value={identificador} autoCapitalize="none" spellCheck={false}
                 aria-invalid={tocados.identificador && invalido.identificador}
                 aria-describedby={tocados.identificador && invalido.identificador ? 'erro-identificador' : undefined}
-                onChange={(e) => setIdentificador(e.target.value)} onBlur={() => setTocados((t) => ({ ...t, identificador: true }))} />
+                onChange={(e) => { setIdentificador(e.target.value); aoDigitar(); }} onFocus={() => aoFocar('email')}
+                onBlur={() => { setFoco('nenhum'); setTocados((t) => ({ ...t, identificador: true })); }} />
               {tocados.identificador && invalido.identificador && <span id="erro-identificador" className="pf-error">Informe seu e-mail ou usuário.</span>}
             </div>
 
             <div className="pf-field" data-anima>
               <label className="pf-label" htmlFor="senha">Senha</label>
-              <div className="campo-senha">
+              <div className="campo-senha" onFocus={() => aoFocar('senha')} onBlur={aoDesfocar}>
                 <input id="senha" className={`pf-input${tocados.senha && invalido.senha ? ' ng-invalid ng-touched' : ''}`}
                   type={verSenha ? 'text' : 'password'} autoComplete="current-password" placeholder="Sua senha" value={senha}
                   aria-invalid={tocados.senha && invalido.senha}
                   aria-describedby={tocados.senha && invalido.senha ? 'erro-senha' : undefined}
-                  onChange={(e) => setSenha(e.target.value)} onBlur={() => setTocados((t) => ({ ...t, senha: true }))} />
+                  onChange={(e) => { setSenha(e.target.value); aoDigitar(); }} onBlur={() => setTocados((t) => ({ ...t, senha: true }))} />
                 <button type="button" className="campo-senha__ver" onClick={() => setVerSenha((v) => !v)}
                   aria-label={verSenha ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={verSenha}>
                   <Icone nome={verSenha ? 'ocultar' : 'ver'} tamanho={17} />

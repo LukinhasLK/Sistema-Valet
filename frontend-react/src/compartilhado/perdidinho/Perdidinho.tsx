@@ -4,15 +4,26 @@ import type { HumorMascote, PropsMascote } from '../../nucleo/onboarding/mascote
 import { reduzido } from '../movimento';
 import './perdidinho.scss';
 
-type Direcao = { x: number; y: number };
+export type Direcao = { x: number; y: number };
 type Pose = { x: number; y: number; rotation: number; scaleX: number; scaleY: number };
 /** Desenho dos olhos de cada humor. */
 export type Olhos = 'abertos' | 'alegres' | 'tristes' | 'arregalados' | 'fechados';
+
+/** Olhos que podem ser pedidos por fora: os do humor ou `espiando` (um fechado, outro aberto). */
+export type OlhosPerdidinho = Olhos | 'espiando';
 
 export interface PropsPerdidinho extends PropsMascote {
   /** Uso só ilustrativo (ex.: apresentação, ao lado de um balão): some para o leitor de tela. */
   decorativo?: boolean;
   tamanho?: number;
+  /** Olhar fixo (−1..1 em x e y). Substitui o olhar do humor e desliga o olhar seguindo o cursor. */
+  olhar?: Direcao;
+  /** Substitui os olhos do humor (a troca usa a piscada de transição). */
+  olhos?: OlhosPerdidinho;
+  /** false desliga só os loops periódicos dos gestos (aceninho, quique...). Respiração e piscar continuam. */
+  ciclos?: boolean;
+  /** Vira o corpo de leve (−6° e −2 px), como quem dá as costas. 200 ms; instantâneo com reduzir movimento. */
+  virado?: boolean;
 }
 
 /*
@@ -66,7 +77,7 @@ export function sobrancelhasDoHumor(humor: HumorMascote): Sobrancelhas | null {
 }
 
 /** Olhos que piscam (os outros já estão fechados ou em arco). */
-const PISCAM: ReadonlySet<Olhos> = new Set(['abertos', 'tristes', 'arregalados']);
+const PISCAM: ReadonlySet<OlhosPerdidinho> = new Set(['abertos', 'tristes', 'arregalados']);
 
 /** Olhar fixo de cada humor (null = livre: segue o mouse em ponteiro fino). */
 function olharDoHumor(humor: HumorMascote, lado: PropsMascote['lado']): Direcao | null {
@@ -107,11 +118,15 @@ const PROFUNDIDADE = [4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
  * quando o mascote sai da tela. Com "reduzir movimento" (prop ou sistema) nada se move: só a expressão muda.
  */
 /** Sem boca: a expressão é só dos olhos. `falando` faz parte do contrato do tour e é ignorado aqui. */
-export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = false, tamanho = 64 }: PropsPerdidinho) {
+export function Perdidinho({
+  humor, passo, lado, reduzirMovimento, decorativo = false, tamanho = 64,
+  olhar: olharPedido, olhos: olhosPedidos, ciclos: comCiclos = true, virado = false,
+}: PropsPerdidinho) {
   const id = useId().replace(/:/g, '');
   const svg = useRef<SVGSVGElement>(null);
   const entrada = useRef<SVGGElement>(null);
   const respira = useRef<SVGGElement>(null);
+  const vira = useRef<SVGGElement>(null);
   const gesto = useRef<SVGGElement>(null);
   const sombra = useRef<SVGEllipseElement>(null);
   const olhar = useRef<SVGGElement>(null);
@@ -124,13 +139,15 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
   const entrou = useRef(false);
   const poseHerdada = useRef<Pose | null>(null);
   const humorAnterior = useRef<HumorMascote | null>(null);
+  const olhosAnteriores = useRef<OlhosPerdidinho | null>(null);
+  const viradoAntes = useRef<boolean | null>(null);
   const visivel = useRef(true);
   const ciclos = useRef(new Set<gsap.core.Animation>());
 
   const parado = reduzirMovimento || reduzido();
-  const tipoOlhos = olhosDoHumor(humor);
+  const tipoOlhos: OlhosPerdidinho = olhosPedidos ?? olhosDoHumor(humor);
   const tipoSobrancelhas = sobrancelhasDoHumor(humor);
-  const olharFixo = olharDoHumor(humor, lado);
+  const olharFixo = olharPedido ?? olharDoHumor(humor, lado);
   const olharX = olharFixo?.x ?? 0;
   const olharY = olharFixo?.y ?? 0;
 
@@ -176,6 +193,8 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
         meus.push(tl);
         return tl;
       };
+      // Loops periódicos do gesto: com `ciclos={false}` viram uma linha do tempo pausada (nunca toca).
+      const repete = (vars: gsap.TimelineVars) => (comCiclos ? loop(vars) : gsap.timeline({ paused: true }));
 
       // Sombra acompanha a altura: encolhe e clareia no ar.
       const sombraNoAr = (fator: number, duracao: number) => gsap.to(chao, { scaleX: 1 - 0.3 * fator, opacity: 0.22 - 0.1 * fator, duration: duracao, ease: EASE.saida });
@@ -210,7 +229,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
           .to(corpo, { rotation: 0, duration: 0.5, ease: EASE.suave }, '+=0.6');
         const fimIntro = t0 + tl.duration();
         // De vez em quando, um aceninho curto (lembra que ele está ali, sem chamar demais).
-        loop({ delay: fimIntro + 3.5, repeatDelay: 4.5 })
+        repete({ delay: fimIntro + 3.5, repeatDelay: 4.5 })
           .to(corpo, { rotation: -7, duration: 0.16, ease: EASE.saida })
           .to(corpo, { rotation: 6, duration: 0.16, ease: EASE.suave })
           .to(corpo, { rotation: 0, duration: 0.3, ease: EASE.mola });
@@ -218,7 +237,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
 
       if (humor === 'explicando') {
         // Balanço calmo de quem conversa.
-        loop({ delay: t0, defaults: { ease: EASE.suave } })
+        repete({ delay: t0, defaults: { ease: EASE.suave } })
           .to(corpo, { y: -2.5, rotation: -1.5, duration: 1.1 })
           .to(corpo, { y: -1.5, rotation: 1.5, duration: 1.4 })
           .to(corpo, { y: 0, rotation: 0, duration: 1.1 });
@@ -236,7 +255,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
           .to(corpo, { ...meio, scaleX: 1, scaleY: 1, duration: 0.45, ease: EASE.mola });
         const fimIntro = t0 + tl.duration();
         // "Cutuca" de novo de tempos em tempos.
-        loop({ delay: fimIntro + 1.6, repeatDelay: 2.2 })
+        repete({ delay: fimIntro + 1.6, repeatDelay: 2.2 })
           .to(corpo, { rotation: d.x * 10, x: d.x * 4, y: d.y * 4, duration: 0.18, ease: EASE.saida })
           .to(corpo, { ...meio, duration: 0.4, ease: EASE.mola });
       }
@@ -245,7 +264,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
         // Dois pulinhos (o segundo menor, girando para o outro lado) e, de vez em quando, mais um.
         const tl = gsap.timeline({ delay: t0 }).add(pulo(11, -6)).add(pulo(7, 6), '+=0.06');
         const fimIntro = t0 + tl.duration();
-        loop({ delay: fimIntro + 3, repeatDelay: 4 }).add(pulo(5));
+        repete({ delay: fimIntro + 3, repeatDelay: 4 }).add(pulo(5));
       }
 
       if (humor === 'feliz') {
@@ -261,14 +280,14 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
           .to(corpo, { scaleX: 1, scaleY: 1, duration: 0.24, ease: EASE.mola });
         const duplo = () => gsap.timeline().add(quique(3.5, -2)).add(quique(2.5, 2), '-=0.16');
         const tl = gsap.timeline({ delay: t0 }).add(duplo());
-        loop({ delay: t0 + tl.duration() + 2.2, repeatDelay: 2.6 }).add(duplo());
+        repete({ delay: t0 + tl.duration() + 2.2, repeatDelay: 2.6 }).add(duplo());
       }
 
       if (humor === 'pensando') {
         // Cabeça de lado ("hmm"), oscilando bem devagar.
         gsap.timeline({ delay: t0 - 0.12 }).to(corpo, { rotation: -5, y: -1, duration: 0.45, ease: 'power2.out' });
         const fimIntro = t0 + 0.33;
-        loop({ delay: fimIntro, yoyo: true }).to(corpo, { rotation: -2, duration: 1.6, ease: EASE.suave });
+        repete({ delay: fimIntro, yoyo: true }).to(corpo, { rotation: -2, duration: 1.6, ease: EASE.suave });
       }
 
       if (humor === 'triste' || humor === 'chorando') {
@@ -278,12 +297,12 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
         const fimIntro = t0 + 0.43;
         if (humor === 'triste') {
           // Suspira de tempos em tempos.
-          loop({ delay: fimIntro + 1.4, repeatDelay: 3.2 })
+          repete({ delay: fimIntro + 1.4, repeatDelay: 3.2 })
             .to(corpo, { y: 2.2, scaleX: 1.045, scaleY: 0.91, duration: 0.7, ease: EASE.suave })
             .to(corpo, { ...murcho, duration: 1.1, ease: EASE.suave });
         } else {
           // Soluço: dois trancos curtos para cima e volta a murchar.
-          loop({ delay: fimIntro + 0.6, repeatDelay: 1.8 })
+          repete({ delay: fimIntro + 0.6, repeatDelay: 1.8 })
             .to(corpo, { y: 0.3, scaleX: 1.015, scaleY: 0.97, duration: 0.08, ease: EASE.saida })
             .to(corpo, { ...murcho, duration: 0.16, ease: EASE.entrada })
             .to(corpo, { y: 0.6, scaleX: 1.02, scaleY: 0.96, duration: 0.07, ease: EASE.saida }, '+=0.05')
@@ -334,7 +353,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
       meus.forEach((a) => registrados.delete(a));
       ctx.revert();
     };
-  }, [humor, passo, lado, parado]);
+  }, [humor, passo, lado, parado, comCiclos]);
 
   // Respiração em repouso, ancorada na base (mais lenta e funda dormindo; curta e cansada triste).
   const ritmo = humor === 'dormindo' ? 'lento' : humor === 'triste' || humor === 'chorando' ? 'cansado' : 'normal';
@@ -358,7 +377,11 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
   useLayoutEffect(() => {
     const el = olhos.current;
     const anterior = humorAnterior.current;
+    const olhosAntes = olhosAnteriores.current;
     humorAnterior.current = humor;
+    olhosAnteriores.current = tipoOlhos;
+    // Só os olhos mudaram (prop `olhos`): pisca para a nova forma, sem refazer as sobrancelhas.
+    const soOlhos = anterior === humor && olhosAntes !== null && olhosAntes !== tipoOlhos;
     if (parado || !el) return;
     const registrados = ciclos.current;
     let relogio: gsap.core.Animation | null = null;
@@ -366,12 +389,12 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
       gsap.set(el, { transformOrigin: '50% 50%' });
       if (tipoOlhos === 'arregalados') {
         gsap.from(el, { scale: 0.7, duration: 0.34, ease: 'back.out(3)', delay: 0.08 });
-      } else if (anterior && anterior !== humor) {
+      } else if ((anterior && anterior !== humor) || soOlhos) {
         gsap.from(el, { scaleY: 0.1, duration: 0.16, ease: EASE.saida });
       }
       // Sobrancelhas chegam junto com os olhos: sobem de susto, caem na tristeza, arqueiam no "hmm".
       const sb = sobrancelhas.current;
-      if (sb) {
+      if (sb && !soOlhos) {
         if (tipoSobrancelhas === 'levantadas') gsap.from(sb, { y: 2.5, duration: 0.26, ease: 'back.out(3)', delay: 0.08 });
         else if (tipoSobrancelhas === 'tristes') gsap.from(sb, { y: -1.5, opacity: 0, duration: 0.4, ease: 'power2.out' });
         else gsap.from(sb, { y: 1, opacity: 0, duration: 0.3, ease: EASE.saida, delay: 0.1 });
@@ -397,6 +420,22 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
     };
   }, [humor, tipoOlhos, tipoSobrancelhas, parado]);
 
+  // Virar: camada própria entre a respiração e o gesto (os gestos também mexem em rotation/x).
+  // Primeira pintura já na pose pedida; depois, 200 ms power2.out (instantâneo se parado).
+  useLayoutEffect(() => {
+    const el = vira.current;
+    const antes = viradoAntes.current;
+    viradoAntes.current = virado;
+    if (!el || (!virado && !antes)) return;
+    const pose = { rotation: virado ? -6 : 0, x: virado ? -2 : 0, transformOrigin: '50% 100%' };
+    if (parado || antes === null) {
+      gsap.set(el, pose);
+      return;
+    }
+    const tw = gsap.to(el, { ...pose, duration: 0.2, ease: 'power2.out', overwrite: 'auto' });
+    return () => { tw.kill(); };
+  }, [virado, parado]);
+
   // Fora da tela, os ciclos infinitos param (economia em páginas longas e no celular).
   useEffect(() => {
     const el = svg.current;
@@ -416,6 +455,10 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
   // Olhos seguem o mouse só em ponteiro fino, com movimento permitido e sem olhar fixo.
   // A transição CSS do olhar dá o pequeno atraso (os olhos "alcançam" o ponteiro).
   const olharLivre = !olharFixo;
+  // Pose de olhar que o React aplicou por último: a limpeza volta para ela (e não para "vazio"),
+  // senão, ao trocar para um olhar fixo, a limpeza roda depois do commit e apaga o transform novo.
+  const olharAtual = useRef({ x: olharX, y: olharY });
+  olharAtual.current = { x: olharX, y: olharY };
   useEffect(() => {
     const el = olhar.current;
     if (parado || !olharLivre || !el || !window.matchMedia('(pointer: fine)').matches) return;
@@ -438,7 +481,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
     return () => {
       window.removeEventListener('pointermove', aoMover);
       cancelAnimationFrame(quadro);
-      el.style.transform = '';
+      el.style.transform = transformOlhar(olharAtual.current);
     };
   }, [parado, olharLivre]);
 
@@ -454,6 +497,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
         <g ref={entrada}>
           <ellipse ref={sombra} className="perdidinho__sombra" cx="29" cy="61.5" rx="17" ry="2.4" />
           <g ref={respira}>
+            <g ref={vira}>
             <g ref={gesto}>
               <g className="perdidinho__lado">
                 {PROFUNDIDADE.map((d) => <rect key={d} x={6 + d} y={14 - d} width="44" height="44" rx="12" />)}
@@ -488,6 +532,13 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
                     <g className="perdidinho__olhos perdidinho__arregalados">
                       <ellipse cx="20.5" cy="34.5" rx="4.4" ry="5.4" />
                       <ellipse cx="35.5" cy="34.5" rx="4.4" ry="5.4" />
+                    </g>
+                  )}
+                  {tipoOlhos === 'espiando' && (
+                    // Espiando: o esquerdo fechado (mesmo traço do "fechados"), o direito aberto e menor.
+                    <g className="perdidinho__espiando">
+                      <path className="perdidinho__traco" d="M17 36.5 Q20.5 39.5 24 36.5" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+                      <rect className="perdidinho__olhos" x="32.5" y="31" width="6" height="8" rx="3" />
                     </g>
                   )}
                   {tipoOlhos === 'fechados' && (
@@ -532,6 +583,7 @@ export function Perdidinho({ humor, passo, lado, reduzirMovimento, decorativo = 
                   </g>
                 )}
               </g>
+            </g>
             </g>
           </g>
           {humor === 'dormindo' && (

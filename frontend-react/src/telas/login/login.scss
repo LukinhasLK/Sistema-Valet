@@ -57,17 +57,25 @@ pf-login {
     line-height: 1.6;
   }
 
+  /* Cena do manobrista: sem moldura nem fundo, pousa direto sobre o painel. */
   .brand__scene {
     width: min(100%, 62vh, 520px);
-    aspect-ratio: 960 / 600;
-    border-radius: 16px;
-    background: #1e1e2e;
-    border: 1px solid rgba(255, 255, 255, .08);
-    box-shadow: 0 30px 60px rgba(0, 0, 0, .35), 0 0 0 6px rgba(255, 255, 255, .03);
-    overflow: hidden;
+    aspect-ratio: 16 / 9;
     pointer-events: none;
+  }
 
-    video, img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .brand__topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .brand__mascote-mini {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    pointer-events: none;
   }
 
   .brand__destaques {
@@ -211,6 +219,9 @@ pf-login {
     .brand__headline { font-size: 28px; margin-top: 22px; }
 
     .painel {
+      /* O painel azul é posicionado (faixas ao fundo): sem isto, ele pinta por cima do cartão que sobe. */
+      position: relative;
+      z-index: 1;
       margin-top: -104px;
       padding: 0 14px 32px;
       justify-content: flex-start;
