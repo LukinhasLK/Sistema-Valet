@@ -60,3 +60,31 @@ export function descartarRascunhosDoUsuario(usuario: number): void {
     /* ignora */
   }
 }
+
+/** Resumo de um rascunho guardado no aparelho (sem os dados digitados). */
+export interface ResumoRascunho {
+  /** `null` = ficha nova. */
+  fichaId: number | null;
+  salvoEm: string;
+}
+
+/** Rascunhos válidos do usuário neste aparelho, do mais recente para o mais antigo. Descarta os vencidos. */
+export function listarRascunhos(usuario: number, agora = new Date()): ResumoRascunho[] {
+  try {
+    return Object.keys(localStorage)
+      .filter((k) => k.startsWith(`${PREFIXO}${usuario}.`))
+      .map((k) => {
+        const sufixo = k.slice(`${PREFIXO}${usuario}.`.length);
+        const fichaId = sufixo === 'nova' ? null : Number(sufixo);
+        if (fichaId !== null && !Number.isInteger(fichaId)) return null;
+        const r = lerRascunho(usuario, fichaId, agora);
+        return r ? { fichaId, salvoEm: r.salvoEm } : null;
+      })
+      .filter((r): r is ResumoRascunho => r !== null)
+      .sort((a, b) => b.salvoEm.localeCompare(a.salvoEm));
+  } catch {
+    return [];
+  }
+}
+
+export const contarRascunhos = (usuario: number, agora = new Date()): number => listarRascunhos(usuario, agora).length;

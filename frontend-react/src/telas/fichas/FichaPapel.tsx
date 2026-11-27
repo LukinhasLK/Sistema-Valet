@@ -2,6 +2,7 @@ import { dataBr, moeda, numero } from '../../compartilhado/formatos';
 import { reduzido } from '../../compartilhado/movimento';
 import { PerdidinhoTardio } from '../../compartilhado/perdidinho';
 import { Ficha } from '../../nucleo/modelos';
+import { usePresencaPerdidinho } from '../../nucleo/servicos/pendencias';
 import './ficha-papel.scss';
 
 interface Props {
@@ -20,6 +21,8 @@ interface Props {
 export function FichaPapel({ ficha, unidade, fechada, mascote = true }: Props) {
   const turno = ficha.turno === 'noite' ? 'Noite' : 'Dia';
   const serie = String(ficha.id).padStart(6, '0');
+  // Com o mascote do carimbo à vista, o do menu vira silhueta (um Perdidinho com olhos por vez).
+  usePresencaPerdidinho(fechada && mascote);
 
   return (
     <pf-ficha-papel>

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { despesasServico } from './despesas';
 import { fichasServico } from './fichas';
 import { useAuth } from './auth';
+import { pendenciasServico } from '../servicos/pendencias';
 import { podeAcessar } from '../servicos/permissoes';
 
 const INTERVALO_MS = 2 * 60_000;
@@ -9,7 +10,7 @@ const MINIMO_ENTRE_ATUALIZACOES_MS = 20_000;
 let ultima = Date.now();
 let emAndamento: Promise<void> | null = null;
 
-/** Recarrega fichas (e despesas, se o nível vê) sem atrapalhar: ignora falhas e chamadas muito próximas. */
+/** Recarrega fichas (e despesas, se o nível vê) e as pendências do Perdidinho ajudante sem atrapalhar: ignora falhas e chamadas muito próximas. */
 export function atualizarDados(forcar = false): Promise<void> {
   if (emAndamento) return emAndamento;
   if (!forcar && Date.now() - ultima < MINIMO_ENTRE_ATUALIZACOES_MS) return Promise.resolve();
@@ -19,6 +20,7 @@ export function atualizarDados(forcar = false): Promise<void> {
   emAndamento = Promise.all([
     fichasServico.carregar(),
     podeAcessar(nivel, 'despesas') ? despesasServico.carregar() : Promise.resolve(),
+    pendenciasServico.atualizar(forcar),
   ]).then(() => undefined, () => undefined).finally(() => { emAndamento = null; });
   return emAndamento;
 }

@@ -1,0 +1,139 @@
+/*
+ * Perdidinho ajudante.
+ * Desktop (`lado`): companheiro fixo no canto inferior direito. Celular (`topo`): botão do topo, entre a busca e o sino.
+ * Estado em data-* (no React 18, `className` em elemento customizado vira o atributo "classname").
+ *
+ * Camadas: conteúdo < topbar (30) < companheiro (50) < painel (55) < modal (100) < convite (800) < paleta (900)
+ * < tour (950) < toast (1000) < dica (1200).
+ */
+pf-ajudante-perdidinho {
+  display: block;
+  position: relative;
+
+  .ajud__botao {
+    position: relative;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--pf-border);
+    background: var(--pf-surface);
+    color: var(--pf-text);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color var(--pf-dur-fast) ease, border-color var(--pf-dur-fast) ease;
+  }
+
+  .ajud__mascote {
+    display: block;
+    flex: none;
+    width: var(--ajud-tamanho, 28px);
+    height: var(--ajud-tamanho, 28px);
+    pointer-events: none;
+  }
+
+  /* Selo do contador. Atenção: âmbar escuro; urgente: vermelho + ícone; só avisos: neutro. */
+  .ajud__selo {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 22px;
+    min-width: 22px;
+    padding: 0 7px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px var(--pf-surface);
+    &[data-nivel='info'] { background: var(--pf-surface-hover); color: var(--pf-text); box-shadow: 0 0 0 2px var(--pf-surface), inset 0 0 0 1px var(--pf-border-strong); }
+    &[data-nivel='atencao'] { background: var(--pf-warning-soft); color: var(--pf-warning-ink); box-shadow: 0 0 0 2px var(--pf-surface), inset 0 0 0 1px rgba(183, 121, 31, .45); }
+    &[data-nivel='urgente'] { background: var(--pf-danger); color: #fff; }
+  }
+
+  /* Só avisos de conexão: ponto neutro, sem número. */
+  .ajud__ponto { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--pf-text-muted); box-shadow: 0 0 0 2px var(--pf-surface); }
+
+  .ajud__anuncio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Desktop: canto inferior direito, respeitando a área segura. O conteúdo reserva espaço embaixo (app-layout.scss). */
+  &[data-variante='lado'] {
+    position: fixed;
+    right: calc(20px + env(safe-area-inset-right));
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    z-index: 50;
+    transition: opacity var(--pf-dur-base) ease, visibility var(--pf-dur-base) ease;
+
+    .ajud__botao {
+      width: 60px;
+      height: 60px;
+      padding: 0;
+      border-radius: 18px;
+      box-shadow: var(--pf-shadow-lg);
+      transition:
+        background-color var(--pf-dur-fast) ease, border-color var(--pf-dur-fast) ease,
+        transform var(--pf-dur-fast) var(--pf-ease-out);
+      /* Sombra de elevação numa camada própria: só a opacidade anima (nada de box-shadow em transição). */
+      &::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        z-index: -1;
+        border-radius: inherit;
+        box-shadow: 0 6px 14px rgba(16, 40, 63, .10), 0 28px 56px rgba(16, 40, 63, .18);
+        opacity: 0;
+        transition: opacity var(--pf-dur-fast) var(--pf-ease-out);
+        pointer-events: none;
+      }
+      &:focus-visible::before { opacity: 1; }
+      @media (hover: hover) {
+        &:hover { background: var(--pf-surface-hover); border-color: var(--pf-border-strong); }
+        &:hover::before { opacity: 1; }
+      }
+    }
+    .ajud__mascote { transform-origin: 50% 100%; }
+    &[data-aberto] .ajud__botao::before { opacity: 0; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      /* Elevação leve (orienta: "isto é clicável") e pressionar seco (feedback). */
+      .ajud__botao:focus-visible { transform: translateY(-2px); }
+      @media (hover: hover) { .ajud__botao:hover { transform: translateY(-2px); } }
+      .ajud__botao:active { transform: scale(.97); transition-duration: 90ms; }
+
+      /* Entrada ao carregar a sessão: uma vez, depois que o layout pintou (não disputa com o conteúdo). */
+      &[data-entrada] { transform-origin: 50% 100%; animation: ajud-entra 320ms cubic-bezier(.16, 1, .3, 1) 400ms backwards; }
+    }
+    &[data-aberto] .ajud__botao { background: var(--pf-blue-soft); border-color: rgba(24, 106, 157, .35); }
+    .ajud__selo, .ajud__ponto { top: -7px; right: -7px; }
+    .ajud__selo { min-width: 24px; height: 24px; }
+  }
+
+  /* Some (fade) quando há diálogo modal aberto: modal, confirmar, paleta, folha. */
+  body:has([aria-modal='true']) &[data-variante='lado'] { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  /* Topo do celular: só o cubo (alvo de 44 px), entre a busca e o sino. Nada flutua sobre a barra inferior ou o teclado. */
+  &[data-variante='topo'] {
+    display: contents;
+    .ajud__botao { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: transparent; }
+    .ajud__botao:active { background: var(--pf-surface-hover); }
+    &[data-aberto] .ajud__botao { background: var(--pf-blue-soft); }
+    .ajud__selo, .ajud__ponto { top: 3px; right: 1px; margin: 0; box-shadow: 0 0 0 2px #fff; }
+    .ajud__selo { min-width: 18px; height: 18px; padding: 0 4px; font-size: 10.5px; }
+    .ajud__selo svg { display: none; }
+  }
+}
+
+@keyframes ajud-entra {
+  from { opacity: 0; transform: translateY(8px) scale(.96); }
+  to { opacity: 1; transform: none; }
+}

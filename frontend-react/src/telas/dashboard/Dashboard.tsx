@@ -167,14 +167,14 @@ export default function Dashboard() {
                 aria-expanded={alertasAbertos} onClick={() => setAlertasAbertos((a) => !a)}
                 onKeyDown={(e) => { if (e.key === 'Escape') setAlertasAbertos(false); }}>
                 <Icone nome="sino" tamanho={16} />
-                Pendências {alertas.length > 0 && <span className="dash__contador" aria-hidden="true">{alertas.length}</span>}
+                Alertas {alertas.length > 0 && <span className="dash__contador" aria-hidden="true">{alertas.length}</span>}
               </button>
               <AnimatePresence>
               {alertasAbertos && (
-                <motion.div className="alertas" role="region" aria-label="Pendências do painel"
+                <motion.div className="alertas" role="region" aria-label="Alertas do período"
                   initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, transition: TRANSICAO.saida }} transition={TRANSICAO.mola}
                   onKeyDown={(e) => { if (e.key === 'Escape') setAlertasAbertos(false); }}>
-                  <p className="alertas__titulo">Pendências</p>
+                  <p className="alertas__titulo">Alertas do período</p>
                   {alertas.length ? alertas.map((alerta) => (
                     <Link key={alerta.texto} className="alertas__item" to={alerta.rota} onClick={() => setAlertasAbertos(false)}>{alerta.texto}</Link>
                   )) : <p className="alertas__vazio"><Icone nome="sucesso" tamanho={16} />Nenhum alerta. Tudo em dia!</p>}

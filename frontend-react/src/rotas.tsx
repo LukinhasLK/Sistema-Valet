@@ -4,6 +4,7 @@ import { LayoutApp } from './layout/LayoutApp';
 import { authServico, useAuth } from './nucleo/estado/auth';
 import { reduzido } from './compartilhado/movimento';
 import { podeAcessar, rotaInicial } from './nucleo/servicos/permissoes';
+import { usePresencaPerdidinho } from './nucleo/servicos/pendencias';
 
 /** Fora do pacote principal: só baixa se a tela "sem conexão" aparecer (o texto já está na tela enquanto carrega). */
 const FRASE_SEM_CONEXAO = 'Seu login continua salvo neste aparelho. Confira a internet ou aguarde um instante e tente de novo.';
@@ -46,6 +47,7 @@ function ComSessao({ children }: { children: ReactNode }) {
 
 export function SemConexao() {
   const [tentando, setTentando] = useState(false);
+  usePresencaPerdidinho();
   async function tentar() {
     setTentando(true);
     await authServico.restaurarSessao();

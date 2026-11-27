@@ -12,6 +12,9 @@ pf-app-layout {
     min-width: 0;
   }
 
+  /* Desktop: folga embaixo para o Perdidinho fixo (20 + 60 px) nunca cobrir o último botão ou linha da página. */
+  .content:not(.content--mobile) { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+
   .content--mobile {
     padding-bottom: calc(var(--pf-bottomnav-h) + env(safe-area-inset-bottom));
   }

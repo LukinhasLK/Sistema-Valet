@@ -3,11 +3,14 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Icone } from '../compartilhado/Icone';
-import { TRANSICAO } from '../compartilhado/movimento';
+import { PerdidinhoTardio } from '../compartilhado/perdidinho';
+import { CURVA, TRANSICAO } from '../compartilhado/movimento';
+import { ATRASO_CONVITE_MS } from '../compartilhado/perdidinho/AjudantePerdidinho';
 import { useNivel, useUsuario } from '../nucleo/estado/auth';
 import { useIsMobile } from '../nucleo/estado/layout';
-import { onboardingServico, progressoDe, useOnboarding } from '../nucleo/onboarding/estado';
+import { onboardingServico, progressoDe, useConviteVisivel, useOnboarding } from '../nucleo/onboarding/estado';
 import { useMascote } from '../nucleo/onboarding/mascote';
+import { usePresencaPerdidinho } from '../nucleo/servicos/pendencias';
 import { DICAS_CONTEXTUAIS } from '../nucleo/onboarding/roteiros';
 import './tour-guiado.scss';
 
@@ -158,18 +161,37 @@ function Tour() {
   );
 }
 
-/** Convite discreto no primeiro acesso (ou para continuar um tour pausado). Não bloqueia a tela. */
+/** Celular: um Perdidinho pequeno no lugar do ícone (o do topo vira silhueta enquanto ele está à vista). */
+function MascoteDoConvite({ reduzir }: { reduzir: boolean }) {
+  usePresencaPerdidinho();
+  return (
+    <span className="convite__mascote" aria-hidden="true">
+      <PerdidinhoTardio decorativo tamanho={40} humor="acenando" falando={false} passo="convite" lado="centro" ciclos={false} reduzirMovimento={reduzir} />
+    </span>
+  );
+}
+
+/**
+ * Convite discreto no primeiro acesso (ou para continuar um tour pausado). Não bloqueia a tela nem toma o foco.
+ * Desktop: é um balão que sai do Perdidinho do canto inferior direito (ele acena enquanto o convite está aberto).
+ * Celular: cartão na posição de sempre, com um Perdidinho pequeno no lugar do ícone.
+ */
 function Convite() {
   const usuario = useUsuario();
   const nivel = useNivel();
+  const isMobile = useIsMobile();
+  const reduzir = useReducedMotion() ?? false;
   const progresso = useOnboarding((s) => progressoDe(s.progresso, usuario?.id));
   const pausado = progresso.status === 'pausado' || progresso.status === 'em_andamento';
   const primeiroNome = usuario?.nome.split(' ')[0] ?? '';
   return (
-    <motion.aside className="convite" aria-labelledby="convite-titulo"
-      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10, transition: TRANSICAO.saida }}
-      transition={{ ...TRANSICAO.mola, delay: 0.9 }}>
-      <span className="convite__icone"><Icone nome="tour" tamanho={18} /></span>
+    <motion.aside className="convite" data-origem={isMobile ? 'cartao' : 'ajudante'} aria-labelledby="convite-titulo"
+      // Celular: cartão sobe com mola. Desktop: balão nasce do Perdidinho (cauda no canto inferior direito).
+      initial={isMobile ? { opacity: 0, y: reduzir ? 0 : 16 } : { opacity: 0, y: reduzir ? 0 : 6, scale: reduzir ? 1 : 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: reduzir ? 0 : 10, transition: TRANSICAO.saida }}
+      transition={isMobile ? { ...TRANSICAO.mola, delay: ATRASO_CONVITE_MS / 1000 }
+        : { duration: 0.24, ease: CURVA.saida, delay: ATRASO_CONVITE_MS / 1000 }}>
+      {isMobile && <MascoteDoConvite reduzir={reduzir} />}
       <div className="convite__textos">
         <p id="convite-titulo" className="convite__titulo">{pausado ? 'Continuar o tour?' : `Olá, ${primeiroNome}! Primeira vez por aqui?`}</p>
         <p className="convite__texto">{pausado ? 'Você parou no meio do passo a passo. Retome de onde parou.' : 'Um tour de 1 minuto mostra o essencial do Park Flash para o seu perfil.'}</p>
@@ -190,9 +212,7 @@ function Convite() {
 export function TourGuiado() {
   const usuario = useUsuario();
   const ativo = useOnboarding((s) => s.ativo);
-  const adiado = useOnboarding((s) => s.conviteAdiado);
-  const status = useOnboarding((s) => progressoDe(s.progresso, usuario?.id).status);
-  const mostrarConvite = !!usuario && !ativo && !adiado && (status === 'nao_iniciado' || status === 'pausado' || status === 'em_andamento');
+  const mostrarConvite = useConviteVisivel(usuario?.id);
   return createPortal(
     <pf-tour>
       <AnimatePresence>{mostrarConvite && <Convite key="convite" />}</AnimatePresence>

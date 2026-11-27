@@ -3,6 +3,7 @@ import type { HumorMascote } from '../../nucleo/onboarding/mascote';
 import { Icone } from '../Icone';
 import { reduzido } from '../movimento';
 import { useOnboarding } from '../../nucleo/onboarding/estado';
+import { usePresencaPerdidinho } from '../../nucleo/servicos/pendencias';
 import { PerdidinhoTardio } from './index';
 import './perdidinho-diz.scss';
 
@@ -78,6 +79,8 @@ export function PerdidinhoDiz({
   const espera = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const parado = reduzirMovimento || reduzido();
   const fechavel = !!aoFechar;
+  // Este Perdidinho tem os olhos: o do menu vira silhueta enquanto ele estiver à vista.
+  usePresencaPerdidinho(!fechado);
 
   useEffect(() => { aoFecharAtual.current = aoFechar; }, [aoFechar]);
 

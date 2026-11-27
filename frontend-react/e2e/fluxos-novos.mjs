@@ -242,6 +242,10 @@ try {
   const dono = await abrir('lucasrodrigues.10@icloud.com');
   await dono.goto(`${BASE}/app/sociedade`, { waitUntil: 'networkidle0' }); await esp(500);
   ok('Proprietário escolhe o sócio na Sociedade', !!(await dono.$('button[aria-label^="Sócio "]')));
+  // Usuários com sócios cadastrados (a tela quebrava só para o proprietário, que vê os sócios)
+  await dono.goto(`${BASE}/app/usuarios`, { waitUntil: 'networkidle0' }); await esp(500);
+  const telaUsuarios = await dono.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, quebrou: document.body.innerText.includes('Unexpected Application Error') }));
+  ok('Proprietário abre Usuários com sócios cadastrados', telaUsuarios.h1 === 'Usuários' && !telaUsuarios.quebrou, JSON.stringify(telaUsuarios));
 
   // Fechamento com a ficha de papel
   await dono.goto(`${BASE}/app/fichas?mes=6&ano=2026&detalhe=10`, { waitUntil: 'networkidle0' }); await esp(500);
@@ -256,6 +260,50 @@ try {
   const situacao = await dono.$eval('.det', (d) => d.textContent).catch(() => '');
   ok('Ficha fica fechada', situacao.includes('Fechada'), situacao.slice(0, 60));
   ok('Sem erros de JavaScript (fechamento)', dono.erros.length === 0, dono.erros.join(' | '));
+
+  // Perdidinho ajudante: painel "Precisa da sua atenção" (gestão vê as pendências do nível, operador não)
+  const criada = await dono.evaluate(async () => {
+    const token = JSON.parse(localStorage.getItem('parkflash.v3.token'));
+    const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+    const r = await fetch('/api/fichas', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: hoje, unidadeId: 1, turno: 'noite', fichaInicio: 100, fichaFim: 150, fichasCanceladas: 0, valorDinheiro: 100, valorCartao: 50, taxaMaquininha: 2, manobristas: [], despesasAdicionais: [], totalBruto: 0, totalLiquido: 0, totalCarros: 0 }) });
+    return r.status;
+  });
+  ok('Ficha aberta do mês disponível para o teste do ajudante', criada === 201 || criada === 409, `${criada} (409 = o dia já tem ficha de outro passo)`);
+  await dono.goto(`${BASE}/app/dashboard`, { waitUntil: 'networkidle0' }); await esp(700);
+  const botaoAj = 'pf-ajudante-perdidinho[data-variante=lado] button.ajud__botao';
+  const rotuloAj = await dono.$eval(botaoAj, (e) => e.getAttribute('aria-label')).catch(() => '');
+  ok('Ajudante no canto direito com número de pendências', /Pendências: [1-9]/.test(rotuloAj), rotuloAj);
+  const lugar = await dono.$eval(botaoAj, (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e.closest('pf-ajudante-perdidinho')); return { dir: Math.round(innerWidth - r.right), baixo: Math.round(innerHeight - r.bottom), l: Math.round(r.width), pos: c.position }; });
+  ok('Ajudante fixo no canto inferior direito, alvo de 48 px ou mais', lugar.pos === 'fixed' && lugar.dir === 20 && lugar.baixo === 20 && lugar.l >= 48, JSON.stringify(lugar));
+  await dono.click(botaoAj); await esp(500);
+  const painelAj = await dono.evaluate(() => {
+    const d = document.querySelector('pf-painel-atencao [role=dialog]');
+    return d ? { foco: document.activeElement?.tagName === 'H2' && d.contains(document.activeElement), modal: d.getAttribute('aria-modal'),
+      textos: [...d.querySelectorAll('li a')].map((a) => a.textContent), expandido: document.querySelector('button.ajud__botao')?.getAttribute('aria-expanded') } : null;
+  });
+  ok('Painel abre, não modal, com foco no título', !!painelAj && painelAj.foco && painelAj.modal === null && painelAj.expandido === 'true', JSON.stringify(painelAj));
+  // A ficha do mês ainda não fechada aparece como "não enviada" (em edição) ou "esperando conferência" (pronta), nunca nas duas.
+  ok('Painel lista a ficha do mês ainda não fechada', !!painelAj && painelAj.textos.some((t) => /ainda não enviadas? travam? a divisão de lucro|esperando sua conferência/.test(t)), (painelAj?.textos ?? []).join(' | '));
+  await dono.keyboard.press('Escape'); await esp(400);
+  const aposEsc = await dono.evaluate(() => ({ painel: !!document.querySelector('pf-painel-atencao [role=dialog]'), foco: document.activeElement?.classList.contains('ajud__botao') }));
+  ok('Esc fecha o painel e devolve o foco ao botão', !aposEsc.painel && aposEsc.foco, JSON.stringify(aposEsc));
+  ok('Sem erros de JavaScript (ajudante)', dono.erros.length === 0, dono.erros.join(' | '));
+
+  const opAj = await abrir('dario@email.com');
+  await opAj.goto(`${BASE}/app/fichas`, { waitUntil: 'networkidle0' }); await esp(600);
+  const rotuloOp = await opAj.$eval(botaoAj, (e) => e.getAttribute('aria-label')).catch(() => '');
+  ok('Operador não vê pendências de gestão', rotuloOp.includes('Pendências: nenhuma'), rotuloOp);
+
+  const celAj = await abrir('lucasrodrigues.10@icloud.com', 390);
+  await celAj.goto(`${BASE}/app/dashboard`, { waitUntil: 'networkidle0' }); await esp(700);
+  const alvoCel = await celAj.$eval('pf-ajudante-perdidinho[data-variante=topo] button.ajud__botao', (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }).catch(() => null);
+  ok('Celular: botão do ajudante no topo com alvo de 44 px', !!alvoCel && alvoCel[0] >= 44 && alvoCel[1] >= 44, String(alvoCel));
+  await celAj.click('pf-ajudante-perdidinho[data-variante=topo] button.ajud__botao'); await esp(600);
+  const folhaCel = await celAj.evaluate(() => { const d = document.querySelector('pf-painel-atencao [role=dialog]'); return d ? d.getAttribute('aria-modal') : null; });
+  ok('Celular: abre folha inferior modal', folhaCel === 'true', String(folhaCel));
+  await celAj.keyboard.press('Escape'); await esp(500);
+  ok('Celular: Esc fecha a folha', !(await celAj.$('pf-painel-atencao [role=dialog]')));
 } catch (e) { r.push(`❌ ERRO NO ROTEIRO: ${e.message}`); }
 console.log(r.join('\n'));
 await b.close();

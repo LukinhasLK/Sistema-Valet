@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Esqueleto, EsqueletoKpis } from '../compartilhado/Esqueleto';
 import { Icone } from '../compartilhado/Icone';
 import { Logo } from '../compartilhado/Logo';
+import { AjudantePerdidinho } from '../compartilhado/perdidinho/AjudantePerdidinho';
 import { entradaDeTela } from '../compartilhado/movimento';
 import { inicialDe, useUsuario } from '../nucleo/estado/auth';
 import { useAtualizacaoAutomatica } from '../nucleo/estado/atualizacao';
@@ -68,6 +69,7 @@ export function LayoutApp() {
               <button type="button" className="topbar__botao" aria-label="Buscar ou ir para" onClick={interfaceServico.abrirPaleta} data-tour="paleta">
                 <Icone nome="busca" tamanho={20} />
               </button>
+              {usuario && <AjudantePerdidinho variante="topo" />}
               {disponivel && (
                 <Link className="topbar__botao topbar__sino" to="/app/notificacoes" aria-label={`Notificações${total ? `, ${total} não lidas` : ''}`}>
                   <Icone nome="sino" tamanho={20} />
@@ -96,6 +98,7 @@ export function LayoutApp() {
         <Sidebar />
         <main ref={conteudo} className="content"><Tela conteudo={conteudo} /></main>
       </div>
+      {usuario && <AjudantePerdidinho variante="lado" />}
       <PaletaComandos />
       <TourGuiado />
     </pf-app-layout>

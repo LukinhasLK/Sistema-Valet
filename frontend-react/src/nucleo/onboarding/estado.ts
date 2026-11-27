@@ -53,6 +53,14 @@ export function progressoDe(mapa: Mapa, usuario: number | undefined): ProgressoT
   return p;
 }
 
+/** O convite de primeiro acesso (ou de continuar o tour) está à vista? Quem o mostra e quem "fala" por ele usam a mesma regra. */
+export function useConviteVisivel(usuario: number | undefined): boolean {
+  const ativo = useOnboarding((s) => s.ativo);
+  const adiado = useOnboarding((s) => s.conviteAdiado);
+  const status = useOnboarding((s) => progressoDe(s.progresso, usuario).status);
+  return usuario !== undefined && !ativo && !adiado && (status === 'nao_iniciado' || status === 'pausado' || status === 'em_andamento');
+}
+
 export const onboardingServico = {
   /** Começa (ou recomeça do zero) o tour do nível. */
   iniciar(usuario: number | undefined, nivel: NivelAcesso | null) {

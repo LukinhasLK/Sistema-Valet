@@ -62,8 +62,9 @@ pf-tour {
   /* Convite de primeiro acesso ----------------------------------------- */
   .convite {
     position: fixed;
-    right: 20px;
-    bottom: 20px;
+    /* Desktop: balão ancorado acima do Perdidinho do canto (botão de 60 px a 20 px da borda + 12 px de respiro). */
+    right: calc(20px + env(safe-area-inset-right));
+    bottom: calc(20px + 60px + 12px + env(safe-area-inset-bottom));
     z-index: 800;
     display: flex;
     gap: 12px;
@@ -75,10 +76,25 @@ pf-tour {
     box-shadow: var(--pf-shadow-lg);
   }
 
-  .convite__icone {
-    display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 10px;
-    background: var(--pf-blue-soft); color: var(--pf-blue);
+  /* Nasce do companheiro: a escala parte da ponta da cauda, que fica sobre o centro do botão (30 px da borda direita). */
+  .convite[data-origem='ajudante'] { transform-origin: calc(100% - 30px) calc(100% + 7px); }
+  .convite[data-origem='cartao'] { transform-origin: 50% 100%; }
+
+  /* Cauda do balão: aponta para o Perdidinho (centro do botão de 60 px: right 24 + 12/2 = 30 px). */
+  .convite[data-origem='ajudante']::after {
+    content: '';
+    position: absolute;
+    right: 24px;
+    bottom: -7px;
+    width: 12px;
+    height: 12px;
+    background: var(--pf-surface);
+    border-right: 1px solid var(--pf-border);
+    border-bottom: 1px solid var(--pf-border);
+    transform: rotate(45deg);
   }
+
+  .convite__mascote { display: block; flex: none; width: 40px; height: 40px; margin: -2px 0 -2px -4px; pointer-events: none; svg { width: 40px; height: 40px; } }
   .convite__titulo { font-family: var(--pf-font-display); font-weight: 700; font-size: 14.5px; }
   .convite__texto { margin-top: 2px; font-size: 13px; color: var(--pf-text-muted); }
   .convite__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
@@ -109,3 +125,5 @@ pf-tour {
 
 /* O convite nunca disputa espaço com um diálogo aberto (modal, painel, "Mais", paleta). */
 body:has([aria-modal='true']) pf-tour .convite { display: none; }
+/* No desktop o painel de pendências abre no mesmo lugar do balão: um de cada vez. */
+body:has(pf-painel-atencao [role='dialog']) pf-tour .convite[data-origem='ajudante'] { display: none; }

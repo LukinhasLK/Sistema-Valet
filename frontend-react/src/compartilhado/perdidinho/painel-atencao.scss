@@ -1,0 +1,94 @@
+/* Painel "Precisa da sua atenção": painel solto acima do companheiro (desktop) e folha inferior (celular). */
+pf-painel-atencao {
+  display: block;
+
+  .painel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--pf-surface);
+    color: var(--pf-text);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Ancorado acima do companheiro (botão de 60 px a 20 px das bordas + 10 px de respiro), alinhado à direita.
+     * z-index 55: acima do companheiro (50) e do conteúdo; abaixo de modais (100), convite (800), paleta (900), tour (950), toasts (1000). */
+  .painel--desktop {
+    position: fixed;
+    z-index: 55;
+    right: calc(20px + env(safe-area-inset-right));
+    bottom: calc(20px + 60px + 10px + env(safe-area-inset-bottom));
+    transform-origin: bottom right;
+    width: 360px;
+    max-width: calc(100vw - 24px);
+    max-height: min(70vh, calc(100dvh - 110px));
+    padding: 14px 14px 12px;
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius);
+    box-shadow: var(--pf-shadow-lg);
+  }
+
+  .painel-fundo {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(16, 40, 63, .45);
+  }
+
+  .painel--folha {
+    width: 100%;
+    max-height: calc(100dvh - 40px);
+    padding: 10px 16px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+  }
+
+  .painel__alca { padding: 4px 0 6px; margin: -10px -16px 0; touch-action: none; cursor: grab; }
+  .painel__handle { display: block; width: 40px; height: 4px; margin: 0 auto 6px; border-radius: 2px; background: var(--pf-border-strong); }
+
+  .painel__cabeca { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .painel__titulo { margin: 0; font-size: 15px; font-weight: 700; &:focus { outline: none; } &:focus-visible { outline: 2px solid var(--pf-blue); outline-offset: 3px; border-radius: 4px; } }
+
+  .painel__fechar {
+    display: grid; place-items: center; flex: none; width: 32px; height: 32px;
+    border: 0; border-radius: 8px; background: transparent; color: var(--pf-text-muted); cursor: pointer;
+    &:hover { background: var(--pf-surface-hover); color: var(--pf-text); }
+  }
+
+  .painel__vazio { margin: 4px 0 2px; font-size: 14px; color: var(--pf-text); }
+
+  .painel__grupo-titulo {
+    display: flex; align-items: center; gap: 5px;
+    margin: 0 0 6px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--pf-text-muted);
+  }
+  .painel__grupo[data-nivel='URGENTE'] .painel__grupo-titulo { color: var(--pf-danger-ink); }
+  .painel__grupo[data-nivel='ATENCAO'] .painel__grupo-titulo { color: var(--pf-warning-ink); }
+
+  .painel__lista { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+  .painel__item {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 44px; padding: 8px 10px;
+    border: 1px solid var(--pf-border); border-radius: 10px;
+    background: var(--pf-surface-alt, var(--pf-surface));
+    color: inherit; font-size: 13.5px; line-height: 1.35; text-decoration: none;
+    transition: background-color var(--pf-dur-fast) ease, border-color var(--pf-dur-fast) ease;
+    svg { flex: none; color: var(--pf-text-muted); }
+  }
+  a.painel__item:hover { background: var(--pf-surface-hover); border-color: var(--pf-border-strong); }
+  .painel__grupo[data-nivel='URGENTE'] .painel__item { border-color: rgba(194, 65, 65, .4); background: var(--pf-danger-soft); }
+  .painel__item--so-info { cursor: default; }
+  .painel__texto { flex: 1; min-width: 0; }
+  .painel__qtd {
+    flex: none; min-width: 24px; padding: 2px 7px; border-radius: 999px; text-align: center;
+    font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+    background: var(--pf-surface); color: var(--pf-text); box-shadow: inset 0 0 0 1px var(--pf-border);
+  }
+
+  .painel__rodape { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px solid var(--pf-border); .pf-btn { min-height: 44px; } }
+  .painel__nota { margin: -4px 0 0; font-size: 12px; color: var(--pf-text-muted); }
+}

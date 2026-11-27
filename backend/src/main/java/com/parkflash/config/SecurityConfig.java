@@ -63,7 +63,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/fichas/**").hasAnyRole(GESTAO)
                         .requestMatchers(HttpMethod.DELETE, "/api/fichas/**").hasAnyRole(GESTAO)
 
-                        .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/pendencias").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/auth/senha").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/sair-de-todos").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/fichas", "/api/fichas/*", "/api/fichas/*/historico").hasAnyRole(OPERACAO)
