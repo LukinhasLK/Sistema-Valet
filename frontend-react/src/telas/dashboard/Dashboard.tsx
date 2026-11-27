@@ -4,6 +4,7 @@ import type { ChartConfiguration } from 'chart.js';
 import { AnimatePresence, motion } from 'motion/react';
 import { BarraFiltros } from '../../compartilhado/BarraFiltros';
 import { CartaoKpi } from '../../compartilhado/CartaoKpi';
+import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { EsqueletoKpis } from '../../compartilhado/Esqueleto';
 import { TRANSICAO } from '../../compartilhado/movimento';
 import { moeda, numero } from '../../compartilhado/formatos';
@@ -254,7 +255,13 @@ export default function Dashboard() {
                   <p className="pf-card__subtitle">Últimas fichas do mês</p>
                 </div>
                 <div className="pf-card__body">
-                  <Grafico config={graficoLinha} altura={isMobile ? 200 : 250} rotulo="Valor líquido por dia do mês" />
+                  {/* Sem fichas no mês, o gráfico mostrava só uma régua de R$ 0 a R$ 1: melhor dizer o porquê. */}
+                  {fichasDoMes.length ? (
+                    <Grafico config={graficoLinha} altura={isMobile ? 200 : 250} rotulo="Valor líquido por dia do mês" />
+                  ) : (
+                    <EstadoVazio solto compacto ilustracao="vaga" titulo="Nenhuma ficha neste mês"
+                      texto="O gráfico aparece quando as fichas do período forem lançadas." />
+                  )}
                 </div>
               </article>
               {!isMobile && (
