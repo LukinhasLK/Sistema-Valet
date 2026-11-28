@@ -116,6 +116,12 @@ export default function GoogleCalendar() {
         <main id="conteudo" tabIndex={-1} className="gc">
           <section className="gc__heroi">
             <div className="gc__heroi-texto">
+              {/* Ícone oficial do Google Calendar, sem alteração (regras de uso da marca do Google). */}
+              <div className="gc__marcas" role="img" aria-label="Park Flash integrado ao Google Calendar">
+                <span className="gc__marca"><img src="/favicon.svg" alt="" width={40} height={40} /></span>
+                <Icone nome="plus" tamanho={18} />
+                <span className="gc__marca"><img src="/marcas/google-calendar.svg" alt="" width={40} height={40} /></span>
+              </div>
               <p className="sobre">Integração com o Google Calendar</p>
               <h1>A agenda da operação junto com os seus compromissos</h1>
               <p className="gc__sub">

@@ -273,7 +273,7 @@ export default function Conheca() {
           <section id="agenda" className="secao agenda" data-revelar>
             <div className="agenda__texto">
               <div className="secao__cabeca" data-item>
-                <p className="sobre">Google Calendar</p>
+                <p className="sobre sobre--marca"><img src="/marcas/google-calendar.svg" alt="" width={20} height={20} />Funciona com Google Calendar</p>
                 <h2>A agenda da operação no seu Google Calendar</h2>
                 <p>Eventos e escalas aparecem junto com os seus compromissos, no computador e no celular, sem digitar nada duas vezes.</p>
               </div>

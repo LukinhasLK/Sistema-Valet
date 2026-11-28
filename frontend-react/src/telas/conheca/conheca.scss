@@ -17,6 +17,13 @@ pf-conheca {
     text-transform: uppercase;
     color: var(--pf-blue);
   }
+  /* Sobretítulo com o ícone de um produto parceiro (ex.: Google Calendar). */
+  .sobre--marca {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    img { flex: none; }
+  }
 
   /* Topo ------------------------------------------------------------------- */
   .topo {
@@ -469,6 +476,23 @@ pf-conheca {
     align-items: center;
     padding-bottom: 32px;
     h1 { margin-top: 12px; font-size: clamp(32px, 4.2vw, 50px); font-weight: 800; letter-spacing: -.035em; line-height: 1.06; max-width: 15ch; }
+  }
+  .gc__marcas {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    pf-icon { color: var(--pf-text-muted); }
+  }
+  .gc__marca {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: var(--pf-surface);
+    border: 1px solid var(--pf-border);
+    box-shadow: 0 6px 18px rgba(15, 40, 80, .08);
   }
   .gc__sub { margin-top: 18px; font-size: 17px; line-height: 1.6; color: var(--pf-text-muted); max-width: 54ch; }
   .gc__acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
