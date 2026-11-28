@@ -10,7 +10,7 @@ import { Icone } from '../../compartilhado/Icone';
 import { avisos } from '../../nucleo/estado/aviso';
 import { mensagemDeErro } from '../../nucleo/servicos/api';
 import { podeAcessar } from '../../nucleo/servicos/permissoes';
-import { AgendaGoogle } from './AgendaGoogle';
+import { AgendaGoogle } from '../../compartilhado/AgendaGoogle';
 import './perfil.scss';
 
 const VAZIO = { senhaAtual: '', novaSenha: '', confirmacao: '' };

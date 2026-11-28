@@ -55,4 +55,10 @@ public class UnidadeController {
     public void desativar(@PathVariable Long id, @AuthenticationPrincipal UsuarioLogado ator) {
         servico.desativar(id, ator.id());
     }
+
+    @DeleteMapping("/{id}/definitivo")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void excluir(@PathVariable Long id, @AuthenticationPrincipal UsuarioLogado ator) {
+        servico.excluir(id, ator.id());
+    }
 }

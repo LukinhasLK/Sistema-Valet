@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Esqueleto, EsqueletoKpis } from '../compartilhado/Esqueleto';
 import { Icone } from '../compartilhado/Icone';
 import { Logo } from '../compartilhado/Logo';
-import { AjudantePerdidinho } from '../compartilhado/perdidinho/AjudantePerdidinho';
+import { AjudantePerdidinho, FaixaDeFala } from '../compartilhado/perdidinho/AjudantePerdidinho';
 import { entradaDeTela } from '../compartilhado/movimento';
 import { useNoindex } from '../compartilhado/useSeo';
 import { inicialDe, useUsuario } from '../nucleo/estado/auth';
@@ -85,6 +85,7 @@ export function LayoutApp() {
               )}
             </div>
           </header>
+          {usuario && <FaixaDeFala />}
           <main ref={conteudo} className="content content--mobile"><Tela conteudo={conteudo} /></main>
           <BarraInferior />
         </div>

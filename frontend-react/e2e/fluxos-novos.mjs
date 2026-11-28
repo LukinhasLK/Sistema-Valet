@@ -304,6 +304,47 @@ try {
   ok('Celular: abre folha inferior modal', folhaCel === 'true', String(folhaCel));
   await celAj.keyboard.press('Escape'); await esp(500);
   ok('Celular: Esc fecha a folha', !(await celAj.$('pf-painel-atencao [role=dialog]')));
+
+  // ===== Falas do Perdidinho (etapa 1) =====
+  const ontemSP = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(Date.now() - 24 * 3600_000));
+  // O gerente de demonstração não tem unidades (não vê fichas); o escopo dele é coberto no teste de integração do backend.
+  const gerente = await abrir('lucasrodrigues.10@icloud.com');
+  const fichaOntem = await gerente.evaluate(async (data) => {
+    const token = JSON.parse(localStorage.getItem('parkflash.v3.token'));
+    const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    const unidades = await (await fetch('/api/unidades', { headers: h })).json();
+    const r = await fetch('/api/fichas', { method: 'POST', headers: h, body: JSON.stringify({
+      data, unidadeId: unidades[0].id, turno: 'noite', fichaInicio: 5000, fichaFim: 5021, fichasCanceladas: 0, totalCarros: 21,
+      valorDinheiro: 210, valorCartao: 0, valorPix: 0, taxaMaquininha: 2, manobristas: [], despesasAdicionais: [], totalBruto: 210, totalLiquido: 210,
+    }) });
+    return r.status;
+  }, ontemSP);
+  await gerente.goto(`${BASE}/app/dashboard`, { waitUntil: 'networkidle0' }); await esp(3500);
+  const balao = await gerente.$eval('pf-balao-companheiro', (e) => e.textContent).catch(() => null);
+  await gerente.click('button.ajud__botao'); await esp(600);
+  const disse = await gerente.evaluate(() => {
+    const s = document.querySelector('pf-painel-atencao [aria-labelledby$="-disse"]');
+    return s ? [...s.querySelectorAll('li')].map((l) => l.textContent) : null;
+  });
+  ok('Painel (gestão): resumo de ontem no balão ou em "Hoje o Perdidinho disse"',
+    (!!balao && /Ontem: \d+ carros?/.test(balao)) || (!!disse && disse.some((t) => /Ontem: \d+ carros?/.test(t))),
+    `ficha ontem HTTP ${fichaOntem}; balão=${balao}; histórico=${JSON.stringify(disse)}`);
+  ok('Resumo de ontem não tem valor vazio nem "undefined"', !(disse ?? []).some((t) => /undefined|null|\{/.test(t)) && !/undefined|null/.test(balao ?? ''));
+  ok('Sem erros de JavaScript (falas, painel)', gerente.erros.length === 0, gerente.erros.join(' | '));
+
+  const oper = await abrir('dario@email.com');
+  await oper.goto(`${BASE}/app/fichas/nova`, { waitUntil: 'networkidle0' }); await esp(500);
+  // O operador de demonstração não tem unidades: o aviso de recebimentos não depende da unidade.
+  await oper.type('#fichaInicio', '1000'); await oper.type('#fichaFim', '1010');
+  await oper.click('#dinheiro'); await oper.type('#dinheiro', '0'); await oper.keyboard.press('Tab'); await esp(500);
+  const aviso10 = await oper.$eval('.resumo__fala pf-perdidinho-diz', (e) => e.textContent).catch(() => null);
+  ok('Operador: aviso inline sobre recebimentos zerados, acima de "Lançar Ficha"', !!aviso10 && aviso10.includes('Nenhum recebimento lançado para 10 carros'), String(aviso10));
+  const posicao = await oper.evaluate(() => {
+    const fala = document.querySelector('.resumo__fala'); const botao = [...document.querySelectorAll('.resumo__card button')].find((b) => b.textContent.includes('Lançar'));
+    return !!fala && !!botao && !!(fala.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  ok('O aviso vem antes do botão Lançar e não bloqueia', posicao);
+  ok('Sem erros de JavaScript (falas, operador)', oper.erros.length === 0, oper.erros.join(' | '));
 } catch (e) { r.push(`❌ ERRO NO ROTEIRO: ${e.message}`); }
 console.log(r.join('\n'));
 await b.close();

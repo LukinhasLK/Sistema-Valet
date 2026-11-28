@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Dica } from '../Dica';
 import { Icone } from '../Icone';
@@ -10,10 +10,13 @@ import { useInterface } from '../../nucleo/estado/interface';
 import { onboardingServico, useConvitePendente, useConviteVisivel, useOnboarding } from '../../nucleo/onboarding/estado';
 import { roteiroDo } from '../../nucleo/onboarding/roteiros';
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
+import { useMotorDeFalas } from '../../nucleo/servicos/falas';
+import { memoriaServico, useFalaAtiva } from '../../nucleo/servicos/falas-estado';
 import {
-  decidirAceno, humorDasPendencias, pendenciasServico, registrarAceno, silencioServico, TIPOS_PREJUIZO, usePendencias, usePresenca,
-  useSilenciado,
+  decidirAceno, humorDasPendencias, pendenciasServico, registrarAceno, resumir, silencioServico, TIPOS_PREJUIZO, usePendencias, usePresenca,
+  useSilenciado, type ItemPendencia,
 } from '../../nucleo/servicos/pendencias';
+import { BalaoCompanheiro } from './BalaoCompanheiro';
 import { PerdidinhoTardio } from './index';
 import { PainelAtencao } from './PainelAtencao';
 import { useAlvoDoOlhar, type ModoOlhar } from './useAlvoDoOlhar';
@@ -102,6 +105,21 @@ function Silhueta({ tamanho }: { tamanho: number }) {
   );
 }
 
+const ORDEM_NIVEL: Record<ItemPendencia['nivel'], number> = { URGENTE: 0, ATENCAO: 1, INFO: 2 };
+
+/** Faixa do celular: a fala do Perdidinho presa abaixo do cabeçalho (empurra o conteúdo, nunca flutua). Renderizada pelo LayoutApp. */
+export function FaixaDeFala() {
+  const ativa = useFalaAtiva((s) => s.ativa);
+  const navegar = useNavigate();
+  const parado = useReducedMotion() ?? false;
+  const aoFechar = useCallback(() => useFalaAtiva.setState({ ativa: null }), []);
+  if (!ativa) return null;
+  return (
+    <BalaoCompanheiro key={`${ativa.id}:${ativa.chave}`} variante="faixa" texto={ativa.texto} reduzirMovimento={parado}
+      acao={ativa.acao ? { rotulo: ativa.acao.rotulo, aoClicar: () => navegar(ativa.acao!.rota) } : undefined} aoFechar={aoFechar} />
+  );
+}
+
 interface Props {
   /** `lado`: companheiro fixo no canto inferior direito (desktop). `topo`: botão no topo do celular, entre busca e sino. */
   variante: 'lado' | 'topo';
@@ -116,7 +134,8 @@ interface Props {
 export function AjudantePerdidinho({ variante }: Props) {
   const { pathname } = useLocation();
   const usuario = useUsuario();
-  const { itens, resumo, carregadoEm, falhou } = usePendencias(pathname);
+  const { itens: itensServidor, carregadoEm, falhou } = usePendencias(pathname);
+  const navegar = useNavigate();
   const [aberto, setAberto] = useState(false);
   const [acenando, setAcenando] = useState(false);
   const [anuncio, setAnuncio] = useState('');
@@ -132,6 +151,16 @@ export function AjudantePerdidinho({ variante }: Props) {
   const paletaAberta = useInterface((s) => s.paletaAberta);
   const silenciado = useSilenciado();
   const campoFocado = useCampoFocado();
+  // Falas do Perdidinho (balão no desktop, faixa no celular): só em momento livre, uma por vez.
+  const bloqueadoParaFala = campoFocado || tourAtivo || conviteAberto || convitePendente || paletaAberta || aberto || comPresenca;
+  const { falas, itensAtencao } = useMotorDeFalas({ canal: lado ? 'balao' : 'faixa', pathname, bloqueado: bloqueadoParaFala });
+  const falaAtiva = useFalaAtiva((s) => s.ativa);
+  const itens = useMemo(
+    () => (itensAtencao.length ? [...itensServidor, ...itensAtencao].sort((a, b) => ORDEM_NIVEL[a.nivel] - ORDEM_NIVEL[b.nivel]) : itensServidor),
+    [itensServidor, itensAtencao],
+  );
+  const resumo = useMemo(() => resumir(itens), [itens]);
+  const aoFecharFala = useCallback(() => useFalaAtiva.setState({ ativa: null }), []);
   const dormindo = useAdormecido(resumo.nivel === 'nada' && !falhou);
   // O convite de primeiro acesso é anunciado por este próprio Perdidinho (ele acena), no desktop e no celular.
   const semOlhos = comPresenca || tourAtivo;
@@ -191,6 +220,7 @@ export function AjudantePerdidinho({ variante }: Props) {
     const novos = decidirAceno({ urgentes, silenciado, quieto });
     if (!novos.length) return;
     registrarAceno(novos);
+    memoriaServico.marcarAceno(usuario.id); // o aceno entra no intervalo de 15 min dos balões
     setAcenando(true);
     clearTimeout(timerAceno.current);
     timerAceno.current = setTimeout(() => setAcenando(false), ACENO_MS);
@@ -222,7 +252,7 @@ export function AjudantePerdidinho({ variante }: Props) {
 
   if (!usuario) return null;
 
-  const humor: HumorMascote = acenoConvite || acenando ? 'acenando' : resumo.nivel === 'nada' && !falhou && dormindo ? 'dormindo' : humorDasPendencias(resumo, falhou);
+  const humor: HumorMascote = acenoConvite || acenando ? 'acenando' : lado && falaAtiva ? falaAtiva.humor : resumo.nivel === 'nada' && !falhou && dormindo ? 'dormindo' : humorDasPendencias(resumo, falhou);
   const mostraNumero = resumo.contador > 0;
   const urgente = resumo.nivel === 'urgente';
   const temTour = roteiroDo(usuario.nivel).length > 0;
@@ -262,13 +292,19 @@ export function AjudantePerdidinho({ variante }: Props) {
           {!mostraNumero && resumo.nivel === 'info' && <span className="ajud__ponto" aria-hidden="true" />}
         </button>
       </Dica>
+      {/* Balão (desktop): logo depois do botão no DOM; a faixa do celular é renderizada pelo LayoutApp. */}
+      {lado && falaAtiva && (
+        <BalaoCompanheiro key={`${falaAtiva.id}:${falaAtiva.chave}`} variante="balao" texto={falaAtiva.texto} reduzirMovimento={parado}
+          acao={falaAtiva.acao ? { rotulo: falaAtiva.acao.rotulo, aoClicar: () => navegar(falaAtiva.acao!.rota) } : undefined}
+          aoFechar={aoFecharFala} />
+      )}
       {/* Região viva: só o aumento de urgentes é anunciado. */}
       <div className="ajud__anuncio" role="status" aria-live="polite" aria-atomic="true">{anuncio}</div>
       {createPortal(
         <AnimatePresence>
           {aberto && (
             <PainelAtencao key="painel" id={idPainel} variante={lado ? 'desktop' : 'folha'} itens={itens}
-              botao={botao} silenciado={silenciado} temTour={temTour} comPendencia={mostraNumero}
+              botao={botao} falas={falas.filter((f) => f.noPainel)} silenciado={silenciado} temTour={temTour} comPendencia={mostraNumero}
               aoFechar={fechar}
               aoSilenciar={() => { silencioServico.silenciar(usuario.id); fechar(true); }}
               aoVoltarAvisar={() => silencioServico.voltar(usuario.id)}

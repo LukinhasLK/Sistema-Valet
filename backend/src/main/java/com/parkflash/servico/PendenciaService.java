@@ -45,6 +45,7 @@ public class PendenciaService {
         if (nivel == NivelAcesso.PROPRIETARIO || nivel == NivelAcesso.GERENTE) {
             var acesso = AcessoUnidades.de(ator);
             adicionar(itens, "prontas", Nivel.ATENCAO, prontas(acesso), "/app/fichas?situacao=PRONTA&mes=0");
+            prontasAtrasadas(itens, acesso, hoje);
             adicionar(itens, "diariasAConferir", Nivel.ATENCAO, diariasAConferir(acesso, hoje), "/app/pagamentos-manobristas");
             adicionar(itens, "manobristasAPagar", Nivel.ATENCAO, manobristasAPagar(acesso), "/app/pagamentos-manobristas");
             adicionar(itens, "eventosHojeAmanha", Nivel.INFO, eventosHojeAmanha(acesso, hoje), "/app/eventos");
@@ -79,6 +80,36 @@ public class PendenciaService {
         var p = new HashMap<String, Object>();
         return contar("SELECT COUNT(*) FROM ficha f WHERE f.situacao = 'PRONTA'" + escopo(acesso, "f.unidade_id", p), p);
     }
+
+    /**
+     * Fichas PRONTA esperando há mais de 24 h: desde o último "ENVIAR" do histórico; sem histórico, vale o fim do dia da
+     * ficha (só conta se ela for anterior a ontem). Traz a data, a unidade e o id da que espera há mais tempo.
+     */
+    private void prontasAtrasadas(List<PendenciaDto> itens, AcessoUnidades acesso, LocalDate hoje) {
+        var p = new HashMap<String, Object>();
+        var fichas = jdbc.sql("""
+                SELECT f.id, f.data, u.nome AS unidade,
+                  (SELECT MAX(h.registrado_em) FROM ficha_historico h WHERE h.ficha_id = f.id AND h.acao = 'ENVIAR') AS enviada_em
+                FROM ficha f JOIN unidade u ON u.id = f.unidade_id
+                WHERE f.situacao = 'PRONTA'
+                """ + escopo(acesso, "f.unidade_id", p))
+                .params(p)
+                .query((rs, i) -> {
+                    var ts = rs.getObject("enviada_em", java.time.OffsetDateTime.class);
+                    LocalDate data = rs.getObject("data", LocalDate.class);
+                    java.time.Instant desde = ts != null ? ts.toInstant()
+                            : data.plusDays(1).atStartOfDay(PagamentoManobristaService.FUSO_NEGOCIO).toInstant();
+                    return new ProntaEspera(rs.getLong("id"), data, rs.getString("unidade"), desde);
+                }).list();
+        java.time.Instant limite = relogio.instant().minus(java.time.Duration.ofHours(24));
+        var atrasadas = fichas.stream().filter(f -> f.desde().isBefore(limite)).toList();
+        if (atrasadas.isEmpty()) return;
+        var maisAntiga = atrasadas.stream().min(Comparator.comparing(ProntaEspera::desde).thenComparing(ProntaEspera::id)).orElseThrow();
+        itens.add(PendenciaDto.prontasAtrasadas(atrasadas.size(), "/app/fichas?situacao=PRONTA&mes=0&ordem=antigas",
+                maisAntiga.data(), maisAntiga.unidade(), maisAntiga.id()));
+    }
+
+    private record ProntaEspera(long id, LocalDate data, String unidade, java.time.Instant desde) { }
 
     /** Mesma regra de GET /api/pagamentos-manobristas/conferencia (candidatos a diária ainda não reconhecidos). */
     private long diariasAConferir(AcessoUnidades acesso, LocalDate hoje) {

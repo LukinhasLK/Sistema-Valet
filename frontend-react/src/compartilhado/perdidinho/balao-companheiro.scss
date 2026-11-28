@@ -1,0 +1,208 @@
+/*
+ * BalaoCompanheiro: recado do Perdidinho.
+ * - balao (desktop): fixo acima do companheiro (52 px em right/bottom 16 px), cauda no centro do botão.
+ * - faixa (celular): no fluxo, abaixo do cabeçalho; empurra o conteúdo.
+ *
+ * Camadas (ver ajudante.scss): companheiro (50) < balão = painel do ajudante (55) < modal (100)
+ * < convite (800) < paleta (900) < tour (950) < toast (1000).
+ *
+ * Contraste: --pf-text sobre branco 14:1; sobre --pf-blue-soft ~13:1; ação --pf-blue-press sobre
+ * --pf-blue-soft ~8:1.
+ */
+pf-balao-companheiro {
+  /* Geometria do companheiro (ajudante.scss): canto 16 px, botão 52 px, folga 10 px. */
+  --balc-canto: 16px;
+  --balc-botao: 52px;
+  --balc-folga: 10px;
+  --balc-cauda: 10px;
+  --balc-fundo: var(--pf-surface, #fff);
+  --balc-borda: var(--pf-border, #e5e9ee);
+
+  display: block;
+  color: var(--pf-text, #10283f);
+
+  .balc__texto {
+    min-width: 0;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    text-wrap: pretty;
+    overflow-wrap: anywhere;
+  }
+
+  .balc__fechar {
+    display: grid;
+    place-items: center;
+    flex: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--pf-text-muted, #69737e);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color var(--pf-dur-fast, 140ms) ease, color var(--pf-dur-fast, 140ms) ease;
+    &:focus-visible { outline: none; box-shadow: var(--pf-focus, 0 0 0 3px rgba(24, 106, 157, .3)); }
+  }
+
+  /* ---------------------------------------------------------------- Balão (desktop) */
+  &[data-variante='balao'] {
+    position: fixed;
+    right: calc(var(--balc-canto) + env(safe-area-inset-right));
+    bottom: calc(var(--balc-canto) + var(--balc-botao) + var(--balc-folga) + env(safe-area-inset-bottom));
+    z-index: 55;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 2 * var(--balc-canto)));
+
+    .balc__cartao {
+      position: relative;
+      display: grid;
+      justify-items: start;
+      gap: 10px;
+      padding: 12px 40px 12px 14px;
+      border: 1px solid var(--balc-borda);
+      border-radius: 14px;
+      background: var(--balc-fundo);
+      box-shadow: var(--pf-shadow-lg, 0 4px 10px rgba(16, 40, 63, .06), 0 22px 48px rgba(16, 40, 63, .14));
+      visibility: hidden;
+      /* Origem na ponta da cauda: o balão "sai" do companheiro. */
+      transform-origin: calc(100% - var(--balc-botao) / 2) calc(100% + var(--balc-cauda) / 2);
+
+      /* Cauda apontando para o centro do botão (26 px da borda direita do balão = 42 px da tela). */
+      &::after {
+        content: '';
+        position: absolute;
+        right: calc(var(--balc-botao) / 2 - var(--balc-cauda) / 2);
+        bottom: calc(var(--balc-cauda) / -2 - 1px);
+        width: var(--balc-cauda);
+        height: var(--balc-cauda);
+        border: 1px solid var(--balc-borda);
+        border-top: 0;
+        border-left: 0;
+        border-bottom-right-radius: 3px;
+        background: var(--balc-fundo);
+        transform: rotate(45deg);
+      }
+    }
+    &[data-pronto] .balc__cartao { visibility: visible; }
+
+    .balc__fechar {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      @media (hover: hover) { &:hover { background: var(--pf-surface-hover, #eef3f7); color: var(--pf-text, #10283f); } }
+    }
+  }
+
+  /* Com diálogo modal aberto, some junto com o companheiro (ajudante.scss). */
+  body:has([aria-modal='true']) &[data-variante='balao'] { visibility: hidden; }
+
+  /* ---------------------------------------------------------------- Faixa (celular) */
+  &[data-variante='faixa'] {
+    position: relative;
+
+    /* Linha de grade 0fr → 1fr: a altura acompanha o conteúdo sem medir em JS. */
+    .balc__dobra { display: grid; grid-template-rows: 1fr; }
+
+    .balc__cartao {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 0;
+      overflow: hidden;
+      padding: 0 0 0 16px;
+      border-bottom: 1px solid rgba(24, 106, 157, .16);
+      background: var(--pf-blue-soft, #e8f3fa);
+      visibility: hidden;
+    }
+    &[data-pronto] .balc__cartao { visibility: visible; }
+
+    .balc__icone { display: grid; place-items: center; flex: none; margin-right: 6px; color: var(--pf-blue, #186a9d); }
+    .balc__texto {
+      flex: 1 1 auto;
+      padding: 8px 0;
+      /* Uma linha; se não couber, no máximo duas. */
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow: hidden;
+      line-height: 1.35;
+    }
+
+    .balc__acao {
+      flex: none;
+      min-height: 44px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--pf-blue-press, #104a6e);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      &:active { background: rgba(24, 106, 157, .1); }
+      &:focus-visible { outline: none; box-shadow: var(--pf-focus, 0 0 0 3px rgba(24, 106, 157, .3)); }
+    }
+
+    .balc__fechar {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      &:active { background: rgba(24, 106, 157, .1); }
+    }
+    /* A faixa recorta o conteúdo (overflow da dobra): anel de foco por dentro, para não ser cortado. */
+    .balc__acao:focus-visible, .balc__fechar:focus-visible { box-shadow: inset 0 0 0 2px var(--pf-blue, #186a9d); }
+  }
+
+  /* ---------------------------------------------------------------- Movimento */
+  @media (prefers-reduced-motion: no-preference) {
+    /* Balão: opacidade + 6 px + escala .96, nascendo da cauda (orienta: "veio do Perdidinho"). */
+    &[data-variante='balao']:not([data-parado])[data-pronto] .balc__cartao {
+      animation: balc-entra var(--pf-dur-base, 220ms) var(--pf-ease-out, cubic-bezier(.22, 1, .36, 1)) both;
+    }
+    &[data-variante='balao']:not([data-parado])[data-saindo] .balc__cartao {
+      animation: balc-sai 140ms cubic-bezier(.55, 0, 1, .45) both;
+    }
+
+    /* Faixa: abre a altura e acende (continuidade: o conteúdo desce, não pula). */
+    &[data-variante='faixa']:not([data-parado])[data-pronto] .balc__dobra {
+      animation: balc-abre var(--pf-dur-base, 220ms) var(--pf-ease-out, cubic-bezier(.22, 1, .36, 1)) both;
+    }
+    &[data-variante='faixa']:not([data-parado])[data-saindo] .balc__dobra {
+      animation: balc-recolhe 140ms cubic-bezier(.55, 0, 1, .45) both;
+    }
+  }
+
+  /* Reduzir movimento (sistema ou prop): só opacidade, 120 ms, nas duas variantes. */
+  &[data-pronto] .balc__dobra { @media (prefers-reduced-motion: reduce) { animation: balc-acende 120ms linear both; } }
+  &[data-parado][data-pronto] .balc__dobra { animation: balc-acende 120ms linear both; }
+  &[data-saindo] .balc__dobra { @media (prefers-reduced-motion: reduce) { animation: balc-apaga 120ms linear both; } }
+  &[data-parado][data-saindo] .balc__dobra { animation: balc-apaga 120ms linear both; }
+}
+
+@keyframes balc-entra {
+  from { opacity: 0; transform: translateY(6px) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes balc-sai {
+  to { opacity: 0; transform: translateY(4px) scale(.96); }
+}
+
+@keyframes balc-abre {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to { grid-template-rows: 1fr; opacity: 1; }
+}
+
+@keyframes balc-recolhe {
+  from { grid-template-rows: 1fr; opacity: 1; }
+  to { grid-template-rows: 0fr; opacity: 0; }
+}
+
+@keyframes balc-acende { from { opacity: 0; } to { opacity: 1; } }
+@keyframes balc-apaga { from { opacity: 1; } to { opacity: 0; } }

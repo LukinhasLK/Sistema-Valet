@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CalendarioAgenda } from './CalendarioAgenda';
+import { AgendaGoogleBotao } from '../../compartilhado/AgendaGoogle';
 import { CabecalhoPagina } from '../../compartilhado/CabecalhoPagina';
 import { dataHora, moeda } from '../../compartilhado/formatos';
 import { Icone } from '../../compartilhado/Icone';
@@ -229,6 +230,8 @@ export default function Agenda({ tipo = 'eventos' }: { tipo?: 'eventos' | 'escal
       <div className="pf-page">
         <CabecalhoPagina titulo={tipo === 'eventos' ? 'Eventos' : 'Escalas'}
           subtitulo={tipo === 'eventos' ? 'Planeje a operação e registre as condições do evento.' : 'Organize turnos e profissionais por unidade ou evento.'}>
+          {/* Eventos e Escalas só abrem para a gestão, a mesma regra do link da agenda (/api/agenda/link). */}
+          <AgendaGoogleBotao />
           {tipo === 'eventos'
             ? <button type="button" className="pf-btn pf-btn--primary" onClick={() => abrirEvento()}><Icone nome="plus" tamanho={17} /> Novo evento</button>
             : <button type="button" className="pf-btn pf-btn--primary" onClick={() => abrirEscala()}><Icone nome="plus" tamanho={17} /> Nova escala</button>}

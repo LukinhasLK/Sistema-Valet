@@ -5,6 +5,7 @@ import { podeAcessar } from '../servicos/permissoes';
 import { desligarPushDaSessao, liberarAparelhoDeOutroUsuario } from '../servicos/push-dispositivo';
 import { carregar, remover, salvar } from '../servicos/storage';
 import { onboardingServico } from '../onboarding/estado';
+import { memoriaServico } from '../servicos/falas-estado';
 import { descartarRascunhosDoUsuario } from '../servicos/rascunho-ficha';
 import { despesasServico } from './despesas';
 import { fichasServico } from './fichas';
@@ -127,7 +128,10 @@ function encerrarSessao(revogarPush: boolean): void {
   if (revogarPush) desligarPushDaSessao(usuario?.id, token);
   // Logout explícito apaga os rascunhos de ficha deste usuário (aparelho pode ser compartilhado).
   // Na sessão expirada eles ficam: é justamente o caso que o rascunho protege.
-  if (revogarPush && usuario) descartarRascunhosDoUsuario(usuario.id);
+  if (revogarPush && usuario) {
+    descartarRascunhosDoUsuario(usuario.id);
+    memoriaServico.esquecer(usuario.id); // "já falei" do Perdidinho
+  }
   remover(CHAVE_TOKEN);
   useAuth.setState({ token: null, usuario: null, semConexao: false });
   [unidadesServico, manobristasServico, sociosServico, fichasServico, despesasServico, usuariosServico].forEach((s) => s.limpar());

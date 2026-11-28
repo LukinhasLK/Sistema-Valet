@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { AcaoFicha, Despesa, Ficha, RegistroFicha } from '../modelos';
 import { api } from '../servicos/api';
 import { despesasDaFicha, round2 } from '../servicos/calc';
+import { falaEventos } from '../servicos/falas-estado';
 import { anoDe, diaDaSemana, DIAS_SEMANA, diaDe, Filtro, formatarData, hojeIso, mesDe, noPeriodo, Periodo } from '../servicos/periodo';
 
 const URL = '/fichas';
@@ -132,6 +133,7 @@ export const fichasServico = {
   },
   limpar() {
     useFichas.setState({ fichas: [] });
+    falaEventos.limparFichaLancada();
   },
   detalhe: (id: number) => api.get<Ficha>(`${URL}/${id}`),
   porId: (id: number) => atuais().find((f) => f.id === id),
@@ -147,6 +149,8 @@ export const fichasServico = {
   async adicionar(ficha: Omit<Ficha, 'id'>) {
     const nova = await api.post<Ficha>(URL, ficha);
     useFichas.setState(({ fichas }) => ({ fichas: [nova, ...fichas].sort(maisRecentePrimeiro) }));
+    // Fala 12: só ficha NOVA (edição não comemora); a lista de Fichas mostra o recado.
+    falaEventos.fichaLancada({ fichaId: nova.id, unidadeId: nova.unidadeId, carros: nova.totalCarros });
     return nova;
   },
   async atualizar(ficha: Ficha) {

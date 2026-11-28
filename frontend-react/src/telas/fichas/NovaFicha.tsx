@@ -6,6 +6,8 @@ import { dataHora, moeda } from '../../compartilhado/formatos';
 import { Icone } from '../../compartilhado/Icone';
 import { cpfValido, telefoneValido } from '../../compartilhado/mascara';
 import { Modal } from '../../compartilhado/Modal';
+import { reduzido } from '../../compartilhado/movimento';
+import { PerdidinhoDiz } from '../../compartilhado/perdidinho/PerdidinhoDiz';
 import { useFormulario } from '../../compartilhado/useFormulario';
 import { useNivel, useUsuario } from '../../nucleo/estado/auth';
 import { avisos } from '../../nucleo/estado/aviso';
@@ -17,6 +19,9 @@ import { Ficha, ModalidadeCusto, MODALIDADES_CUSTO, Turno } from '../../nucleo/m
 import {
   calcLiquidoCartao, calcSaldoFinal, calcTaxaDescontada, calcTotalBruto, calcTotalCarros, calcTotalDespesas, calcTotalDiarias,
 } from '../../nucleo/servicos/calc';
+import {
+  MotivoFicha, resumirMotivos, textoSaldo, textoSemForma, textoSemRecebimento, textoTicketAnterior, textoTicketMenor, ultimaFichaAntes,
+} from '../../nucleo/servicos/falas';
 import type { Forma, TipoPix } from '../../nucleo/servicos/pagamentos-manobristas';
 import { hojeIso } from '../../nucleo/servicos/periodo';
 import { descartarRascunho, lerRascunho, RascunhoFicha, salvarRascunho } from '../../nucleo/servicos/rascunho-ficha';
@@ -320,6 +325,77 @@ export default function NovaFicha() {
   /* ----------------------------------------------------------------- */
 
   const podeLancar = [0, 1, 2, 3].every(etapaValida);
+  const sequenciaInvalida = !!f.erros._form && (!!f.tocados.fichaFim || enviado);
+  const pixInvalido = !!f.tocados.valorPix && !!f.erros.valorPix;
+  const invalido = (nome: keyof CamposFicha) => !!f.erros[nome] && (!!f.tocados[nome] || enviado);
+
+  /* ----------------------------------------------------------------- */
+  /* Fala 10: o Perdidinho explica o motivo, inline, acima de "Lançar"  */
+  /* ----------------------------------------------------------------- */
+  const nomeUnidadeAtual = todasUnidades.find((u) => u.id === Number(v.unidadeId))?.nome;
+  const ultimaDaUnidade = useMemo(
+    () => (v.unidadeId && v.data ? ultimaFichaAntes(fichas, Number(v.unidadeId), v.data, v.turno ?? 'dia', emEdicao?.id) : null),
+    [fichas, v.unidadeId, v.data, v.turno, emEdicao],
+  );
+  const noResumoDoCelular = isMobile && etapa === 4;
+  const recebeuAlgo = (Number(v.valorDinheiro) || 0) + (Number(v.valorCartao) || 0) + (Number(v.valorPix) || 0) > 0;
+  const tocouRecebimento = !!(f.tocados.valorDinheiro || f.tocados.valorCartao || f.tocados.valorPix);
+  const falaListaBloqueios: (MotivoFicha & { exibido: boolean })[] = [];
+  const bloqueio = (texto: string, campo: string, etapaDoCampo: number, exibidoNoCampo: boolean) =>
+    falaListaBloqueios.push({ texto, campo, etapa: etapaDoCampo, bloqueia: true, exibido: exibidoNoCampo && (!isMobile || etapa === etapaDoCampo) });
+  if (f.erros.unidadeId) bloqueio('Falta escolher a unidade.', '#unidade', 0, invalido('unidadeId'));
+  if (f.erros.data) bloqueio('Falta a data.', '#data', 0, invalido('data'));
+  if (erroDuplicada) bloqueio('Já existe uma ficha desta unidade para esta data e turno.', '#unidade', 0, true);
+  if (f.erros.fichaInicio) bloqueio('Falta o ticket inicial.', '[name="fichaInicio"]', 1, invalido('fichaInicio'));
+  if (f.erros.fichaFim) bloqueio('Falta o ticket final.', '[name="fichaFim"]', 1, invalido('fichaFim'));
+  if (f.erros._form && !f.erros.fichaFim) {
+    bloqueio(textoTicketMenor(Number(v.fichaInicio ?? 0), Number(v.fichaFim ?? 0)), '[name="fichaFim"]', 1, sequenciaInvalida);
+  }
+  if (f.erros.fichasCanceladas) bloqueio('Confira o número de fichas canceladas.', '[name="fichasCanceladas"]', 1, invalido('fichasCanceladas'));
+  equipe.forEach((linha) => {
+    const exibido = linha.tocada || enviado;
+    const alvo = `[data-linha="${linha.chave}"] `;
+    const nome = manobristasDisponiveis.find((m) => m.id === linha.manobristaId)?.nome;
+    if (linha.manobristaId === null) bloqueio('Falta escolher o manobrista.', `${alvo}:is(button, select, input)`, 2, exibido);
+    else if (linha.diaria === null || linha.diaria < 0) bloqueio(`Informe o custo de ${nome ?? 'um manobrista'}.`, `${alvo}input[type="number"]`, 2, false);
+    else if (!emEdicao && linha.diaria > 0 && !linha.pagamento) bloqueio(textoSemForma(nome ?? 'um manobrista'), `${alvo}.linha__pagamento :is(button, select)`, 2, exibido);
+  });
+  if (manobristaRepetido) bloqueio('O mesmo manobrista foi escolhido mais de uma vez.', '.linha--equipe :is(button, select)', 2, true);
+  (['valorDinheiro', 'valorCartao', 'valorPix', 'valorInicialCaixa', 'valorFinalCaixa', 'taxaMaquininha', 'observacoes'] as (keyof CamposFicha)[])
+    .filter((c) => f.erros[c]).slice(0, 1)
+    .forEach((c) => bloqueio('Há um valor inválido em Recebimentos.', `[name="${String(c)}"]`, 3, c === 'valorPix' ? pixInvalido : invalido(c)));
+  if (despesas.some((d) => !linhaDespesaValida(d))) bloqueio('Complete a descrição e o valor de cada despesa.', '.linha--despesa input', 3, false);
+
+  const avisosFala: MotivoFicha[] = [];
+  const mostrarAvisosDeValor = tocouRecebimento || enviado || noResumoDoCelular;
+  if (mostrarAvisosDeValor && totalCarros > 0 && !recebeuAlgo) {
+    avisosFala.push({ texto: textoSemRecebimento(totalCarros), campo: '[name="valorDinheiro"]', etapa: 3, bloqueia: false });
+  }
+  if (mostrarAvisosDeValor && saldoFinal < 0) {
+    avisosFala.push({ texto: textoSaldo(saldoFinal), campo: '[name="valorDinheiro"]', etapa: 3, bloqueia: false, anunciar: false });
+  }
+  if (f.tocados.fichaInicio && !f.erros.fichaInicio && ultimaDaUnidade && nomeUnidadeAtual && v.fichaInicio !== null && ultimaDaUnidade.fichaFim !== v.fichaInicio) {
+    avisosFala.push({ texto: textoTicketAnterior(nomeUnidadeAtual, ultimaDaUnidade.fichaFim), campo: '[name="fichaInicio"]', etapa: 1, bloqueia: false });
+  }
+  // Bloqueios: depois de tentar lançar (no lugar da linha genérica) ou na etapa Resumo do celular, só os que o campo não mostra.
+  const bloqueiaAgora = !podeLancar || erroDuplicada;
+  const motivosFala: MotivoFicha[] = [
+    ...(bloqueiaAgora && (enviado || noResumoDoCelular) ? falaListaBloqueios.filter((b) => enviado || !b.exibido) : []),
+    ...avisosFala,
+  ];
+  const falaFicha = resumirMotivos(motivosFala);
+  const [focoPedido, setFocoPedido] = useState<{ seletor: string; n: number } | null>(null);
+  const irParaCampo = (m: MotivoFicha) => {
+    if (m.etapa !== undefined && isMobile) setEtapa(m.etapa);
+    if (m.campo) setFocoPedido((atual) => ({ seletor: m.campo!, n: (atual?.n ?? 0) + 1 }));
+  };
+  // Depois que a etapa certa aparece, leva o foco ao campo (só por pedido da pessoa, nunca sozinho).
+  useEffect(() => {
+    if (!focoPedido) return;
+    const alvo = pagina.current?.querySelector<HTMLElement>(focoPedido.seletor);
+    alvo?.scrollIntoView({ block: 'center', behavior: reduzido() ? 'auto' : 'smooth' });
+    alvo?.focus({ preventScroll: true });
+  }, [focoPedido, etapa]);
 
   // Depois de marcar os erros: rola até o primeiro e foca o campo.
   useEffect(() => {
@@ -377,14 +453,12 @@ export default function NovaFicha() {
     }
     if (usuarioId !== undefined) descartarRascunho(usuarioId, fichaIdRascunho);
     setPodeGravar(false);
-    avisos.sucesso(emEdicao ? 'Ficha atualizada.' : 'Ficha lançada.');
+    // Operador: o recado do Perdidinho no topo de Fichas (fala 12) substitui o aviso.
+    if (emEdicao || nivel !== 'Operador') avisos.sucesso(emEdicao ? 'Ficha atualizada.' : 'Ficha lançada.');
     navegar('/app/fichas');
   }
 
-  const invalido = (nome: keyof CamposFicha) => !!f.erros[nome] && (!!f.tocados[nome] || enviado);
   const classe = (nome: keyof CamposFicha, base = 'pf-input') => (invalido(nome) ? `${base} ng-invalid ng-touched` : base);
-  const sequenciaInvalida = !!f.erros._form && (!!f.tocados.fichaFim || enviado);
-  const pixInvalido = !!f.tocados.valorPix && !!f.erros.valorPix;
 
   /** Campo numérico ligado ao formulário principal. */
   const numero = (nome: keyof CamposFicha) => ({ ...f.numero(nome), className: classe(nome) });
@@ -537,7 +611,7 @@ export default function NovaFicha() {
                   const mostrarErros = linha.tocada || enviado;
                   const tocar = () => alterarLinha(linha.chave, { tocada: true });
                   return (
-                    <div key={linha.chave} className="linha linha--equipe" onBlur={tocar}>
+                    <div key={linha.chave} className="linha linha--equipe" data-linha={linha.chave} onBlur={tocar}>
                       <div className="pf-field linha__principal">
                         <span className="pf-label">Manobrista</span>
                         <CampoSelecao className={`pf-select${mostrarErros && linha.manobristaId === null ? ' ng-invalid ng-touched' : ''}`}
@@ -720,12 +794,19 @@ export default function NovaFicha() {
                   <strong className={saldoFinal < 0 ? 'pf-money--neg' : 'pf-money--pos'}>{moeda(saldoFinal)}</strong>
                 </div>
 
+                {falaFicha && (
+                  <div className="resumo__fala">
+                    <PerdidinhoDiz humor={falaFicha.primeiro.bloqueia ? 'pensando' : 'explicando'} tamanho={40} lado="esquerda"
+                      reduzirMovimento={reduzido()} anunciar={falaFicha.primeiro.anunciar !== false} texto={falaFicha.texto}
+                      acao={falaFicha.primeiro.campo ? { rotulo: 'Ir para o campo', aoClicar: () => irParaCampo(falaFicha.primeiro) } : undefined} />
+                  </div>
+                )}
+
                 {!isMobile && (
                   <>
                     <button type="submit" className="pf-btn pf-btn--primary pf-btn--block resumo__acao" disabled={salvando}>
                       {emEdicao ? 'Salvar alterações' : 'Lançar Ficha'}
                     </button>
-                    {enviado && (!podeLancar || erroDuplicada) && <p className="pf-error resumo__erro">Revise os campos destacados antes de lançar.</p>}
                   </>
                 )}
               </div>

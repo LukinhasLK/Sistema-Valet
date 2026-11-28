@@ -4,6 +4,7 @@ import { motion, useDragControls, useReducedMotion } from 'motion/react';
 import { Icone } from '../Icone';
 import { TRANSICAO, DURACAO, CURVA } from '../movimento';
 import { usePrenderFoco } from '../usePrenderFoco';
+import type { Fala } from '../../nucleo/servicos/falas-estado';
 import type { ItemPendencia, NivelPendencia } from '../../nucleo/servicos/pendencias';
 import './painel-atencao.scss';
 
@@ -20,6 +21,8 @@ interface Props {
   /** `desktop`: painel solto acima do companheiro, à direita (não modal). `folha`: folha inferior do celular (padrão do "Mais"). */
   variante: 'desktop' | 'folha';
   itens: ItemPendencia[];
+  /** Histórico do dia: o que o Perdidinho disse (ou diria no balão) e ainda vale hoje. */
+  falas?: Fala[];
   /** Botão que abre: cliques nele não contam como "fora" e o foco volta para ele no Esc. */
   botao: RefObject<HTMLElement>;
   silenciado: boolean;
@@ -33,8 +36,8 @@ interface Props {
   aoReverTour: () => void;
 }
 
-function Conteudo({ itens, tituloId, titulo, silenciado, temTour, comPendencia, aoFechar, aoNavegar, aoSilenciar, aoVoltarAvisar, aoReverTour, comFechar }: {
-  itens: ItemPendencia[]; tituloId: string; titulo: RefObject<HTMLHeadingElement>; silenciado: boolean; temTour: boolean; comPendencia: boolean; comFechar: boolean;
+function Conteudo({ itens, falas, tituloId, titulo, silenciado, temTour, comPendencia, aoFechar, aoNavegar, aoSilenciar, aoVoltarAvisar, aoReverTour, comFechar }: {
+  itens: ItemPendencia[]; falas: Fala[]; tituloId: string; titulo: RefObject<HTMLHeadingElement>; silenciado: boolean; temTour: boolean; comPendencia: boolean; comFechar: boolean;
   aoFechar: (devolverFoco?: boolean) => void; aoNavegar: () => void; aoSilenciar: () => void; aoVoltarAvisar: () => void; aoReverTour: () => void;
 }) {
   return (
@@ -48,7 +51,7 @@ function Conteudo({ itens, tituloId, titulo, silenciado, temTour, comPendencia, 
         )}
       </header>
 
-      {itens.length === 0 ? (
+      {itens.length === 0 && falas.length === 0 ? (
         <p className="painel__vazio">{TEXTO_EM_DIA}</p>
       ) : (
         GRUPOS.map(({ nivel, titulo: nome }) => {
@@ -80,6 +83,26 @@ function Conteudo({ itens, tituloId, titulo, silenciado, temTour, comPendencia, 
             </section>
           );
         })
+      )}
+
+      {falas.length > 0 && (
+        <section className="painel__grupo painel__disse" aria-labelledby={`${tituloId}-disse`}>
+          <h3 id={`${tituloId}-disse`} className="painel__grupo-titulo">Hoje o Perdidinho disse</h3>
+          <ul className="painel__lista">
+            {falas.map((fala) => (
+              <li key={fala.id} data-fala={fala.numero}>
+                {fala.acao ? (
+                  <Link className="painel__item" to={fala.acao.rota} onClick={aoNavegar}>
+                    <span className="painel__texto">{fala.texto}<small className="painel__origem">{fala.acao.rotulo}</small></span>
+                    <Icone nome="seta" tamanho={15} />
+                  </Link>
+                ) : (
+                  <div className="painel__item painel__item--so-info"><span className="painel__texto">{fala.texto}</span></div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <footer className="painel__rodape">
@@ -139,7 +162,7 @@ export function PainelAtencao(props: Props) {
   }, [aoFechar, botao, folha]);
 
   const conteudo = (
-    <Conteudo itens={props.itens} tituloId={tituloId} titulo={titulo} silenciado={props.silenciado} temTour={props.temTour} comPendencia={props.comPendencia}
+    <Conteudo itens={props.itens} falas={props.falas ?? []} tituloId={tituloId} titulo={titulo} silenciado={props.silenciado} temTour={props.temTour} comPendencia={props.comPendencia}
       comFechar={!folha} aoFechar={aoFechar} aoNavegar={() => aoFechar(false)}
       aoSilenciar={props.aoSilenciar} aoVoltarAvisar={props.aoVoltarAvisar} aoReverTour={props.aoReverTour} />
   );

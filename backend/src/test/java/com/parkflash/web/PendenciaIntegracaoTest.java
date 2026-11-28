@@ -68,6 +68,27 @@ class PendenciaIntegracaoTest {
                 """).param("data", hoje()).param("unidade", unidade).param("turno", turno).param("situacao", situacao).update();
     }
 
+    private long fichaEm(LocalDate data, long unidade, String turno, String situacao) {
+        jdbc.sql("""
+                INSERT INTO ficha (data, unidade_id, turno, ficha_inicio, ficha_fim, fichas_canceladas, total_carros,
+                    valor_dinheiro, valor_cartao, taxa_maquininha, total_bruto, total_liquido, situacao)
+                VALUES (:data, :unidade, :turno, 1, 2, 0, 1, 10, 0, 0, 10, 10, :situacao)
+                """).param("data", data).param("unidade", unidade).param("turno", turno).param("situacao", situacao).update();
+        return jdbc.sql("SELECT MAX(id) FROM ficha").query(Long.class).single();
+    }
+
+    private void enviadaEm(long ficha, long unidade, java.time.OffsetDateTime quando) {
+        jdbc.sql("""
+                INSERT INTO ficha_historico (ficha_id, ator_id, unidade_id, acao, registrado_em)
+                VALUES (:ficha, 1, :unidade, 'ENVIAR', :quando)
+                """).param("ficha", ficha).param("unidade", unidade).param("quando", quando).update();
+    }
+
+    private static JsonNode item(JsonNode lista, String tipo) {
+        for (JsonNode p : lista) if (p.get("tipo").asText().equals(tipo)) return p;
+        return null;
+    }
+
     private void evento(long unidade, String nome, LocalDate dia, String situacao) {
         jdbc.sql("""
                 INSERT INTO evento (unidade_id, nome, contratante, local, inicio, fim, veiculos_previstos, capacidade,
@@ -171,5 +192,52 @@ class PendenciaIntegracaoTest {
             assertThat(p.get("nivel").asText()).isEqualTo("INFO");
             assertThat(p.get("rota").asText()).isEqualTo("/app/sociedade");
         }
+    }
+
+    @Test
+    void prontasAtrasadasContaSoQuemEsperaMaisDe24hEIdentificaAMaisAntiga() throws Exception {
+        String dono = login(PROPRIETARIO);
+        JsonNode antes = ler("/api/pendencias", dono);
+        long base = qtd(antes, "prontasAtrasadas");
+        var agora = java.time.OffsetDateTime.now();
+        long recente = fichaEm(hoje(), 1, "za1", "PRONTA");           // enviada há 2 h: não conta
+        enviadaEm(recente, 1, agora.minusHours(2));
+        long velha = fichaEm(hoje().minusDays(5), 1, "za2", "PRONTA"); // enviada há 3 dias
+        enviadaEm(velha, 1, agora.minusDays(3));
+        long maisVelha = fichaEm(hoje().minusDays(9), 2, "za3", "PRONTA"); // enviada há 6 dias
+        enviadaEm(maisVelha, 2, agora.minusDays(6));
+        long semHistorico = fichaEm(hoje().minusDays(4), 2, "za4", "PRONTA"); // sem histórico: vale a data (anterior a ontem)
+        long ontemSemHistorico = fichaEm(hoje().minusDays(1), 2, "za5", "PRONTA"); // sem histórico, de ontem: não conta
+        long fechada = fichaEm(hoje().minusDays(8), 1, "za6", "FECHADA"); // não é PRONTA
+        enviadaEm(fechada, 1, agora.minusDays(7));
+
+        JsonNode depois = ler("/api/pendencias", dono);
+        assertThat(qtd(depois, "prontasAtrasadas") - base).isEqualTo(3);
+        JsonNode i = item(depois, "prontasAtrasadas");
+        assertThat(i.get("nivel").asText()).isEqualTo("ATENCAO");
+        assertThat(i.get("rota").asText()).isEqualTo("/app/fichas?situacao=PRONTA&mes=0&ordem=antigas");
+        if (base == 0) { // sem outra ficha mais velha nos dados de demonstração
+            assertThat(i.get("maisAntigaId").asLong()).isEqualTo(maisVelha);
+            assertThat(i.get("maisAntigaData").asText()).isEqualTo(hoje().minusDays(9).toString());
+            assertThat(i.get("maisAntigaUnidade").asText()).isNotBlank();
+        }
+        assertThat(semHistorico).isNotEqualTo(ontemSemHistorico);
+        // os demais tipos não trazem os campos extras
+        JsonNode prontas = item(depois, "prontas");
+        assertThat(prontas.has("maisAntigaId")).isFalse();
+    }
+
+    @Test
+    void prontasAtrasadasRespeitaAsUnidadesDoGerenteEOperadorNaoVe() throws Exception {
+        usuarios.findById(2L).orElseThrow().definirUnidades(Set.of(1L));
+        usuarios.flush();
+        String gerente = login(GERENTE);
+        long antes = qtd(ler("/api/pendencias", gerente), "prontasAtrasadas");
+        var agora = java.time.OffsetDateTime.now();
+        enviadaEm(fichaEm(hoje().minusDays(7), 2, "zb1", "PRONTA"), 2, agora.minusDays(5)); // outra unidade
+        assertThat(qtd(ler("/api/pendencias", gerente), "prontasAtrasadas") - antes).isZero();
+        enviadaEm(fichaEm(hoje().minusDays(7), 1, "zb2", "PRONTA"), 1, agora.minusDays(5));
+        assertThat(qtd(ler("/api/pendencias", gerente), "prontasAtrasadas") - antes).isEqualTo(1);
+        assertThat(ler("/api/pendencias", login(OPERADOR))).isEmpty();
     }
 }

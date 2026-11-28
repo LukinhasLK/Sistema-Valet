@@ -24,6 +24,10 @@ export interface PendenciaServidor {
   nivel: NivelPendencia;
   quantidade: number;
   rota: string;
+  /** Só em `prontasAtrasadas`: a ficha PRONTA que espera há mais tempo. */
+  maisAntigaData?: string;
+  maisAntigaUnidade?: string;
+  maisAntigaId?: number;
 }
 
 /** Pendência pronta para exibir. `rota` nula = só informa (ex.: sem conexão). */
@@ -82,7 +86,8 @@ interface Entrada {
 
 /** Junta o que veio do servidor com o que é local, ordenado por urgência. */
 export function montarItens({ servidor, rascunhos, semConexao, rotaAtual, doPainel = [] }: Entrada): ItemPendencia[] {
-  const itens: ItemPendencia[] = servidor.filter((p) => p.quantidade > 0).map((p) => ({
+  // `prontasAtrasadas` alimenta a fala 6 do Perdidinho; a ficha já conta em "esperando conferência" (sem item duplicado).
+  const itens: ItemPendencia[] = servidor.filter((p) => p.quantidade > 0 && p.tipo !== 'prontasAtrasadas').map((p) => ({
     id: p.id, tipo: p.tipo, nivel: p.nivel, quantidade: p.quantidade, rota: p.rota, texto: textoDaPendencia(p.tipo, p.quantidade, p.nivel),
   }));
   // Rateio inválido do painel só entra se o servidor não trouxe "unidades sem rateio" (sem duplicar).

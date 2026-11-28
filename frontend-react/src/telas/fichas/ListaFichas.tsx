@@ -24,6 +24,7 @@ import { nomeManobrista, useManobristas } from '../../nucleo/estado/manobristas'
 import { nomeUnidade, useUnidades } from '../../nucleo/estado/unidades';
 import { AcaoFicha, Ficha, MODALIDADES_CUSTO, RegistroFicha, SituacaoFicha } from '../../nucleo/modelos';
 import { calcLiquidoCartao, calcTaxaDescontada, calcTotalDespesas, calcTotalDiarias } from '../../nucleo/servicos/calc';
+import { falaEventos, useFalaEvento } from '../../nucleo/servicos/falas-estado';
 import { notificacoesServico } from '../../nucleo/servicos/notificacoes';
 import { MESES, TODAS_UNIDADES } from '../../nucleo/servicos/periodo';
 import { podeAcessar } from '../../nucleo/servicos/permissoes';
@@ -99,15 +100,18 @@ export default function ListaFichas() {
     manobristaId: { padrao: null as number | null, ler: lerFiltro.idOuNulo },
     situacao: { padrao: 'TODAS' as SituacaoFicha | 'TODAS', ler: lerFiltro.opcao(SITUACOES) },
     agrupar: { padrao: 'situacao' as ModoAgrupar, ler: lerFiltro.opcao(MODOS_AGRUPAR) },
+    /** `antigas`: a mais antiga primeiro (link da fala do Perdidinho sobre fichas esperando conferência). */
+    ordem: { padrao: 'recentes' as 'recentes' | 'antigas', ler: lerFiltro.opcao(['recentes', 'antigas'] as const) },
   });
-  const { busca, mes, ano, unidadeId, manobristaId, situacao, agrupar } = filtros.valores;
-  const filtrosAtivos = filtros.ativos - (agrupar !== 'situacao' ? 1 : 0);
+  const { busca, mes, ano, unidadeId, manobristaId, situacao, agrupar, ordem } = filtros.valores;
+  const filtrosAtivos = filtros.ativos - (agrupar !== 'situacao' ? 1 : 0) - (ordem !== 'recentes' ? 1 : 0);
 
   const fichas = useMemo(
     () => filtrarFichas(todas, { mes, ano, unidadeId, busca }, (id) => nomeUnidade(unidades, id))
       .filter((ficha) => manobristaId === null || ficha.manobristas.some((linha) => linha.manobristaId === manobristaId))
-      .filter((ficha) => situacao === 'TODAS' || situacaoDe(ficha) === situacao),
-    [todas, mes, ano, unidadeId, busca, unidades, manobristaId, situacao],
+      .filter((ficha) => situacao === 'TODAS' || situacaoDe(ficha) === situacao)
+      .sort((a, b) => (ordem === 'antigas' ? a.data.localeCompare(b.data) || a.id - b.id : 0)),
+    [todas, mes, ano, unidadeId, busca, unidades, manobristaId, situacao, ordem],
   );
   const grupos = useMemo(() => agruparFichas(fichas, agrupar), [fichas, agrupar]);
   const ordenadas = useMemo(() => grupos.flatMap((g) => g.fichas), [grupos]);
@@ -153,6 +157,15 @@ export default function ListaFichas() {
   const seloSituacao = useRef<HTMLDivElement>(null);
   const lista = useRef<HTMLDivElement>(null);
   const [pedidoFoco, setPedidoFoco] = useState(0);
+
+  // Fala 12: ficha nova lançada (vale por 10 min; fechável).
+  const lancada = useFalaEvento((s) => s.fichaLancada);
+  const recado = useMemo(() => {
+    if (!lancada || Date.now() - lancada.em > 10 * 60_000) return null;
+    const unidade = unidades.find((u) => u.id === lancada.unidadeId)?.nome;
+    if (!unidade) return null;
+    return `Ficha de ${unidade} lançada: ${lancada.carros} ${lancada.carros === 1 ? 'carro' : 'carros'}. Bom trabalho!`;
+  }, [lancada, unidades]);
 
   // Leva o foco à etapa aberta (ou às ações) depois que ela aparece na tela.
   useEffect(() => {
@@ -402,9 +415,14 @@ export default function ListaFichas() {
 
         <DicaContextual id="fichas" />
 
+        {recado && (
+          <PerdidinhoDiz humor="feliz" tamanho={48} reduzirMovimento={reduzido()}
+            texto={recado} aoFechar={falaEventos.limparFichaLancada} />
+        )}
+
         <div data-tour="filtros-fichas">
           <BarraFiltros busca={busca} aoBuscar={(texto) => filtros.definir({ busca: texto })} placeholder="Buscar unidade ou data…"
-            ativos={filtrosAtivos} aoLimpar={() => filtros.definir({ busca: '', mes: referencia.mes, ano: referencia.ano, unidadeId: TODAS_UNIDADES, manobristaId: null, situacao: 'TODAS' })}
+            ativos={filtrosAtivos} aoLimpar={() => filtros.definir({ busca: '', mes: referencia.mes, ano: referencia.ano, unidadeId: TODAS_UNIDADES, manobristaId: null, situacao: 'TODAS', ordem: 'recentes' })}
             resultado={textoResultado}>
             <FiltroPilula rotulo="Mês" icone="eventos" valor={mes} padrao={referencia.mes} opcoes={opcoesMes} aoMudar={(v) => filtros.definir({ mes: v })} />
             <FiltroPilula rotulo="Ano" valor={ano} padrao={referencia.ano} opcoes={anos.map((a) => ({ valor: a, rotulo: String(a) }))} aoMudar={(v) => filtros.definir({ ano: v })} />

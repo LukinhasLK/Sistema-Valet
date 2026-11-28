@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Confirmar } from '../../compartilhado/Confirmar';
-import { dataHora } from '../../compartilhado/formatos';
-import { Icone } from '../../compartilhado/Icone';
-import { avisos } from '../../nucleo/estado/aviso';
-import { calendarioServico, GOOGLE_ADICIONAR_POR_URL, LinkAgenda, urlDoLink } from '../../nucleo/servicos/calendario';
+import { Confirmar } from './Confirmar';
+import { dataHora } from './formatos';
+import { Icone } from './Icone';
+import { avisos } from '../nucleo/estado/aviso';
+import { Modal } from './Modal';
+import './agenda-google.scss';
+import { calendarioServico, GOOGLE_ADICIONAR_POR_URL, LinkAgenda, urlDoLink } from '../nucleo/servicos/calendario';
 
 type Pendente = 'gerar' | 'desativar' | null;
 
+const TEXTO = 'Assine a agenda do Park Flash no Google Calendar e veja eventos e escalas no celular. As mudanças feitas aqui aparecem lá sozinhas, em algumas horas.';
+
 /**
- * Cartão do Perfil para ligar a agenda do Park Flash ao Google Calendar.
+ * Ligação da agenda do Park Flash ao Google Calendar (o link .ics inclui eventos e escalas).
+ * `cartao` é o cartão do Perfil; `painel` é só o conteúdo, para uso dentro de um diálogo.
  * O link completo só existe no momento em que é gerado (o servidor guarda apenas o hash).
  */
-export function AgendaGoogle() {
+export function AgendaGoogle({ variante = 'cartao' }: { variante?: 'cartao' | 'painel' }) {
   const [situacao, setSituacao] = useState<LinkAgenda | null>(null);
   const [novoLink, setNovoLink] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -66,12 +71,14 @@ export function AgendaGoogle() {
 
   const ativo = situacao?.ativo ?? false;
 
+  const Raiz = variante === 'cartao' ? 'section' : 'div';
   return (
-    <section className="pf-card perfil__card perfil__agenda" aria-labelledby="perfil-agenda" aria-busy={situacao === null}>
-      <span className="perfil__tour-icone"><Icone nome="eventos" tamanho={20} /></span>
+    <Raiz className={variante === 'cartao' ? 'pf-card perfil__card perfil__agenda' : 'perfil__agenda perfil__agenda--painel'}
+      aria-labelledby={variante === 'cartao' ? 'perfil-agenda' : undefined} aria-busy={situacao === null}>
+      {variante === 'cartao' && <span className="perfil__tour-icone"><Icone nome="eventos" tamanho={20} /></span>}
       <div className="perfil__tour-texto">
-        <h2 id="perfil-agenda" className="perfil__titulo">Google Calendar</h2>
-        <p>Veja os eventos e as escalas das suas unidades no Google Calendar, no celular ou no computador. As mudanças feitas aqui aparecem lá sozinhas, em algumas horas.</p>
+        {variante === 'cartao' && <h2 id="perfil-agenda" className="perfil__titulo">Google Calendar</h2>}
+        <p>{TEXTO}</p>
 
         {novoLink ? (
           <div className="perfil__agenda-link">
@@ -127,6 +134,24 @@ export function AgendaGoogle() {
           mensagem="O Google Calendar deixa de receber os eventos e as escalas. Você pode gerar um link novo quando quiser."
           aoConfirmar={desativar} aoCancelar={() => setConfirmar(null)} />
       )}
-    </section>
+    </Raiz>
+  );
+}
+
+/** Botão para os cabeçalhos de Eventos e Escalas: abre o mesmo conteúdo do cartão do Perfil num diálogo. */
+export function AgendaGoogleBotao() {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <button type="button" className="pf-btn pf-btn--ghost" onClick={() => setAberto(true)}>
+        <Icone nome="eventos" tamanho={17} />
+        Google Calendar
+      </button>
+      {aberto && (
+        <Modal titulo="Google Calendar" aoFechar={() => setAberto(false)}>
+          <AgendaGoogle variante="painel" />
+        </Modal>
+      )}
+    </>
   );
 }

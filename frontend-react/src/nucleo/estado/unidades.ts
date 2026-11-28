@@ -28,5 +28,9 @@ export const unidadesServico = {
   async desativar(id: number) {
     await api.delete(`${URL}/${id}`);
     useUnidades.setState(({ unidades }) => ({ unidades: unidades.map((u) => (u.id === id ? { ...u, ativa: false } : u)) }));
+  },  /** Exclusão definitiva: o servidor recusa (409) se a unidade tiver qualquer registro ligado. */
+  async excluir(id: number) {
+    await api.delete(`${URL}/${id}/definitivo`);
+    useUnidades.setState(({ unidades }) => ({ unidades: unidades.filter((u) => u.id !== id) }));
   },
 };

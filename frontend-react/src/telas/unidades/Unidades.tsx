@@ -6,6 +6,7 @@ import { Icone } from '../../compartilhado/Icone';
 import { telefoneValido } from '../../compartilhado/mascara';
 import { Modal } from '../../compartilhado/Modal';
 import { useFormulario } from '../../compartilhado/useFormulario';
+import { mensagemDeErro } from '../../nucleo/servicos/api';
 import { avisos } from '../../nucleo/estado/aviso';
 import { useIsMobile } from '../../nucleo/estado/layout';
 import { unidadesServico, useUnidades } from '../../nucleo/estado/unidades';
@@ -19,6 +20,8 @@ export default function Unidades() {
   const [formAberto, setFormAberto] = useState(false);
   const [editando, setEditando] = useState<Unidade | null>(null);
   const [paraDesativar, setParaDesativar] = useState<Unidade | null>(null);
+  const [paraExcluir, setParaExcluir] = useState<Unidade | null>(null);
+  const [recusada, setRecusada] = useState<{ unidade: Unidade; mensagem: string } | null>(null);
   const f = useFormulario({ nome: '', endereco: '', telefone: '', ativa: true }, (v) => ({
     nome: !v.nome,
     endereco: !v.endereco,
@@ -58,6 +61,30 @@ export default function Unidades() {
     }
   }
 
+  async function confirmarExclusao() {
+    const unidade = paraExcluir;
+    setParaExcluir(null);
+    if (!unidade) return;
+    try {
+      await unidadesServico.excluir(unidade.id);
+      avisos.sucesso('Unidade excluída.');
+    } catch (erro) {
+      setRecusada({ unidade, mensagem: mensagemDeErro(erro, 'Não foi possível excluir a unidade.') });
+    }
+  }
+
+  async function desativarRecusada() {
+    const unidade = recusada?.unidade;
+    setRecusada(null);
+    if (!unidade) return;
+    try {
+      await unidadesServico.desativar(unidade.id);
+      avisos.sucesso('Unidade desativada.');
+    } catch (erro) {
+      avisos.erro(erro);
+    }
+  }
+
   return (
     <pf-unidades>
       <div className="pf-page">
@@ -82,9 +109,12 @@ export default function Unidades() {
                   {u.telefone && <p className="card-unidade__tel">{u.telefone}</p>}
                   <HistoricoAdministrativo tipo="unidades" id={u.id} nome={u.nome} />
                 </div>
-                <button type="button" className="card-unidade__editar" onClick={() => abrir(u)} aria-label={`Editar ${u.nome}`}>
-                  <Icone nome="editar" tamanho={18} />
-                </button>
+                <div className="card-unidade__acoes">
+                  <button type="button" className="card-unidade__editar" onClick={() => abrir(u)} aria-label={`Editar ${u.nome}`}>
+                    <Icone nome="editar" tamanho={18} />
+                  </button>
+                  <button type="button" className="acao acao--danger" onClick={() => setParaExcluir(u)} aria-label={`Excluir ${u.nome}`}>Excluir</button>
+                </div>
               </article>
             ))}
           </div>
@@ -106,6 +136,7 @@ export default function Unidades() {
                         <HistoricoAdministrativo tipo="unidades" id={u.id} nome={u.nome} />
                         <button type="button" className="acao" onClick={() => abrir(u)}>Editar</button>
                         {u.ativa !== false && <button type="button" className="acao acao--danger" onClick={() => setParaDesativar(u)}>Desativar</button>}
+                        <button type="button" className="acao acao--danger" onClick={() => setParaExcluir(u)}>Excluir</button>
                       </td>
                     </tr>
                   ))}
@@ -151,6 +182,25 @@ export default function Unidades() {
       {paraDesativar && (
         <Confirmar mensagem={`${paraDesativar.nome} ficará indisponível para novos lançamentos. O histórico será preservado.`}
           aoConfirmar={confirmarDesativacao} aoCancelar={() => setParaDesativar(null)} />
+      )}
+
+      {paraExcluir && (
+        <Confirmar titulo="Excluir unidade" mensagem={`Excluir ${paraExcluir.nome} de vez? Isso não pode ser desfeito.`}
+          aoConfirmar={confirmarExclusao} aoCancelar={() => setParaExcluir(null)} />
+      )}
+
+      {recusada && (
+        recusada.unidade.ativa === false ? (
+          <Modal titulo="Não foi possível excluir" aoFechar={() => setRecusada(null)}>
+            <p>{recusada.mensagem}</p>
+            <div className="modal-form__acoes">
+              <button type="button" className="pf-btn pf-btn--ghost" onClick={() => setRecusada(null)}>Fechar</button>
+            </div>
+          </Modal>
+        ) : (
+          <Confirmar titulo="Não foi possível excluir" rotuloConfirmar="Desativar" mensagem={recusada.mensagem}
+            aoConfirmar={desativarRecusada} aoCancelar={() => setRecusada(null)} />
+        )
       )}
     </pf-unidades>
   );
