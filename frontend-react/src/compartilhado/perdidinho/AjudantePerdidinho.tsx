@@ -9,6 +9,7 @@ import { useInterface } from '../../nucleo/estado/interface';
 import { onboardingServico, progressoDe, useConvitePendente, useConviteVisivel, useOnboarding } from '../../nucleo/onboarding/estado';
 import { roteiroDo } from '../../nucleo/onboarding/roteiros';
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
+import { useAvisos, useNotificacoesDisponiveis } from '../../nucleo/servicos/notificacoes';
 import { useMotorDeFalas } from '../../nucleo/servicos/falas';
 import { memoriaServico, useFalaAtiva } from '../../nucleo/servicos/falas-estado';
 import {
@@ -118,7 +119,7 @@ export function FaixaDeFala() {
 }
 
 interface Props {
-  /** `barra`: botão na barra superior do desktop (com a fala à esquerda e a gaveta à direita). `topo`: botão no topo do celular, entre busca e sino. */
+  /** `barra`: botão na barra superior do desktop (com a fala à esquerda e a gaveta à direita). `topo`: botão no topo do celular, entre busca e perfil. */
   variante: 'barra' | 'topo';
   /** Desktop: a gaveta abriu ou fechou (o layout reserva espaço em telas largas). */
   aoMudarGaveta?: (aberta: boolean) => void;
@@ -151,6 +152,9 @@ export function AjudantePerdidinho({ variante, aoMudarGaveta }: Props) {
   const paletaAberta = useInterface((s) => s.paletaAberta);
   const silenciado = useSilenciado();
   const campoFocado = useCampoFocado();
+  const avisosDisponiveis = useNotificacoesDisponiveis();
+  const avisos = useAvisos(aberto);
+  const naoLidas = avisos.total ?? 0;
   // Falas do Perdidinho (na barra no desktop, faixa no celular): só em momento livre, uma por vez.
   const bloqueadoParaFala = campoFocado || tourAtivo || conviteAberto || convitePendente || paletaAberta || aberto || comPresenca;
   const { falas, itensAtencao } = useMotorDeFalas({ canal: barra ? 'balao' : 'faixa', pathname, bloqueado: bloqueadoParaFala });
@@ -263,6 +267,24 @@ export function AjudantePerdidinho({ variante, aoMudarGaveta }: Props) {
     timerAceno.current = setTimeout(() => setAcenando(false), ACENO_MS);
   }, [itens, carregadoEm, silenciado, campoFocado, tourAtivo, paletaAberta, aberto, pathname, parado, semOlhos, convitePendente, usuario]);
 
+  // Notificação nova: um pulinho e "Novo aviso: ..." na região viva, uma vez por notificação. Não conta na cota de falas.
+  // Silenciar corta pulinho e anúncio (o pontinho continua); campo focado, tour, paleta, painel aberto e diálogos também.
+  const ultimaNova = useRef<number | null>(null);
+  const novaDeAviso = avisos.nova;
+  useEffect(() => {
+    if (!novaDeAviso || ultimaNova.current === novaDeAviso.id) return;
+    ultimaNova.current = novaDeAviso.id;
+    const quieto = silenciado || semOlhos || convitePendente || campoFocado || tourAtivo || paletaAberta || aberto || ROTA_QUIETA.test(pathname)
+      || !!document.querySelector('[aria-modal="true"], dialog[open]');
+    if (quieto) return;
+    const curto = novaDeAviso.titulo.length > 70 ? `${novaDeAviso.titulo.slice(0, 69).trimEnd()}…` : novaDeAviso.titulo;
+    setAnuncio(`Novo aviso: ${curto}`);
+    const el = botao.current;
+    if (!parado && el && typeof el.animate === 'function') {
+      el.animate([{ transform: 'none' }, { transform: 'translateY(-4px)', offset: 0.45 }, { transform: 'none' }], { duration: 180, easing: 'cubic-bezier(.22, 1, .36, 1)' });
+    }
+  }, [novaDeAviso, silenciado, semOlhos, convitePendente, campoFocado, tourAtivo, paletaAberta, aberto, pathname, parado]);
+
   // Anúncio para leitor de tela: só quando o total de urgentes AUMENTA (inclusive ao entrar na sessão).
   useEffect(() => {
     if (anteriorUrgentes.current === null) {
@@ -291,6 +313,10 @@ export function AjudantePerdidinho({ variante, aoMudarGaveta }: Props) {
 
   const humor: HumorMascote = acenoConvite || acenando ? 'acenando' : barra && falaAtiva ? falaAtiva.humor : resumo.nivel === 'nada' && !falhou && dormindo ? 'dormindo' : humorDasPendencias(resumo, falhou);
   const mostraNumero = resumo.contador > 0;
+  const mostraAviso = avisosDisponiveis && naoLidas > 0;
+  const rotuloDoBotao = mostraAviso ? `${resumo.rotulo}, ${naoLidas} ${naoLidas === 1 ? 'aviso novo' : 'avisos novos'}` : resumo.rotulo;
+  // O pontinho de avisos fica no canto oposto ao selo; sem selo nem ponto de "para saber", ocupa o lugar do selo.
+  const cantoAviso = mostraNumero || resumo.nivel === 'info' ? 'oposto' : 'selo';
   const urgente = resumo.nivel === 'urgente';
   const temTour = roteiroDo(usuario.nivel).length > 0;
   const tamanho = barra ? 32 : 28;
@@ -308,7 +334,7 @@ export function AjudantePerdidinho({ variante, aoMudarGaveta }: Props) {
           aoFechar={aoFecharFala} />
       )}
       {barra && <AnimatePresence>{conviteAberto && <ConviteNaBarra key="convite" atrasoMs={parado ? 0 : ATRASO_CONVITE_MS} reduzirMovimento={parado} />}</AnimatePresence>}
-        <button ref={botao} type="button" className="ajud__botao" aria-label={resumo.rotulo} aria-haspopup="dialog"
+        <button ref={botao} type="button" className="ajud__botao" aria-label={rotuloDoBotao} aria-haspopup="dialog"
           aria-expanded={aberto} aria-controls={aberto ? idPainel : undefined} data-tour="ajudante"
           onClick={() => {
             // Convite recolhido (desktop): o primeiro clique o reabre; com ele à vista, o clique abre a gaveta como sempre.
@@ -333,6 +359,7 @@ export function AjudantePerdidinho({ variante, aoMudarGaveta }: Props) {
             </motion.span>
           )}
           {!mostraNumero && resumo.nivel === 'info' && <span className="ajud__ponto" aria-hidden="true" />}
+          {mostraAviso && <span className="ajud__aviso" data-canto={cantoAviso} aria-hidden="true" />}
         </button>
       {/* Região viva: o aumento de urgentes e, na barra, a fala/convite (a faixa do celular tem a própria, no LayoutApp). */}
       <div className="ajud__anuncio" role="status" aria-live="polite" aria-atomic="true">{anuncio}</div>
@@ -340,7 +367,7 @@ export function AjudantePerdidinho({ variante, aoMudarGaveta }: Props) {
         <AnimatePresence>
           {aberto && (
             <PainelAtencao key="painel" id={idPainel} variante={barra ? 'gaveta' : 'folha'} itens={itens}
-              botao={botao} falas={falas.filter((f) => f.noPainel)} silenciado={silenciado} temTour={temTour} comPendencia={mostraNumero}
+              botao={botao} falas={falas.filter((f) => f.noPainel)} avisos={avisosDisponiveis ? avisos : null} silenciado={silenciado} temTour={temTour} comPendencia={mostraNumero}
               aoFechar={fechar}
               aoSilenciar={() => { silencioServico.silenciar(usuario.id); fechar(true); }}
               aoVoltarAvisar={() => silencioServico.voltar(usuario.id)}

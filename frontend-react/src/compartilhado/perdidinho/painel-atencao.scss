@@ -13,7 +13,7 @@ pf-painel-atencao {
   }
 
   /* Gaveta à direita (desktop, não modal): 380 px, borda à esquerda e sombra. Em < 1600 px sobrepõe o conteúdo, SEMPRE abaixo
-     da barra superior (48 px), para que o botão do Perdidinho e o sino nunca fiquem cobertos; em >= 1600 px o layout reserva
+     da barra superior (48 px), para que o botão do Perdidinho nunca fiquem cobertos; em >= 1600 px o layout reserva
      os 380 px (app-layout.scss) e ela ocupa a altura toda.
      * z-index 55: acima do conteúdo e da barra (30); abaixo de modais (100), convite (800), paleta (900), tour (950), toasts (1000). */
   .painel--gaveta {
@@ -34,7 +34,10 @@ pf-painel-atencao {
 
     .painel__cabeca { flex: none; padding: 10px 8px 10px 20px; border-bottom: 1px solid var(--pf-border); }
     .painel__corpo { flex: 1 1 auto; min-height: 0; padding: 16px 20px; overflow-y: auto; overscroll-behavior: contain; }
-    .painel__rodape { flex: none; padding: 10px 20px; background: var(--pf-surface); }
+    .painel__vazio--avisos { margin: 0 0 6px; font-size: 13.5px; color: var(--pf-text-muted); }
+  .painel__avisos-acoes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; .pf-btn { min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; } }
+
+  .painel__rodape { flex: none; padding: 10px 20px; background: var(--pf-surface); }
     .painel__nota { flex: none; margin: 0; padding: 0 20px 12px; }
     .painel__fechar { width: 44px; height: 44px; }
   }

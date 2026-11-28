@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../estado/auth';
 import { api } from './api';
 import { podeAcessar } from './permissoes';
@@ -81,4 +81,93 @@ export function useTotalNaoLidas(): number | null {
   }, [conta]);
 
   return total;
+}
+
+export const ROTAS_DESTINO: Record<Notificacao['destino'], string> = {
+  FICHA: '/app/fichas', PAGAMENTO: '/app/pagamentos-manobristas', EVENTO: '/app/eventos', ESCALA: '/app/escalas',
+};
+
+/** Rota que a notificação abre (a mesma da central em /app/notificacoes). */
+export const rotaDaNotificacao = (n: Pick<Notificacao, 'destino' | 'destinoId'>) =>
+  `${ROTAS_DESTINO[n.destino]}?detalhe=${n.destinoId}${n.destino === 'PAGAMENTO' ? '&aba=historico' : ''}`;
+
+/** "agora", "há 5 min", "há 3 h", "ontem" ou "há 4 dias". */
+export function quandoRelativo(iso: string, agora = Date.now()): string {
+  const min = Math.floor((agora - new Date(iso).getTime()) / 60_000);
+  if (!Number.isFinite(min) || min < 1) return 'agora';
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h} h`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? 'ontem' : `há ${d} dias`;
+}
+
+export const MAX_AVISOS = 5;
+
+export interface Avisos {
+  /** Total de não lidas (null = indisponível ou ainda não buscado). */
+  total: number | null;
+  /** Até 5: as não lidas; sem nenhuma, as recentes (com `lida`). Só carregado com o painel aberto ou quando há novidade. */
+  itens: Notificacao[];
+  carregado: boolean;
+  /** Notificação que acabou de chegar (id novo depois da primeira leitura); nulo se nada novo. */
+  nova: Notificacao | null;
+  marcarLidas: () => Promise<void>;
+  /** Marca uma só como lida (ao abrir o destino). */
+  marcarLida: (id: number) => void;
+}
+
+/**
+ * Avisos do Perdidinho: UM ciclo de busca (o do total, a cada 30 s/foco/push). A lista só é pedida quando o total muda ou o
+ * painel abre; a chegada de um id maior que o já visto vira `nova`.
+ */
+export function useAvisos(painelAberto: boolean): Avisos {
+  const total = useTotalNaoLidas();
+  const conta = useAuth((s) => (podeAcessar(s.usuario?.nivel, 'notificacoes') ? (s.usuario?.id ?? null) : null));
+  const [itens, setItens] = useState<Notificacao[]>([]);
+  const [carregado, setCarregado] = useState(false);
+  const [nova, setNova] = useState<Notificacao | null>(null);
+  const maiorVisto = useRef<number | null>(null);
+
+  useEffect(() => {
+    maiorVisto.current = null;
+    setItens([]);
+    setCarregado(false);
+    setNova(null);
+  }, [conta]);
+
+  useEffect(() => {
+    if (conta === null || total === null) return;
+    const controle = new AbortController();
+    (async () => {
+      try {
+        const naoLidas = (await notificacoesServico.listar(true)).sort((a, b) => b.id - a.id);
+        if (controle.signal.aborted) return;
+        const maior = naoLidas[0]?.id ?? 0;
+        if (maiorVisto.current === null) maiorVisto.current = maior;
+        else if (maior > maiorVisto.current) { maiorVisto.current = maior; setNova(naoLidas[0]); }
+        let lista = naoLidas;
+        if (!naoLidas.length && painelAberto) {
+          lista = (await notificacoesServico.listar(false)).sort((a, b) => b.id - a.id);
+          if (controle.signal.aborted) return;
+        }
+        setItens(lista.slice(0, MAX_AVISOS));
+        setCarregado(true);
+      } catch { /* sem lista: o contador continua valendo */ }
+    })();
+    return () => controle.abort();
+  }, [conta, total, painelAberto]);
+
+  const marcarLidas = useCallback(async () => {
+    await notificacoesServico.ler();
+    setItens((atual) => atual.map((n) => ({ ...n, lida: true })));
+    notificacoesServico.atualizarContador();
+  }, []);
+
+  const marcarLida = useCallback((id: number) => {
+    setItens((atual) => atual.map((n) => (n.id === id ? { ...n, lida: true } : n)));
+    notificacoesServico.ler(id).catch(() => undefined).finally(() => notificacoesServico.atualizarContador());
+  }, []);
+
+  return { total, itens, carregado, nova, marcarLidas, marcarLida };
 }

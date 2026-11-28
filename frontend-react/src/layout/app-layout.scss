@@ -61,20 +61,4 @@ pf-app-layout {
     cursor: pointer;
     &:active { background: var(--pf-surface-hover); }
   }
-
-  .topbar__sino span {
-    position: absolute;
-    top: 5px;
-    right: 3px;
-    min-width: 18px;
-    padding: 1px 5px;
-    border: 2px solid #fff;
-    border-radius: 999px;
-    color: #fff;
-    background: var(--pf-blue);
-    font-size: 10.5px;
-    font-weight: 700;
-    line-height: 1.2;
-    text-align: center;
-  }
 }

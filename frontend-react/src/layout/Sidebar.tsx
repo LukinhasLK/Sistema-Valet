@@ -17,7 +17,7 @@ export function Sidebar() {
   const nivel = useNivel();
   const navegar = useNavigate();
   const recolhido = useMenuRecolhido();
-  // O sino de notificações mora na barra superior do desktop (BarraTopo); a tela continua na paleta e no celular.
+  // As notificações moram dentro do Perdidinho (seção Avisos); a tela completa continua neste menu e na paleta.
   const grupos = gruposPermitidos(nivel)
     .map((g) => ({ ...g, itens: g.itens.filter((i) => i.rota !== ROTA_NOTIFICACOES) }))
     .filter((g) => g.itens.length > 0);

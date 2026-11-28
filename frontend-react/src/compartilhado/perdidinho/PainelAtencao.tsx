@@ -5,6 +5,7 @@ import { Icone } from '../Icone';
 import { TRANSICAO } from '../movimento';
 import { usePrenderFoco } from '../usePrenderFoco';
 import type { Fala } from '../../nucleo/servicos/falas-estado';
+import { quandoRelativo, rotaDaNotificacao, type Avisos } from '../../nucleo/servicos/notificacoes';
 import type { ItemPendencia, NivelPendencia } from '../../nucleo/servicos/pendencias';
 import './painel-atencao.scss';
 
@@ -17,6 +18,7 @@ const GRUPOS: { nivel: NivelPendencia; titulo: string }[] = [
 /** Largura a partir da qual a gaveta empurra o conteúdo (app-layout.scss). */
 const LARGA = '(min-width: 1600px)';
 
+export const TEXTO_SEM_AVISOS = 'Nenhum aviso novo.';
 export const TEXTO_EM_DIA = 'Tudo em dia por aqui. Bom turno!';
 
 interface Props {
@@ -26,6 +28,8 @@ interface Props {
   itens: ItemPendencia[];
   /** Histórico do dia: o que o Perdidinho disse (ou diria na barra/faixa) e ainda vale hoje. */
   falas?: Fala[];
+  /** Notificações (só para quem as vê; ausente = seção oculta). */
+  avisos?: Avisos | null;
   /** Botão que abre: cliques nele não contam como "fora" e o foco volta para ele no Esc. */
   botao: RefObject<HTMLElement>;
   silenciado: boolean;
@@ -39,8 +43,8 @@ interface Props {
   aoReverTour: () => void;
 }
 
-function Conteudo({ itens, falas, tituloId, titulo, silenciado, temTour, comPendencia, aoFechar, aoNavegar, aoSilenciar, aoVoltarAvisar, aoReverTour, comFechar }: {
-  itens: ItemPendencia[]; falas: Fala[]; tituloId: string; titulo: RefObject<HTMLHeadingElement>; silenciado: boolean; temTour: boolean; comPendencia: boolean; comFechar: boolean;
+function Conteudo({ itens, falas, avisos, tituloId, titulo, silenciado, temTour, comPendencia, aoFechar, aoNavegar, aoSilenciar, aoVoltarAvisar, aoReverTour, comFechar }: {
+  itens: ItemPendencia[]; falas: Fala[]; avisos: Avisos | null; tituloId: string; titulo: RefObject<HTMLHeadingElement>; silenciado: boolean; temTour: boolean; comPendencia: boolean; comFechar: boolean;
   aoFechar: (devolverFoco?: boolean) => void; aoNavegar: () => void; aoSilenciar: () => void; aoVoltarAvisar: () => void; aoReverTour: () => void;
 }) {
   return (
@@ -88,6 +92,34 @@ function Conteudo({ itens, falas, tituloId, titulo, silenciado, temTour, comPend
             </section>
           );
         })
+      )}
+
+      {avisos && (
+        <section className="painel__grupo painel__avisos" aria-labelledby={`${tituloId}-avisos`}>
+          <h3 id={`${tituloId}-avisos`} className="painel__grupo-titulo">Avisos</h3>
+          {avisos.itens.length === 0 ? (
+            <p className="painel__vazio painel__vazio--avisos">{TEXTO_SEM_AVISOS}</p>
+          ) : (
+            <ul className="painel__lista">
+              {avisos.itens.map((n) => (
+                <li key={n.id} data-aviso={n.id} data-lida={n.lida || undefined}>
+                  <Link className="painel__item" to={rotaDaNotificacao(n)} onClick={() => { if (!n.lida) avisos.marcarLida(n.id); aoNavegar(); }}>
+                    <span className="painel__texto">{n.titulo}
+                      <small className="painel__origem"><time dateTime={n.criadoEm}>{quandoRelativo(n.criadoEm)}</time>{n.lida ? ' · lida' : ''}</small>
+                    </span>
+                    <Icone nome="seta" tamanho={15} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="painel__avisos-acoes">
+            {!!avisos.total && (
+              <button type="button" className="pf-btn pf-btn--ghost pf-btn--sm" onClick={() => void avisos.marcarLidas()}>Marcar como lidas</button>
+            )}
+            <Link className="pf-btn pf-btn--ghost pf-btn--sm" to="/app/notificacoes" onClick={aoNavegar}>Ver todas</Link>
+          </div>
+        </section>
       )}
 
       {falas.length > 0 && (
@@ -182,7 +214,7 @@ export function PainelAtencao(props: Props) {
   }, [aoFechar, botao, folha]);
 
   const conteudo = (
-    <Conteudo itens={props.itens} falas={props.falas ?? []} tituloId={tituloId} titulo={titulo} silenciado={props.silenciado} temTour={props.temTour} comPendencia={props.comPendencia}
+    <Conteudo itens={props.itens} falas={props.falas ?? []} avisos={props.avisos ?? null} tituloId={tituloId} titulo={titulo} silenciado={props.silenciado} temTour={props.temTour} comPendencia={props.comPendencia}
       comFechar={!folha} aoFechar={aoFechar} aoNavegar={() => aoFechar(false)}
       aoSilenciar={props.aoSilenciar} aoVoltarAvisar={props.aoVoltarAvisar} aoReverTour={props.aoReverTour} />
   );

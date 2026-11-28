@@ -9,6 +9,7 @@ import { salvarRascunho } from '../../nucleo/servicos/rascunho-ficha';
 import { AjudantePerdidinho } from './AjudantePerdidinho';
 import { useFalaAtiva, type Fala } from '../../nucleo/servicos/falas-estado';
 import { TEXTO_EM_DIA } from './PainelAtencao';
+import { notificacoesServico } from '../../nucleo/servicos/notificacoes';
 
 const GERENTE: Usuario = { id: 2, nome: 'Pedro', email: 'p@x.com', nivel: 'Gerente' };
 const OPERADOR: Usuario = { id: 3, nome: 'Dario', email: 'd@x.com', nivel: 'Operador' };
@@ -105,7 +106,7 @@ describe('AjudantePerdidinho', () => {
     expect(botao.getAttribute('aria-controls')).toBe(painel.id);
     expect(painel.getAttribute('aria-modal')).toBeNull();
     const links = screen.getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')]);
-    expect(links.map(([, h]) => h)).toEqual(['/app/socios', '/app/fichas?situacao=PRONTA', '/app/eventos']);
+    expect(links.map(([, h]) => h)).toEqual(['/app/socios', '/app/fichas?situacao=PRONTA', '/app/eventos', '/app/notificacoes']); // + "Ver todas" (avisos)
     expect(screen.getByText('Urgente')).toBeTruthy();
     expect(screen.getByText('Atenção')).toBeTruthy();
     expect(screen.getByText('Para saber')).toBeTruthy();
@@ -278,5 +279,68 @@ describe('AjudantePerdidinho', () => {
     await act(async () => { campo.blur(); });
     await waitFor(() => expect(container.querySelector('pf-perdidinho')?.getAttribute('data-olhos')).not.toBe('fechados'));
     campo.remove();
+  });
+});
+
+describe('AjudantePerdidinho: avisos (notificações)', () => {
+  const nota = (id: number, titulo: string) => ({ id, categoria: 'FICHA_CRIADA', titulo, destino: 'FICHA', destinoId: id, criadoEm: new Date().toISOString(), lida: false });
+  beforeEach(() => {
+    localStorage.clear();
+    pendenciasServico.reiniciar();
+    reiniciarChamadasParaTeste();
+    useOnboarding.setState({ conviteAdiado: true });
+  });
+  afterEach(() => {
+    useAuth.setState({ usuario: null, token: null });
+    useFalaAtiva.setState({ ativa: null });
+    useOnboarding.setState({ ativo: null, conviteAdiado: false, conviteRecolhido: false });
+  });
+
+  it('o número continua sendo o de pendências; os avisos viram um pontinho e entram no nome do botão', async () => {
+    apiFalsa({
+      '/api/pendencias': { corpo: [pendencia({})] },
+      '/api/notificacoes/pendentes': { corpo: { total: 2 } },
+      '/api/notificacoes': { corpo: [nota(2, 'Ficha 2 registrada'), nota(1, 'Ficha 1 registrada')] },
+    });
+    const { container } = await montar();
+    expect(await screen.findByRole('button', { name: 'Pendências: 1, 2 avisos novos' })).toBeTruthy();
+    expect(container.querySelector('.ajud__selo')?.textContent).toBe('1');
+    expect(container.querySelector('.ajud__aviso')?.getAttribute('data-canto')).toBe('oposto');
+    fireEvent.click(screen.getByRole('button', { name: /Pendências: 1/ }));
+    const secao = await screen.findByRole('region', { name: 'Avisos' });
+    await waitFor(() => expect(secao.textContent).toContain('Ficha 2 registrada'));
+  });
+
+  it('sem pendências o pontinho ocupa o lugar do selo; sem avisos não há ponto; sem permissão nem seção', async () => {
+    apiFalsa({ '/api/pendencias': { corpo: [] }, '/api/notificacoes/pendentes': { corpo: { total: 1 } }, '/api/notificacoes': { corpo: [nota(1, 'Ficha 1 registrada')] } });
+    const a = await montar();
+    await waitFor(() => expect(a.container.querySelector('.ajud__aviso')?.getAttribute('data-canto')).toBe('selo'));
+    expect(screen.getByRole('button', { name: 'Pendências: nenhuma, 1 aviso novo' })).toBeTruthy();
+    a.unmount();
+    pendenciasServico.reiniciar();
+    apiFalsa({ '/api/pendencias': { corpo: [] }, '/api/notificacoes/pendentes': { corpo: { total: 0 } }, '/api/notificacoes': { corpo: [] } });
+    const b = await montar();
+    await screen.findByRole('button', { name: /Pendências: nenhuma$/ });
+    expect(b.container.querySelector('.ajud__aviso')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Pendências: nenhuma$/ }));
+    expect(await screen.findByText('Nenhum aviso novo.')).toBeTruthy();
+  });
+
+  it('notificação nova: anuncia "Novo aviso: ..." uma vez, sem anunciar o que já existia; silenciar corta o anúncio mas não o ponto', async () => {
+    let total = 1; let lista = [nota(1, 'Ficha 1 registrada')];
+    apiFalsa({ '/api/pendencias': { corpo: [] }, '/api/notificacoes/pendentes': () => ({ corpo: { total } }), '/api/notificacoes': () => ({ corpo: lista }) });
+    const { container } = await montar();
+    const regiao = container.querySelector('.ajud__anuncio')!;
+    await waitFor(() => expect(container.querySelector('.ajud__aviso')).not.toBeNull());
+    expect(regiao.textContent).toBe('');
+    total = 2; lista = [nota(2, 'Pagamento pendente de Ana'), nota(1, 'Ficha 1 registrada')];
+    await act(async () => { notificacoesServico.atualizarContador(); });
+    await waitFor(() => expect(regiao.textContent).toBe('Novo aviso: Pagamento pendente de Ana'));
+    act(() => silencioServico.silenciar(GERENTE.id));
+    total = 3; lista = [nota(3, 'Escala alterada'), ...lista];
+    await act(async () => { notificacoesServico.atualizarContador(); });
+    await waitFor(() => expect(screen.getByRole('button', { name: /3 avisos novos$/ })).toBeTruthy());
+    expect(regiao.textContent).toBe('Novo aviso: Pagamento pendente de Ana');
+    expect(container.querySelector('.ajud__aviso')).not.toBeNull();
   });
 });

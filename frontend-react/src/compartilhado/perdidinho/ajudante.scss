@@ -1,6 +1,6 @@
 /*
  * Perdidinho ajudante.
- * Desktop (`barra`): botão dentro da barra superior (48 px), com a fala à esquerda e o sino à direita. Celular (`topo`): botão do topo, entre a busca e o sino.
+ * Desktop (`barra`): botão dentro da barra superior (48 px), com a fala à esquerda . Celular (`topo`): botão do topo, entre a busca e o perfil.
  * Estado em data-* (no React 18, `className` em elemento customizado vira o atributo "classname").
  *
  * Camadas: conteúdo < sidebar (20) < barra/topbar (30) < gaveta (55) < modal (100) < convite do celular (800) < paleta (900)
@@ -54,6 +54,11 @@ pf-ajudante-perdidinho {
   /* Só avisos de conexão: ponto neutro, sem número. */
   .ajud__ponto { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--pf-text-muted); box-shadow: 0 0 0 2px var(--pf-surface); }
 
+  /* Avisos (notificações) não lidos: ponto neutro-azul de 8 px, só presença (o texto está no nome do botão). */
+  .ajud__aviso { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--pf-blue); box-shadow: 0 0 0 2px var(--pf-surface); }
+  .ajud__aviso[data-canto='selo'] { top: 3px; right: 3px; }
+  .ajud__aviso[data-canto='oposto'] { bottom: 5px; left: 5px; }
+
   .ajud__anuncio {
     position: absolute;
     width: 1px;
@@ -66,7 +71,7 @@ pf-ajudante-perdidinho {
     border: 0;
   }
 
-  /* Desktop: na barra superior (BarraTopo), à direita da fala e à esquerda do sino. O elemento some da árvore de caixas
+  /* Desktop: na barra superior (BarraTopo), à direita da fala. O elemento some da árvore de caixas
      (`contents`): a fala e o botão são itens flex da barra. Botão de 44 px com o mascote de 32 px; sem tooltip só no hover. */
   &[data-variante='barra'] {
     display: contents;
@@ -92,7 +97,7 @@ pf-ajudante-perdidinho {
     .ajud__selo[data-nivel='atencao'] { box-shadow: 0 0 0 2px var(--pf-bg), inset 0 0 0 1px rgba(183, 121, 31, .45); }
   }
 
-  /* Topo do celular: só o cubo (alvo de 44 px), entre a busca e o sino. Nada flutua sobre a barra inferior ou o teclado. */
+  /* Topo do celular: só o cubo (alvo de 44 px), entre a busca e o perfil. Nada flutua sobre a barra inferior ou o teclado. */
   &[data-variante='topo'] {
     display: contents;
     .ajud__botao { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: transparent; }

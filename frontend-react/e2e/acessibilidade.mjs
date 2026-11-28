@@ -45,6 +45,18 @@ for (const largura of [1366, 390]) {
     localStorage.setItem('parkflash.v3.token', JSON.stringify(t));
   }, token);
   for (const rota of ROTAS) await auditar(p, rota);
+  // Perdidinho aberto (gaveta no desktop, folha no celular), com a seção Avisos: axe limpo.
+  await p.goto(`${BASE}/app/dashboard`, { waitUntil: 'networkidle0' });
+  await esp(700);
+  await p.click('pf-ajudante-perdidinho button.ajud__botao');
+  await p.waitForSelector('pf-painel-atencao [role=dialog]');
+  await esp(800);
+  await p.evaluate(axe);
+  const abertoR = await p.evaluate(async () => (await window.axe.run({ exclude: [['.logo__flash']] }, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] } })).violations
+    .map((v) => ({ id: v.id, impacto: v.impact, ajuda: v.help, alvos: v.nodes.slice(0, 3).map((n) => n.target.join(' ')), qtd: v.nodes.length })));
+  total += abertoR.length;
+  console.log(`${abertoR.length ? '❌' : '✅'} Perdidinho aberto (Avisos)${abertoR.length ? '' : ' — sem violações'}`);
+  for (const v of abertoR) console.log(`   • [${v.impacto}] ${v.id} (${v.qtd}): ${v.ajuda}\n     ${v.alvos.join(' | ')}`);
   await ctx.close();
 }
 await b.close();

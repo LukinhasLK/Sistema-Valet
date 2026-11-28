@@ -14,7 +14,6 @@ import { BarraInferior } from './BarraInferior';
 import { BarraTopo } from './BarraTopo';
 import { corDoAvatar } from './itens-menu';
 import { PaletaComandos } from './PaletaComandos';
-import { SinoNotificacoes } from './SinoNotificacoes';
 import { Sidebar } from './Sidebar';
 import { TourGuiado } from './TourGuiado';
 import './app-layout.scss';
@@ -72,7 +71,6 @@ export function LayoutApp() {
                 <Icone nome="busca" tamanho={20} />
               </button>
               {usuario && <AjudantePerdidinho variante="topo" />}
-              <SinoNotificacoes className="topbar__botao topbar__sino" />
               {usuario && (
                 <Link className="pf-avatar topbar__avatar" to="/app/perfil" aria-label="Meu perfil" data-tour="perfil" style={{ background: corDoAvatar(usuario.nome) }}>
                   {inicialDe(usuario)}

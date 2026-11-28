@@ -283,11 +283,10 @@ try {
     return { dentroDaBarra: !!barra, altura: br && Math.round(br.height), topo: br && Math.round(br.top), pos: barra && getComputedStyle(barra).position,
       antesDoMain: !!barra && !!main && !!(barra.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING),
       l: Math.round(r.width), a: Math.round(r.height), direita: Math.round(innerWidth - r.right), nome: barra?.getAttribute('aria-label'),
-      sinoNaBarra: !!sino, sinoNaSidebar: !!document.querySelector('aside a[href="/app/notificacoes"]'),
-      sinoDepois: !!sino && !!(e.compareDocumentPosition(sino) & Node.DOCUMENT_POSITION_FOLLOWING), fixos: fixos.length, rodape: parseFloat(getComputedStyle(document.querySelector('main')).paddingBottom) };
+      semSino: !sino && !document.querySelector('header.barra-topo a[href="/app/notificacoes"], aside a[href="/app/notificacoes"]'), fixos: fixos.length, rodape: parseFloat(getComputedStyle(document.querySelector('main')).paddingBottom) };
   }, botaoAj);
   ok('Ajudante dentro da barra superior de 48 px, colada no topo, antes do main', lugar.dentroDaBarra && lugar.altura === 48 && lugar.topo === 0 && lugar.pos === 'sticky' && lugar.antesDoMain && lugar.nome === 'Barra do topo', JSON.stringify(lugar));
-  ok('Botão do Perdidinho com alvo de 44 px, sino logo depois (e fora da sidebar), nada fixo no canto', lugar.l >= 44 && lugar.a >= 44 && lugar.sinoNaBarra && lugar.sinoDepois && !lugar.sinoNaSidebar && lugar.fixos === 0, JSON.stringify(lugar));
+  ok('Botão do Perdidinho com alvo de 44 px, sem sino na barra nem na sidebar, nada fixo no canto', lugar.l >= 44 && lugar.a >= 44 && lugar.semSino && lugar.fixos === 0, JSON.stringify(lugar));
   ok('Sem reserva de rodapé no conteúdo desktop (antigo padding-bottom de 68 px)', lugar.rodape < 60, String(lugar.rodape));
   await dono.click(botaoAj); await esp(500);
   const painelAj = await dono.evaluate(() => {
@@ -299,6 +298,9 @@ try {
       textos: [...d.querySelectorAll('li a')].map((a) => a.textContent), expandido: document.querySelector('button.ajud__botao')?.getAttribute('aria-expanded') } : null;
   });
   ok('Gaveta fixa à direita (380 px, colada na borda, abaixo da barra), sem cobrir o botão do Perdidinho', !!painelAj && painelAj.gaveta.pos === 'fixed' && painelAj.gaveta.largura === 380 && painelAj.gaveta.direita === 0 && painelAj.gaveta.topo >= 0 && painelAj.gaveta.topo <= 48 && painelAj.gaveta.baixo === 0 && painelAj.barraVisivel, JSON.stringify(painelAj?.gaveta));
+  const avisosGaveta = await dono.evaluate(() => { const s = [...document.querySelectorAll('pf-painel-atencao section')].find((x) => x.querySelector('h3')?.textContent === 'Avisos');
+    return s ? { links: [...s.querySelectorAll('a')].map((a) => a.getAttribute('href')), botoes: [...s.querySelectorAll('button')].map((b) => b.textContent), itens: s.querySelectorAll('li').length, vazio: s.querySelector('.painel__vazio')?.textContent } : null; });
+  ok('Gaveta tem a seção Avisos (itens ou "Nenhum aviso novo.") com "Ver todas" para /app/notificacoes', !!avisosGaveta && avisosGaveta.links.includes('/app/notificacoes') && (avisosGaveta.itens > 0 || avisosGaveta.vazio === 'Nenhum aviso novo.') && avisosGaveta.itens <= 5, JSON.stringify(avisosGaveta));
   ok('Painel abre, não modal, com foco no título', !!painelAj && painelAj.foco && painelAj.modal === null && painelAj.expandido === 'true', JSON.stringify(painelAj));
   // A ficha do mês ainda não fechada aparece como "não enviada" (em edição) ou "esperando conferência" (pronta), nunca nas duas.
   ok('Painel lista a ficha do mês ainda não fechada', !!painelAj && painelAj.textos.some((t) => /ainda não enviadas? travam? a divisão de lucro|esperando sua conferência/.test(t)), (painelAj?.textos ?? []).join(' | '));
@@ -319,6 +321,10 @@ try {
   await celAj.click('pf-ajudante-perdidinho[data-variante=topo] button.ajud__botao'); await esp(600);
   const folhaCel = await celAj.evaluate(() => { const d = document.querySelector('pf-painel-atencao [role=dialog]'); return d ? d.getAttribute('aria-modal') : null; });
   ok('Celular: abre folha inferior modal', folhaCel === 'true', String(folhaCel));
+  const celAvisos = await celAj.evaluate(() => ({ sinoNoTopo: !!document.querySelector('header.topbar a[href="/app/notificacoes"]'),
+    avisos: [...document.querySelectorAll('pf-painel-atencao section')].some((x) => x.querySelector('h3')?.textContent === 'Avisos'),
+    verTodas: !!document.querySelector('pf-painel-atencao a[href="/app/notificacoes"]') }));
+  ok('Celular: sem sino no topo; a folha tem Avisos com "Ver todas"', !celAvisos.sinoNoTopo && celAvisos.avisos && celAvisos.verTodas, JSON.stringify(celAvisos));
   await celAj.keyboard.press('Escape'); await esp(500);
   ok('Celular: Esc fecha a folha', !(await celAj.$('pf-painel-atencao [role=dialog]')));
 

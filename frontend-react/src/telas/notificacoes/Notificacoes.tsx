@@ -6,15 +6,12 @@ import { useAparecer } from '../../compartilhado/useAparecer';
 import { avisos } from '../../nucleo/estado/aviso';
 import { mensagemDeErro } from '../../nucleo/servicos/api';
 import {
-  Categoria, CATEGORIAS, Notificacao, notificacoesServico, PreferenciaNotificacao, useTotalNaoLidas,
+  Categoria, CATEGORIAS, Notificacao, notificacoesServico, PreferenciaNotificacao, rotaDaNotificacao, useTotalNaoLidas,
 } from '../../nucleo/servicos/notificacoes';
 import { navegadorPushCompativel } from '../../nucleo/servicos/push-dispositivo';
 import { ConfiguracaoPush, DiagnosticoPush, webPushServico } from '../../nucleo/servicos/web-push';
 import './notificacoes.scss';
 
-const ROTAS: Record<Notificacao['destino'], string> = {
-  FICHA: '/app/fichas', PAGAMENTO: '/app/pagamentos-manobristas', EVENTO: '/app/eventos', ESCALA: '/app/escalas',
-};
 const ROTULO_ABRIR: Record<Notificacao['destino'], string> = {
   FICHA: 'Abrir ficha', PAGAMENTO: 'Abrir pagamento', EVENTO: 'Abrir evento', ESCALA: 'Abrir escala',
 };
@@ -183,7 +180,7 @@ export default function Notificacoes() {
     try {
       if (!item.lida) await notificacoesServico.ler(item.id);
       notificacoesServico.atualizarContador();
-      navegar(`${ROTAS[item.destino]}?detalhe=${item.destinoId}${item.destino === 'PAGAMENTO' ? '&aba=historico' : ''}`);
+      navegar(rotaDaNotificacao(item));
     } catch (e) {
       avisos.erro(e);
     } finally {
