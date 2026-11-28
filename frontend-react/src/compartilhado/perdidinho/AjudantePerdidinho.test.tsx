@@ -267,6 +267,17 @@ describe('AjudantePerdidinho', () => {
     expect(screen.getByRole('dialog', { name: 'Precisa da sua atenção' }).getAttribute('aria-modal')).toBe('true');
   });
 
+  it('celular: enquanto a faixa mostra o Perdidinho falando, o do topo vira silhueta; ao fechar, volta a ter olhos', async () => {
+    apiFalsa({ '/api/pendencias': { corpo: [] } });
+    const { container } = await montar(GERENTE, 'topo');
+    await waitFor(() => expect(container.querySelector('pf-perdidinho[data-humor]')).not.toBeNull());
+    expect(container.querySelector('pf-perdidinho[data-silhueta]')).toBeNull();
+    act(() => useFalaAtiva.setState({ ativa: falaDeTeste }));
+    expect(container.querySelector('pf-perdidinho[data-silhueta]')).not.toBeNull();
+    act(() => useFalaAtiva.setState({ ativa: null }));
+    await waitFor(() => expect(container.querySelector('pf-perdidinho[data-silhueta]')).toBeNull());
+  });
+
   it('desktop: o olhar acompanha o foco (rAF) e solta depois de 3 s; campo de senha fecha os olhos', async () => {
     apiFalsa({ '/api/pendencias': { corpo: [] } });
     const { container } = await montar();
