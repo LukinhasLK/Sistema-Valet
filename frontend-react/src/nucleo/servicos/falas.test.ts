@@ -201,4 +201,13 @@ describe('fala 10', () => {
     expect(ultimaFichaAntes(fs, 1, '2026-11-28', 'noite')?.id).toBe(4);
     expect(ultimaFichaAntes(fs, 1, '2026-11-26', 'noite')).toBeNull();
   });
+  it('última ficha da unidade: a numeração recomeça no mês, então fichas de outro mês não contam', () => {
+    const fs = [
+      ficha({ id: 1, unidadeId: 1, data: '2026-10-31', turno: 'noite', fichaFim: 678 }),
+      ficha({ id: 2, unidadeId: 1, data: '2026-11-02', turno: 'dia', fichaFim: 40 }),
+    ];
+    expect(ultimaFichaAntes(fs, 1, '2026-11-01', 'dia')).toBeNull();
+    expect(ultimaFichaAntes(fs, 1, '2026-11-03', 'dia')?.id).toBe(2);
+    expect(ultimaFichaAntes(fs, 1, '2026-12-01', 'dia')).toBeNull();
+  });
 });

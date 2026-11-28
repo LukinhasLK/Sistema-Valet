@@ -266,12 +266,16 @@ export function resumirMotivos(motivos: MotivoFicha[]): { texto: string; primeir
   return { texto: mais > 0 ? `${motivos[0].texto} (e mais ${mais})` : motivos[0].texto, primeiro: motivos[0] };
 }
 
-/** Última ficha ativa da mesma unidade, anterior (data e turno) à que está sendo preenchida. */
+/**
+ * Última ficha ativa da mesma unidade, anterior (data e turno) à que está sendo preenchida, dentro do mesmo mês.
+ * A numeração dos tickets recomeça todo mês, então uma ficha de um mês anterior não serve de referência.
+ */
 export function ultimaFichaAntes(fichas: Ficha[], unidadeId: number, data: string, turno: string, ignorarId?: number): Ficha | null {
   const ordem = (f: Pick<Ficha, 'data' | 'turno'>) => `${f.data}${f.turno === 'noite' ? '1' : '0'}`;
   const alvo = ordem({ data, turno: turno as Ficha['turno'] });
+  const mes = data.slice(0, 7);
   return ativas(fichas)
-    .filter((f) => f.unidadeId === unidadeId && f.id !== ignorarId && ordem(f) < alvo)
+    .filter((f) => f.unidadeId === unidadeId && f.id !== ignorarId && f.data.slice(0, 7) === mes && ordem(f) < alvo)
     .sort((a, b) => ordem(b).localeCompare(ordem(a)) || b.id - a.id)[0] ?? null;
 }
 
