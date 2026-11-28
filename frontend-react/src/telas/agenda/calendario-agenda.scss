@@ -109,7 +109,7 @@ pf-calendario-agenda {
 
 
   /* Lista do dia ------------------------------------------------------------ */
-  .cal__dia { position: sticky; top: 16px; padding: 16px; }
+  .cal__dia { position: sticky; top: calc(16px + var(--pf-barra-topo-h, 0px)); padding: 16px; }
   .cal__dia-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
   .cal__dia-rotulo { font-family: var(--pf-font-display); font-weight: 700; font-size: 15px; }
 

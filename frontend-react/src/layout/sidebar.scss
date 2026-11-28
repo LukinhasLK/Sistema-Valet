@@ -139,17 +139,6 @@ pf-sidebar {
 
   .nav-item__rotulo { overflow: hidden; text-overflow: ellipsis; }
 
-  .nav-item__contador {
-    margin-inline-start: auto;
-    min-width: 20px;
-    padding: 1px 6px;
-    border-radius: 999px;
-    color: #fff;
-    background: var(--pf-blue);
-    font-size: 11px;
-    font-weight: 700;
-    text-align: center;
-  }
 
   .sidebar__user {
     display: flex;
@@ -216,7 +205,6 @@ pf-sidebar {
     .grupo:first-child .grupo__titulo { display: none; }
     .nav-item { justify-content: center; padding: 0; height: 38px; }
     .nav-item__rotulo { display: none; }
-    .nav-item__contador { position: absolute; top: 2px; right: 2px; min-width: 16px; padding: 0 4px; font-size: 10px; }
     .sidebar__user { flex-direction: column; margin: 0 8px; padding-inline: 0; }
     .sidebar__user-link { flex: none; }
     .sidebar__user-info { display: none; }

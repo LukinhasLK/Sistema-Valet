@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Icone } from '../compartilhado/Icone';
-import { CURVA, TRANSICAO } from '../compartilhado/movimento';
+import { TRANSICAO } from '../compartilhado/movimento';
 import { ATRASO_CONVITE_MS } from '../compartilhado/perdidinho/AjudantePerdidinho';
 import { useNivel, useUsuario } from '../nucleo/estado/auth';
 import { useIsMobile } from '../nucleo/estado/layout';
@@ -15,9 +15,6 @@ import './tour-guiado.scss';
 interface Caixa { left: number; top: number; width: number; height: number }
 
 const FOLGA = 6;
-/** Desktop: o convite recolhe para o Perdidinho depois de tanto tempo sem interação. */
-const RECOLHER_CONVITE_MS = 12000;
-
 /** Primeiro elemento visível com o `data-tour` pedido (o celular e o desktop têm alvos diferentes). */
 function acharAlvo(alvo: string | undefined): HTMLElement | null {
   if (!alvo) return null;
@@ -161,52 +158,26 @@ function Tour() {
   );
 }
 
-/** Celular: um Perdidinho pequeno no lugar do ícone (o do topo vira silhueta enquanto ele está à vista). */
 /**
- * Convite discreto no primeiro acesso (ou para continuar um tour pausado). Não bloqueia a tela nem toma o foco.
- * Desktop: é um balão que sai do Perdidinho do canto inferior direito (ele acena enquanto o convite está aberto).
- * Celular: cartão na posição de sempre; quem acena é o Perdidinho do topo (um só, com olhos).
+ * Convite discreto no primeiro acesso (ou para continuar um tour pausado), SÓ no celular: cartão na posição de sempre; quem
+ * acena é o Perdidinho do topo (um só, com olhos). Não bloqueia a tela nem toma o foco.
+ * No desktop o convite é uma fala dentro da barra superior (ver perdidinho/ConviteNaBarra).
  */
 function Convite() {
   const usuario = useUsuario();
   const nivel = useNivel();
-  const isMobile = useIsMobile();
   const reduzir = useReducedMotion() ?? false;
   const progresso = useOnboarding((s) => progressoDe(s.progresso, usuario?.id));
   const pausado = progresso.status === 'pausado' || progresso.status === 'em_andamento';
   const primeiroNome = usuario?.nome.split(' ')[0] ?? '';
-  const aside = useRef<HTMLElement>(null);
-
-  // Desktop: enquanto aberto, a área de conteúdo reserva a altura do balão (dá para rolar além dele)...
-  useEffect(() => {
-    const el = aside.current;
-    if (isMobile || !el) return;
-    const raiz = document.documentElement;
-    const aplicar = () => raiz.style.setProperty('--pf-convite-reserva', `${el.offsetHeight + 12}px`);
-    aplicar();
-    const obs = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(aplicar) : null;
-    obs?.observe(el);
-    return () => { obs?.disconnect(); raiz.style.removeProperty('--pf-convite-reserva'); };
-  }, [isMobile]);
-
-  // ...e recolhe sozinho para o Perdidinho após ~12 s sem interação (passar o mouse ou foco dentro pausa a contagem; não move o foco).
-  const [pausa, setPausa] = useState(false);
-  useEffect(() => {
-    if (isMobile || pausa) return;
-    const t = setTimeout(() => onboardingServico.recolherConvite(true), RECOLHER_CONVITE_MS);
-    return () => clearTimeout(t);
-  }, [isMobile, pausa]);
 
   return (
-    <motion.aside ref={aside} className="convite"
-      onPointerEnter={() => setPausa(true)} onPointerLeave={() => setPausa(aside.current?.contains(document.activeElement) ?? false)}
-      onFocusCapture={() => setPausa(true)} onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setPausa(false); }} data-origem={isMobile ? 'cartao' : 'ajudante'} aria-labelledby="convite-titulo"
-      // Celular: cartão sobe com mola. Desktop: balão nasce do Perdidinho (cauda no canto inferior direito).
-      initial={isMobile ? { opacity: 0, y: reduzir ? 0 : 16 } : { opacity: 0, y: reduzir ? 0 : 6, scale: reduzir ? 1 : 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: reduzir ? 0 : 10, transition: TRANSICAO.saida }}
-      transition={isMobile ? { ...TRANSICAO.mola, delay: ATRASO_CONVITE_MS / 1000 }
-        : { duration: 0.24, ease: CURVA.saida, delay: ATRASO_CONVITE_MS / 1000 }}>
-      {isMobile && <span className="convite__icone" aria-hidden="true"><Icone nome="tour" tamanho={18} /></span>}
+    <motion.aside className="convite" aria-labelledby="convite-titulo"
+      // Cartão sobe com mola.
+      initial={{ opacity: 0, y: reduzir ? 0 : 16 }}
+      animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduzir ? 0 : 10, transition: TRANSICAO.saida }}
+      transition={{ ...TRANSICAO.mola, delay: ATRASO_CONVITE_MS / 1000 }}>
+      <span className="convite__icone" aria-hidden="true"><Icone nome="tour" tamanho={18} /></span>
       <div className="convite__textos">
         <p id="convite-titulo" className="convite__titulo">{pausado ? 'Continuar o tour?' : `Olá, ${primeiroNome}! Primeira vez por aqui?`}</p>
         <p className="convite__texto">{pausado ? 'Você parou no meio do passo a passo. Retome de onde parou.' : 'Um tour de 1 minuto mostra o essencial do Park Flash para o seu perfil.'}</p>
@@ -227,7 +198,8 @@ function Convite() {
 export function TourGuiado() {
   const usuario = useUsuario();
   const ativo = useOnboarding((s) => s.ativo);
-  const mostrarConvite = useConviteVisivel(usuario?.id);
+  const isMobile = useIsMobile();
+  const mostrarConvite = useConviteVisivel(usuario?.id) && isMobile;
   return createPortal(
     <pf-tour>
       <AnimatePresence>{mostrarConvite && <Convite key="convite" />}</AnimatePresence>

@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, type RefObject } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useDragControls, useReducedMotion } from 'motion/react';
 import { Icone } from '../Icone';
-import { TRANSICAO, DURACAO, CURVA } from '../movimento';
+import { TRANSICAO } from '../movimento';
 import { usePrenderFoco } from '../usePrenderFoco';
 import type { Fala } from '../../nucleo/servicos/falas-estado';
 import type { ItemPendencia, NivelPendencia } from '../../nucleo/servicos/pendencias';
@@ -14,14 +14,17 @@ const GRUPOS: { nivel: NivelPendencia; titulo: string }[] = [
   { nivel: 'INFO', titulo: 'Para saber' },
 ];
 
+/** Largura a partir da qual a gaveta empurra o conteúdo (app-layout.scss). */
+const LARGA = '(min-width: 1600px)';
+
 export const TEXTO_EM_DIA = 'Tudo em dia por aqui. Bom turno!';
 
 interface Props {
   id: string;
-  /** `desktop`: painel solto acima do companheiro, à direita (não modal). `folha`: folha inferior do celular (padrão do "Mais"). */
-  variante: 'desktop' | 'folha';
+  /** `gaveta`: gaveta fixa à direita do desktop (não modal). `folha`: folha inferior do celular (padrão do "Mais"). */
+  variante: 'gaveta' | 'folha';
   itens: ItemPendencia[];
-  /** Histórico do dia: o que o Perdidinho disse (ou diria no balão) e ainda vale hoje. */
+  /** Histórico do dia: o que o Perdidinho disse (ou diria na barra/faixa) e ainda vale hoje. */
   falas?: Fala[];
   /** Botão que abre: cliques nele não contam como "fora" e o foco volta para ele no Esc. */
   botao: RefObject<HTMLElement>;
@@ -51,9 +54,11 @@ function Conteudo({ itens, falas, tituloId, titulo, silenciado, temTour, comPend
         )}
       </header>
 
-      {itens.length === 0 && falas.length === 0 ? (
+      <div className="painel__corpo">
+      {itens.length === 0 && falas.length === 0 && (
         <p className="painel__vazio">{TEXTO_EM_DIA}</p>
-      ) : (
+      )}
+      {itens.length > 0 && (
         GRUPOS.map(({ nivel, titulo: nome }) => {
           const doGrupo = itens.filter((i) => i.nivel === nivel);
           if (!doGrupo.length) return null;
@@ -104,6 +109,7 @@ function Conteudo({ itens, falas, tituloId, titulo, silenciado, temTour, comPend
           </ul>
         </section>
       )}
+      </div>
 
       <footer className="painel__rodape">
         {(silenciado || comPendencia) && (
@@ -119,9 +125,10 @@ function Conteudo({ itens, falas, tituloId, titulo, silenciado, temTour, comPend
 }
 
 /**
- * Painel "Precisa da sua atenção". No desktop é um painel NÃO modal acima do companheiro, alinhado à direita (360 px, no máximo 70% da altura):
- * o foco vai para o título, Esc fecha e devolve o foco ao botão, clicar fora fecha. No celular é uma folha inferior
- * no padrão do "Mais" (mesma mola, arrastar para baixo, foco preso).
+ * Painel "Precisa da sua atenção". No desktop é uma gaveta NÃO modal à direita (380 px): o foco vai para o título,
+ * Esc fecha e devolve o foco ao botão, Tab saindo da gaveta fecha; clicar fora fecha só quando ela sobrepõe o conteúdo
+ * (< 1600 px; acima disso o layout a reserva e a pessoa segue trabalhando ao lado). No celular é uma folha inferior
+ * no padrão do "Mais" (mesma mola, arrastar para baixo, foco preso). As seções são as mesmas nas duas.
  */
 export function PainelAtencao(props: Props) {
   const { id, variante, botao, aoFechar } = props;
@@ -151,9 +158,22 @@ export function PainelAtencao(props: Props) {
     const aoClicar = (e: PointerEvent) => {
       const alvo = e.target as Node;
       if (caixa.current?.contains(alvo) || botao.current?.contains(alvo)) return;
+      // Em telas largas a gaveta empurra o conteúdo: clicar nele é trabalhar, não dispensar.
+      if (window.matchMedia(LARGA).matches) return;
       aoFechar(false);
     };
+    // Tab saindo da gaveta (do último elemento para frente, ou do título/primeiro para trás) fecha: o foco segue o caminho natural.
+    const aoTab = (e: KeyboardEvent) => {
+      const c = caixa.current;
+      if (folha || e.key !== 'Tab' || !c || !c.contains(document.activeElement)) return;
+      const focaveis = [...c.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')];
+      const ativo = document.activeElement as HTMLElement;
+      const saiPraFrente = !e.shiftKey && (focaveis.length === 0 || ativo === focaveis[focaveis.length - 1]);
+      const saiPraTras = e.shiftKey && (ativo === titulo.current || ativo === focaveis[0]);
+      if (saiPraFrente || saiPraTras) aoFechar(false);
+    };
     document.addEventListener('keydown', aoTeclar);
+    if (!folha) document.addEventListener('keydown', aoTab);
     if (!folha) document.addEventListener('pointerdown', aoClicar);
     return () => {
       document.removeEventListener('keydown', aoTeclar);
@@ -186,10 +206,10 @@ export function PainelAtencao(props: Props) {
   }
 
   return (
-    <pf-painel-atencao data-variante="desktop">
-      <motion.div ref={caixa} id={id} className="painel painel--desktop" role="dialog" aria-labelledby={tituloId}
-        initial={reduzir ? { opacity: 0 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-        exit={reduzir ? { opacity: 0, transition: { duration: DURACAO.rapida } } : { opacity: 0, y: 8, transition: { duration: DURACAO.rapida, ease: CURVA.entrada } }}
+    <pf-painel-atencao data-variante="gaveta">
+      <motion.div ref={caixa} id={id} className="painel painel--gaveta" role="dialog" aria-labelledby={tituloId}
+        initial={reduzir ? { opacity: 0 } : { x: '100%' }} animate={reduzir ? { opacity: 1 } : { x: 0 }}
+        exit={reduzir ? { opacity: 0, transition: TRANSICAO.saida } : { x: '100%', transition: TRANSICAO.saida }}
         transition={TRANSICAO.base}>
         {conteudo}
       </motion.div>

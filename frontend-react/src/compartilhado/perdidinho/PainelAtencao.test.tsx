@@ -13,7 +13,7 @@ const fala: Fala = {
 function montar(falas: Fala[], itens = [] as never[]) {
   return render(
     <MemoryRouter>
-      <PainelAtencao id="p" variante="desktop" itens={itens} falas={falas} botao={createRef<HTMLElement>() as never} silenciado={false}
+      <PainelAtencao id="p" variante="gaveta" itens={itens} falas={falas} botao={createRef<HTMLElement>() as never} silenciado={false}
         temTour={false} comPendencia={false} aoFechar={() => undefined} aoSilenciar={() => undefined} aoVoltarAvisar={() => undefined}
         aoReverTour={() => undefined} />
     </MemoryRouter>,

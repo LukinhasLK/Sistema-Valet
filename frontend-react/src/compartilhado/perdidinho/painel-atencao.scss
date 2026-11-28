@@ -1,4 +1,4 @@
-/* Painel "Precisa da sua atenção": painel solto acima do companheiro (desktop) e folha inferior (celular). */
+/* Painel "Precisa da sua atenção": gaveta à direita (desktop) e folha inferior (celular). */
 pf-painel-atencao {
   display: block;
 
@@ -12,21 +12,34 @@ pf-painel-atencao {
     overscroll-behavior: contain;
   }
 
-  /* Ancorado acima do companheiro (botão de 52 px a 16 px das bordas + 10 px de respiro), alinhado à direita.
-     * z-index 55: acima do companheiro (50) e do conteúdo; abaixo de modais (100), convite (800), paleta (900), tour (950), toasts (1000). */
-  .painel--desktop {
+  /* Gaveta à direita (desktop, não modal): 380 px, borda à esquerda e sombra. Em < 1600 px sobrepõe o conteúdo, SEMPRE abaixo
+     da barra superior (48 px), para que o botão do Perdidinho e o sino nunca fiquem cobertos; em >= 1600 px o layout reserva
+     os 380 px (app-layout.scss) e ela ocupa a altura toda.
+     * z-index 55: acima do conteúdo e da barra (30); abaixo de modais (100), convite (800), paleta (900), tour (950), toasts (1000). */
+  .painel--gaveta {
     position: fixed;
     z-index: 55;
-    right: calc(16px + env(safe-area-inset-right));
-    bottom: calc(16px + 52px + 10px + env(safe-area-inset-bottom));
-    transform-origin: bottom right;
-    width: 360px;
-    max-width: calc(100vw - 24px);
-    max-height: min(70vh, calc(100dvh - 110px));
-    padding: 14px 14px 12px;
-    border: 1px solid var(--pf-border);
-    border-radius: var(--pf-radius);
-    box-shadow: var(--pf-shadow-lg);
+    top: var(--pf-barra-topo-h, 48px);
+    right: 0;
+    width: 380px;
+    max-width: 100vw;
+    height: calc(100vh - var(--pf-barra-topo-h, 48px));
+    height: calc(100dvh - var(--pf-barra-topo-h, 48px));
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+    border-left: 1px solid var(--pf-border);
+    box-shadow: -8px 0 32px rgba(16, 40, 63, .10);
+    will-change: transform;
+
+    .painel__cabeca { flex: none; padding: 10px 8px 10px 20px; border-bottom: 1px solid var(--pf-border); }
+    .painel__corpo { flex: 1 1 auto; min-height: 0; padding: 16px 20px; overflow-y: auto; overscroll-behavior: contain; }
+    .painel__rodape { flex: none; padding: 10px 20px; background: var(--pf-surface); }
+    .painel__nota { flex: none; margin: 0; padding: 0 20px 12px; }
+    .painel__fechar { width: 44px; height: 44px; }
+  }
+  @media (min-width: 1600px) {
+    .painel--gaveta { top: 0; height: 100vh; height: 100dvh; }
   }
 
   .painel-fundo {
@@ -52,11 +65,12 @@ pf-painel-atencao {
   .painel__titulo { margin: 0; font-size: 15px; font-weight: 700; &:focus { outline: none; } &:focus-visible { outline: 2px solid var(--pf-blue); outline-offset: 3px; border-radius: 4px; } }
 
   .painel__fechar {
-    display: grid; place-items: center; flex: none; width: 32px; height: 32px;
+    display: grid; place-items: center; flex: none; width: 44px; height: 44px;
     border: 0; border-radius: 8px; background: transparent; color: var(--pf-text-muted); cursor: pointer;
     &:hover { background: var(--pf-surface-hover); color: var(--pf-text); }
   }
 
+  .painel__corpo { display: flex; flex-direction: column; gap: 16px; }
   .painel__vazio { margin: 4px 0 2px; font-size: 14px; color: var(--pf-text); }
 
   .painel__grupo-titulo {
@@ -83,7 +97,7 @@ pf-painel-atencao {
   .painel__grupo[data-nivel='URGENTE'] .painel__item { border-color: rgba(194, 65, 65, .4); background: var(--pf-danger-soft); }
   .painel__item--so-info { cursor: default; }
   .painel__texto { flex: 1; min-width: 0; }
-  .painel__origem { display: block; margin-top: 2px; font-size: 11.5px; color: var(--pf-text-muted); }
+  .painel__origem { display: block; margin-top: 2px; font-size: 11.5px; color: #55606b; /* 5,6:1 sobre o cartão cinza (AA) */ }
   .painel__qtd {
     flex: none; min-width: 24px; padding: 2px 7px; border-radius: 999px; text-align: center;
     font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;

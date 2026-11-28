@@ -271,17 +271,34 @@ try {
   });
   ok('Ficha aberta do mês disponível para o teste do ajudante', criada === 201 || criada === 409, `${criada} (409 = o dia já tem ficha de outro passo)`);
   await dono.goto(`${BASE}/app/dashboard`, { waitUntil: 'networkidle0' }); await esp(700);
-  const botaoAj = 'pf-ajudante-perdidinho[data-variante=lado] button.ajud__botao';
+  const botaoAj = 'pf-ajudante-perdidinho[data-variante=barra] button.ajud__botao';
   const rotuloAj = await dono.$eval(botaoAj, (e) => e.getAttribute('aria-label')).catch(() => '');
-  ok('Ajudante no canto direito com número de pendências', /Pendências: [1-9]/.test(rotuloAj), rotuloAj);
-  const lugar = await dono.$eval(botaoAj, (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e.closest('pf-ajudante-perdidinho')); return { dir: Math.round(innerWidth - r.right), baixo: Math.round(innerHeight - r.bottom), l: Math.round(r.width), pos: c.position }; });
-  ok('Ajudante fixo no canto inferior direito, alvo de 48 px ou mais', lugar.pos === 'fixed' && lugar.dir === 16 && lugar.baixo === 16 && lugar.l >= 48, JSON.stringify(lugar));
+  ok('Ajudante na barra do topo com número de pendências', /Pendências: [1-9]/.test(rotuloAj), rotuloAj);
+  const lugar = await dono.evaluate((sel) => {
+    const e = document.querySelector(sel); const r = e.getBoundingClientRect();
+    const barra = e.closest('header.barra-topo'); const br = barra?.getBoundingClientRect();
+    const main = document.querySelector('main');
+    const sino = barra?.querySelector('a[href="/app/notificacoes"]');
+    const fixos = [...document.querySelectorAll('pf-ajudante-perdidinho, pf-balao-companheiro')].filter((x) => getComputedStyle(x).position === 'fixed');
+    return { dentroDaBarra: !!barra, altura: br && Math.round(br.height), topo: br && Math.round(br.top), pos: barra && getComputedStyle(barra).position,
+      antesDoMain: !!barra && !!main && !!(barra.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING),
+      l: Math.round(r.width), a: Math.round(r.height), direita: Math.round(innerWidth - r.right), nome: barra?.getAttribute('aria-label'),
+      sinoNaBarra: !!sino, sinoNaSidebar: !!document.querySelector('aside a[href="/app/notificacoes"]'),
+      sinoDepois: !!sino && !!(e.compareDocumentPosition(sino) & Node.DOCUMENT_POSITION_FOLLOWING), fixos: fixos.length, rodape: parseFloat(getComputedStyle(document.querySelector('main')).paddingBottom) };
+  }, botaoAj);
+  ok('Ajudante dentro da barra superior de 48 px, colada no topo, antes do main', lugar.dentroDaBarra && lugar.altura === 48 && lugar.topo === 0 && lugar.pos === 'sticky' && lugar.antesDoMain && lugar.nome === 'Barra do topo', JSON.stringify(lugar));
+  ok('Botão do Perdidinho com alvo de 44 px, sino logo depois (e fora da sidebar), nada fixo no canto', lugar.l >= 44 && lugar.a >= 44 && lugar.sinoNaBarra && lugar.sinoDepois && !lugar.sinoNaSidebar && lugar.fixos === 0, JSON.stringify(lugar));
+  ok('Sem reserva de rodapé no conteúdo desktop (antigo padding-bottom de 68 px)', lugar.rodape < 60, String(lugar.rodape));
   await dono.click(botaoAj); await esp(500);
   const painelAj = await dono.evaluate(() => {
     const d = document.querySelector('pf-painel-atencao [role=dialog]');
+    const c = d && getComputedStyle(d); const r = d?.getBoundingClientRect();
     return d ? { foco: document.activeElement?.tagName === 'H2' && d.contains(document.activeElement), modal: d.getAttribute('aria-modal'),
+      gaveta: { pos: c.position, largura: Math.round(r.width), direita: Math.round(innerWidth - r.right), topo: Math.round(r.top), baixo: Math.round(innerHeight - r.bottom), borda: c.borderLeftWidth },
+      barraVisivel: (() => { const b = document.querySelector('button.ajud__botao').getBoundingClientRect(); return document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)?.closest('button.ajud__botao') !== null; })(),
       textos: [...d.querySelectorAll('li a')].map((a) => a.textContent), expandido: document.querySelector('button.ajud__botao')?.getAttribute('aria-expanded') } : null;
   });
+  ok('Gaveta fixa à direita (380 px, colada na borda, abaixo da barra), sem cobrir o botão do Perdidinho', !!painelAj && painelAj.gaveta.pos === 'fixed' && painelAj.gaveta.largura === 380 && painelAj.gaveta.direita === 0 && painelAj.gaveta.topo >= 0 && painelAj.gaveta.topo <= 48 && painelAj.gaveta.baixo === 0 && painelAj.barraVisivel, JSON.stringify(painelAj?.gaveta));
   ok('Painel abre, não modal, com foco no título', !!painelAj && painelAj.foco && painelAj.modal === null && painelAj.expandido === 'true', JSON.stringify(painelAj));
   // A ficha do mês ainda não fechada aparece como "não enviada" (em edição) ou "esperando conferência" (pronta), nunca nas duas.
   ok('Painel lista a ficha do mês ainda não fechada', !!painelAj && painelAj.textos.some((t) => /ainda não enviadas? travam? a divisão de lucro|esperando sua conferência/.test(t)), (painelAj?.textos ?? []).join(' | '));

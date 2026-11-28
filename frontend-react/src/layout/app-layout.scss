@@ -7,14 +7,20 @@ pf-app-layout {
 
   .shell--mobile { flex-direction: column; }
 
+  /* Desktop: a barra superior (48 px) e o conteúdo dividem a coluna à direita da sidebar. */
+  .shell:not(.shell--mobile) { --pf-barra-topo-h: 48px; }
+  .coluna { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+
+  /* Gaveta do Perdidinho aberta em tela larga: reserva os 380 px (o conteúdo é empurrado, nada fica coberto).
+     Abaixo disso a gaveta sobrepõe, sempre abaixo da barra. Sem transição: nada de reflow por quadro. */
+  @media (min-width: 1600px) {
+    .shell[data-gaveta='aberta'] { padding-right: 380px; }
+  }
+
   .content {
     flex: 1;
     min-width: 0;
   }
-
-  /* Desktop: folga embaixo para o Perdidinho fixo (16 + 52 px) nunca cobrir o último botão ou linha da página.
-     Com o convite do tour aberto, soma a altura dele (--pf-convite-reserva, medida em TourGuiado) para dar para rolar além. */
-  .content:not(.content--mobile) { padding-bottom: calc(68px + var(--pf-convite-reserva, 0px) + env(safe-area-inset-bottom)); }
 
   .content--mobile {
     padding-bottom: calc(var(--pf-bottomnav-h) + env(safe-area-inset-bottom));

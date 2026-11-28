@@ -88,7 +88,7 @@ pf-nova-ficha {
 }
 
 /* Resumo ------------------------------------------------------------------ */
-.resumo { position: sticky; top: 24px; }
+.resumo { position: sticky; top: calc(24px + var(--pf-barra-topo-h, 0px)); }
 
 .resumo__card { padding: 20px; }
 

@@ -11,13 +11,21 @@ describe('BalaoCompanheiro', () => {
     const fora = document.createElement('button');
     document.body.appendChild(fora);
     fora.focus();
-    const { container } = render(<BalaoCompanheiro variante="balao" texto="Ontem: 42 carros, R$ 1.260,00." aoFechar={() => {}} />);
+    const { container } = render(<BalaoCompanheiro variante="faixa" texto="Ontem: 42 carros, R$ 1.260,00." aoFechar={() => {}} />);
     const status = screen.getByRole('status');
     expect(status.textContent).toBe('Ontem: 42 carros, R$ 1.260,00.');
     expect(status.getAttribute('aria-live')).toBe('polite');
-    expect(container.querySelector('pf-balao-companheiro')?.getAttribute('data-variante')).toBe('balao');
+    expect(container.querySelector('pf-balao-companheiro')?.getAttribute('data-variante')).toBe('faixa');
     expect(document.activeElement).toBe(fora);
     fora.remove();
+  });
+
+  it('na barra do desktop o texto é só visual: a região viva é única e mora no Perdidinho (sem anúncio duplo)', () => {
+    const { container } = render(<BalaoCompanheiro variante="barra" texto="Ontem: 42 carros." aoFechar={() => {}} />);
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(container.querySelector('[aria-live]')).toBeNull();
+    expect(container.querySelector('.balc__texto')?.textContent).toBe('Ontem: 42 carros.');
+    expect(container.querySelector('pf-balao-companheiro')?.getAttribute('data-variante')).toBe('barra');
   });
 
   it('a faixa do celular também é status e tem ícone decorativo', () => {
@@ -28,7 +36,7 @@ describe('BalaoCompanheiro', () => {
 
   it('o X chama aoFechar("fechar") depois da saída e desmonta', () => {
     const aoFechar = vi.fn();
-    render(<BalaoCompanheiro variante="balao" texto="Recado" aoFechar={aoFechar} />);
+    render(<BalaoCompanheiro variante="barra" texto="Recado" aoFechar={aoFechar} />);
     fireEvent.click(screen.getByRole('button', { name: 'Fechar mensagem' }));
     expect(aoFechar).not.toHaveBeenCalled();
     passar(SAIDA_BALAO_MS);
@@ -53,8 +61,8 @@ describe('BalaoCompanheiro', () => {
 
   it('tempo esgotado chama aoFechar("tempo")', () => {
     const aoFechar = vi.fn();
-    render(<BalaoCompanheiro variante="balao" texto="Recado" aoFechar={aoFechar} />);
-    passar(7999);
+    render(<BalaoCompanheiro variante="barra" texto="Recado" aoFechar={aoFechar} />);
+    passar(9999); // barra: 10 s
     expect(aoFechar).not.toHaveBeenCalled();
     passar(1 + SAIDA_BALAO_MS);
     expect(aoFechar.mock.calls).toEqual([['tempo']]);
@@ -62,14 +70,14 @@ describe('BalaoCompanheiro', () => {
 
   it('duracaoMs=0 não fecha sozinho', () => {
     const aoFechar = vi.fn();
-    render(<BalaoCompanheiro variante="balao" texto="Recado" aoFechar={aoFechar} duracaoMs={0} />);
+    render(<BalaoCompanheiro variante="barra" texto="Recado" aoFechar={aoFechar} duracaoMs={0} />);
     passar(60_000);
     expect(aoFechar).not.toHaveBeenCalled();
   });
 
   it('hover pausa o tempo; ao sair, retoma com folga para terminar de ler', () => {
     const aoFechar = vi.fn();
-    const { container } = render(<BalaoCompanheiro variante="balao" texto="Recado" aoFechar={aoFechar} duracaoMs={4000} />);
+    const { container } = render(<BalaoCompanheiro variante="barra" texto="Recado" aoFechar={aoFechar} duracaoMs={4000} />);
     const raiz = container.querySelector('pf-balao-companheiro')!;
     passar(3500);
     fireEvent.mouseEnter(raiz);
@@ -103,7 +111,7 @@ describe('BalaoCompanheiro', () => {
 
   it('se quem chama desmontar durante a saída (a ação navegou), o motivo não se perde', () => {
     const aoFechar = vi.fn();
-    const { unmount } = render(<BalaoCompanheiro variante="balao" texto="Recado" acao={{ rotulo: 'Ver', aoClicar: () => {} }} aoFechar={aoFechar} />);
+    const { unmount } = render(<BalaoCompanheiro variante="barra" texto="Recado" acao={{ rotulo: 'Ver', aoClicar: () => {} }} aoFechar={aoFechar} />);
     fireEvent.click(screen.getByRole('button', { name: 'Ver' }));
     unmount();
     expect(aoFechar.mock.calls).toEqual([['acao']]);

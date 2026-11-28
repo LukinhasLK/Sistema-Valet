@@ -2,12 +2,11 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSPrope
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Dica } from '../Dica';
 import { Icone } from '../Icone';
 import { CURVA, DURACAO } from '../movimento';
 import { useUsuario } from '../../nucleo/estado/auth';
 import { useInterface } from '../../nucleo/estado/interface';
-import { onboardingServico, useConvitePendente, useConviteVisivel, useOnboarding } from '../../nucleo/onboarding/estado';
+import { onboardingServico, progressoDe, useConvitePendente, useConviteVisivel, useOnboarding } from '../../nucleo/onboarding/estado';
 import { roteiroDo } from '../../nucleo/onboarding/roteiros';
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
 import { useMotorDeFalas } from '../../nucleo/servicos/falas';
@@ -17,6 +16,7 @@ import {
   useSilenciado, type ItemPendencia,
 } from '../../nucleo/servicos/pendencias';
 import { BalaoCompanheiro } from './BalaoCompanheiro';
+import { ConviteNaBarra, textoDoConvite } from './ConviteNaBarra';
 import { PerdidinhoTardio } from './index';
 import { PainelAtencao } from './PainelAtencao';
 import { useAlvoDoOlhar, type ModoOlhar } from './useAlvoDoOlhar';
@@ -29,7 +29,7 @@ export const SONO_MS = 2 * 60_000;
 export const ACENO_MS = 700;
 /** Aceno do convite de primeiro acesso: o "oi" inteiro (sobe, balança, pousa), depois volta ao humor normal. */
 export const ACENO_CONVITE_MS = 1200;
-/** Atraso do balão do convite (igual ao `delay` do Convite em TourGuiado): o aceno começa quando o balão nasce. */
+/** Atraso do convite (igual ao `delay` do Convite do celular em TourGuiado): o aceno começa quando o convite nasce. */
 export const ATRASO_CONVITE_MS = 900;
 
 /** Transição do olhar por modo: olhadela rápida, ajuste calmo, retorno suave ao olhar livre (todas ease-out). */
@@ -38,9 +38,6 @@ const OLHAR_CSS: Record<ModoOlhar, { dur: string; atraso: string }> = {
   ajuste: { dur: '260ms', atraso: '30ms' },
   livre: { dur: '280ms', atraso: '80ms' },
 };
-
-/** Entrada do companheiro: só a primeira vez que ele aparece para cada usuário nesta carga da página. */
-let entrouPara: number | null = null;
 
 const ROTA_QUIETA = /^\/app\/fichas\/(nova|\d+\/editar)\/?$/;
 const CAMPO = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
@@ -121,17 +118,19 @@ export function FaixaDeFala() {
 }
 
 interface Props {
-  /** `lado`: companheiro fixo no canto inferior direito (desktop). `topo`: botão no topo do celular, entre busca e sino. */
-  variante: 'lado' | 'topo';
+  /** `barra`: botão na barra superior do desktop (com a fala à esquerda e a gaveta à direita). `topo`: botão no topo do celular, entre busca e sino. */
+  variante: 'barra' | 'topo';
+  /** Desktop: a gaveta abriu ou fechou (o layout reserva espaço em telas largas). */
+  aoMudarGaveta?: (aberta: boolean) => void;
 }
 
 /**
- * Perdidinho ajudante: o lugar das pendências. Desktop: companheiro fixo no canto inferior direito (mascote de 42 px);
- * celular: botão no topo. Humor por situação (triste sem conexão, surpreso se urgente, preocupado se há prejuízo, apontando se há o que fazer, explicando, feliz), selo com o número
- * de pendências e um painel "Precisa da sua atenção". No desktop o olhar acompanha onde a pessoa age (foco/clique) e
+ * Perdidinho ajudante: o lugar das pendências. Desktop: botão na barra superior (mascote de 32 px em alvo de 44 px), com as
+ * falas e o convite do tour DENTRO da barra e a lista numa gaveta à direita; celular: botão no topo. Humor por situação (triste sem conexão, surpreso se urgente, preocupado se há prejuízo, apontando se há o que fazer, explicando, feliz), selo com o número
+ * de pendências e uma gaveta/folha "Precisa da sua atenção". No desktop o olhar acompanha onde a pessoa age (foco/clique) e
  * os olhos se fecham em campo de senha. Nunca é modal sozinho, não faz som e só acena uma vez por pendência urgente.
  */
-export function AjudantePerdidinho({ variante }: Props) {
+export function AjudantePerdidinho({ variante, aoMudarGaveta }: Props) {
   const { pathname } = useLocation();
   const usuario = useUsuario();
   const { itens: itensServidor, carregadoEm, falhou } = usePendencias(pathname);
@@ -143,17 +142,18 @@ export function AjudantePerdidinho({ variante }: Props) {
   const mascote = useRef<HTMLSpanElement>(null);
   const idPainel = useId();
   const parado = useReducedMotion() ?? false;
-  const lado = variante === 'lado';
+  const barra = variante === 'barra';
   const comPresenca = usePresenca((s) => s.total > 0);
   const tourAtivo = useOnboarding((s) => s.ativo !== null);
   const conviteAberto = useConviteVisivel(usuario?.id);
   const convitePendente = useConvitePendente(usuario?.id);
+  const conviteRetomada = useOnboarding((s) => { const st = progressoDe(s.progresso, usuario?.id).status; return st === 'pausado' || st === 'em_andamento'; });
   const paletaAberta = useInterface((s) => s.paletaAberta);
   const silenciado = useSilenciado();
   const campoFocado = useCampoFocado();
-  // Falas do Perdidinho (balão no desktop, faixa no celular): só em momento livre, uma por vez.
+  // Falas do Perdidinho (na barra no desktop, faixa no celular): só em momento livre, uma por vez.
   const bloqueadoParaFala = campoFocado || tourAtivo || conviteAberto || convitePendente || paletaAberta || aberto || comPresenca;
-  const { falas, itensAtencao } = useMotorDeFalas({ canal: lado ? 'balao' : 'faixa', pathname, bloqueado: bloqueadoParaFala });
+  const { falas, itensAtencao } = useMotorDeFalas({ canal: barra ? 'balao' : 'faixa', pathname, bloqueado: bloqueadoParaFala });
   const falaAtiva = useFalaAtiva((s) => s.ativa);
   const itens = useMemo(
     () => (itensAtencao.length ? [...itensServidor, ...itensAtencao].sort((a, b) => ORDEM_NIVEL[a.nivel] - ORDEM_NIVEL[b.nivel]) : itensServidor),
@@ -164,19 +164,56 @@ export function AjudantePerdidinho({ variante }: Props) {
   const dormindo = useAdormecido(resumo.nivel === 'nada' && !falhou);
   // O convite de primeiro acesso é anunciado por este próprio Perdidinho (ele acena), no desktop e no celular.
   const semOlhos = comPresenca || tourAtivo;
-  const { olhar: alvoOlhar, senha, modo, saltos } = useAlvoDoOlhar(mascote, lado && !parado && !semOlhos);
+  const { olhar: alvoOlhar, senha, modo, saltos } = useAlvoDoOlhar(mascote, barra && !parado && !semOlhos);
   const timerAceno = useRef<ReturnType<typeof setTimeout>>();
   const anteriorUrgentes = useRef<number | null>(null);
-  // Entrada: trava na primeira pintura com usuário (o atributo fica, a animação CSS roda uma vez só).
-  const entradaDe = useRef<number | null>(null);
-  if (lado && usuario && entradaDe.current === null && entrouPara !== usuario.id) entradaDe.current = usuario.id;
-  const entrando = entradaDe.current !== null && entradaDe.current === usuario?.id;
 
   useEffect(() => () => clearTimeout(timerAceno.current), []);
 
+  // O layout reserva espaço para a gaveta em telas largas; ao desmontar (ou virar celular), devolve.
+  const aoMudarGavetaAtual = useRef(aoMudarGaveta);
+  aoMudarGavetaAtual.current = aoMudarGaveta;
   useEffect(() => {
-    if (entradaDe.current !== null) entrouPara = entradaDe.current;
-  }, [usuario]);
+    if (!barra) return;
+    aoMudarGavetaAtual.current?.(aberto);
+    return () => aoMudarGavetaAtual.current?.(false);
+  }, [barra, aberto]);
+
+  // Fala na barra: o mascote dá um pulinho (4 px, 180 ms) e olha para ela (à esquerda) por um instante.
+  const [olhaFala, setOlhaFala] = useState(false);
+  const chaveFala = barra && falaAtiva ? `${falaAtiva.id}:${falaAtiva.chave}` : null;
+  const chamando = chaveFala !== null || (barra && conviteAberto);
+  useEffect(() => {
+    if (!chamando || parado || semOlhos) return;
+    const atraso = chaveFala === null ? ATRASO_CONVITE_MS : 0;
+    let fim: ReturnType<typeof setTimeout> | undefined;
+    let pulo: Animation | undefined;
+    const inicio = setTimeout(() => {
+      setOlhaFala(true);
+      fim = setTimeout(() => setOlhaFala(false), 1800);
+      const el = botao.current;
+      if (el && typeof el.animate === 'function') {
+        pulo = el.animate([{ transform: 'none' }, { transform: 'translateY(-4px)', offset: 0.45 }, { transform: 'none' }], { duration: 180, easing: 'cubic-bezier(.22, 1, .36, 1)' });
+      }
+    }, atraso);
+    return () => {
+      clearTimeout(inicio);
+      clearTimeout(fim);
+      pulo?.cancel();
+      setOlhaFala(false);
+    };
+  }, [chamando, chaveFala, parado, semOlhos]);
+
+  // Região viva ÚNICA da barra: a fala (ou o convite) é anunciada aqui, sem região própria no balão (nada de anúncio duplo).
+  const primeiroNome = usuario?.nome.split(' ')[0] ?? '';
+  const textoConvite = barra && conviteAberto ? textoDoConvite(primeiroNome, conviteRetomada) : null;
+  const textoFala = barra ? (falaAtiva?.texto ?? textoConvite) : null;
+  useEffect(() => {
+    if (!barra) return;
+    if (textoFala === null) { setAnuncio(''); return; }
+    const t = setTimeout(() => setAnuncio(textoFala), falaAtiva ? 50 : ATRASO_CONVITE_MS);
+    return () => clearTimeout(t);
+  }, [barra, textoFala, falaAtiva]);
 
   // Olhadela: ao mudar de região, o corpo "repara" (inclina ~2° e chega 1 px para o lado do alvo) e volta.
   // WAAPI só com transform, numa camada própria (o GSAP do Perdidinho anima os elementos de dentro).
@@ -252,24 +289,30 @@ export function AjudantePerdidinho({ variante }: Props) {
 
   if (!usuario) return null;
 
-  const humor: HumorMascote = acenoConvite || acenando ? 'acenando' : lado && falaAtiva ? falaAtiva.humor : resumo.nivel === 'nada' && !falhou && dormindo ? 'dormindo' : humorDasPendencias(resumo, falhou);
+  const humor: HumorMascote = acenoConvite || acenando ? 'acenando' : barra && falaAtiva ? falaAtiva.humor : resumo.nivel === 'nada' && !falhou && dormindo ? 'dormindo' : humorDasPendencias(resumo, falhou);
   const mostraNumero = resumo.contador > 0;
   const urgente = resumo.nivel === 'urgente';
   const temTour = roteiroDo(usuario.nivel).length > 0;
-  const tamanho = lado ? 42 : 28;
+  const tamanho = barra ? 32 : 28;
   // Olhar: desktop acompanha a ação (sem ação, livre = segue o cursor); movimento reduzido ou celular: neutro e fixo.
-  const olhar = lado && !parado ? alvoOlhar : { x: 0, y: 0 };
+  const olhar = barra && !parado ? (olhaFala ? { x: -0.7, y: 0.05 } : alvoOlhar) : { x: 0, y: 0 };
   const olharCss = OLHAR_CSS[modo];
 
   return (
     <pf-ajudante-perdidinho data-variante={variante} data-nivel={resumo.nivel}
-      data-aberto={aberto || undefined} data-sem-olhos={semOlhos || undefined} data-entrada={entrando || undefined}>
-      <Dica texto="Precisa da sua atenção" lado={lado ? 'left' : 'bottom'} desligada={!lado}>
+      data-aberto={aberto || undefined} data-sem-olhos={semOlhos || undefined}>
+      {/* Fala e convite: DENTRO da barra, antes do botão (o indicador da fala aponta para o mascote). */}
+      {barra && falaAtiva && (
+        <BalaoCompanheiro key={`${falaAtiva.id}:${falaAtiva.chave}`} variante="barra" texto={falaAtiva.texto} reduzirMovimento={parado}
+          acao={falaAtiva.acao ? { rotulo: falaAtiva.acao.rotulo, aoClicar: () => navegar(falaAtiva.acao!.rota) } : undefined}
+          aoFechar={aoFecharFala} />
+      )}
+      {barra && <AnimatePresence>{conviteAberto && <ConviteNaBarra key="convite" atrasoMs={parado ? 0 : ATRASO_CONVITE_MS} reduzirMovimento={parado} />}</AnimatePresence>}
         <button ref={botao} type="button" className="ajud__botao" aria-label={resumo.rotulo} aria-haspopup="dialog"
           aria-expanded={aberto} aria-controls={aberto ? idPainel : undefined} data-tour="ajudante"
           onClick={() => {
-            // Convite recolhido (desktop): o primeiro clique o reabre; com ele à vista, o clique abre o painel como sempre.
-            if (lado && convitePendente && !conviteAberto && !aberto) onboardingServico.recolherConvite(false);
+            // Convite recolhido (desktop): o primeiro clique o reabre; com ele à vista, o clique abre a gaveta como sempre.
+            if (barra && convitePendente && !conviteAberto && !aberto) onboardingServico.recolherConvite(false);
             else if (aberto) fechar();
             else abrir();
           }}>
@@ -279,7 +322,7 @@ export function AjudantePerdidinho({ variante }: Props) {
             {semOlhos
               ? <Silhueta tamanho={tamanho} />
               : <PerdidinhoTardio decorativo tamanho={tamanho} humor={humor} falando={false} passo={`ajudante-${humor}`} lado="centro"
-                  olhar={olhar} olhos={lado && senha ? 'fechados' : undefined} ciclos={false} reduzirMovimento={parado} />}
+                  olhar={olhar} olhos={barra && senha ? 'fechados' : undefined} ciclos={false} reduzirMovimento={parado} />}
           </span>
           {mostraNumero && (
             // A chave é o número: o selo só "brota" quando o número muda (nunca em laço).
@@ -291,19 +334,12 @@ export function AjudantePerdidinho({ variante }: Props) {
           )}
           {!mostraNumero && resumo.nivel === 'info' && <span className="ajud__ponto" aria-hidden="true" />}
         </button>
-      </Dica>
-      {/* Balão (desktop): logo depois do botão no DOM; a faixa do celular é renderizada pelo LayoutApp. */}
-      {lado && falaAtiva && (
-        <BalaoCompanheiro key={`${falaAtiva.id}:${falaAtiva.chave}`} variante="balao" texto={falaAtiva.texto} reduzirMovimento={parado}
-          acao={falaAtiva.acao ? { rotulo: falaAtiva.acao.rotulo, aoClicar: () => navegar(falaAtiva.acao!.rota) } : undefined}
-          aoFechar={aoFecharFala} />
-      )}
-      {/* Região viva: só o aumento de urgentes é anunciado. */}
+      {/* Região viva: o aumento de urgentes e, na barra, a fala/convite (a faixa do celular tem a própria, no LayoutApp). */}
       <div className="ajud__anuncio" role="status" aria-live="polite" aria-atomic="true">{anuncio}</div>
       {createPortal(
         <AnimatePresence>
           {aberto && (
-            <PainelAtencao key="painel" id={idPainel} variante={lado ? 'desktop' : 'folha'} itens={itens}
+            <PainelAtencao key="painel" id={idPainel} variante={barra ? 'gaveta' : 'folha'} itens={itens}
               botao={botao} falas={falas.filter((f) => f.noPainel)} silenciado={silenciado} temTour={temTour} comPendencia={mostraNumero}
               aoFechar={fechar}
               aoSilenciar={() => { silencioServico.silenciar(usuario.id); fechar(true); }}

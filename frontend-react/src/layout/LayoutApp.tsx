@@ -1,4 +1,4 @@
-import { Suspense, useLayoutEffect, useRef } from 'react';
+import { Suspense, useLayoutEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Esqueleto, EsqueletoKpis } from '../compartilhado/Esqueleto';
 import { Icone } from '../compartilhado/Icone';
@@ -10,10 +10,11 @@ import { inicialDe, useUsuario } from '../nucleo/estado/auth';
 import { useAtualizacaoAutomatica } from '../nucleo/estado/atualizacao';
 import { interfaceServico } from '../nucleo/estado/interface';
 import { useIsMobile } from '../nucleo/estado/layout';
-import { useNotificacoesDisponiveis, useTotalNaoLidas } from '../nucleo/servicos/notificacoes';
 import { BarraInferior } from './BarraInferior';
+import { BarraTopo } from './BarraTopo';
 import { corDoAvatar } from './itens-menu';
 import { PaletaComandos } from './PaletaComandos';
+import { SinoNotificacoes } from './SinoNotificacoes';
 import { Sidebar } from './Sidebar';
 import { TourGuiado } from './TourGuiado';
 import './app-layout.scss';
@@ -56,8 +57,7 @@ export function LayoutApp() {
   useNoindex();
   const isMobile = useIsMobile();
   const usuario = useUsuario();
-  const disponivel = useNotificacoesDisponiveis();
-  const total = useTotalNaoLidas();
+  const [gaveta, setGaveta] = useState(false);
   const conteudo = useRef<HTMLElement>(null);
   useAtualizacaoAutomatica();
 
@@ -72,12 +72,7 @@ export function LayoutApp() {
                 <Icone nome="busca" tamanho={20} />
               </button>
               {usuario && <AjudantePerdidinho variante="topo" />}
-              {disponivel && (
-                <Link className="topbar__botao topbar__sino" to="/app/notificacoes" aria-label={`Notificações${total ? `, ${total} não lidas` : ''}`}>
-                  <Icone nome="sino" tamanho={20} />
-                  {!!total && <span aria-hidden="true">{total > 99 ? '99+' : total}</span>}
-                </Link>
-              )}
+              <SinoNotificacoes className="topbar__botao topbar__sino" />
               {usuario && (
                 <Link className="pf-avatar topbar__avatar" to="/app/perfil" aria-label="Meu perfil" data-tour="perfil" style={{ background: corDoAvatar(usuario.nome) }}>
                   {inicialDe(usuario)}
@@ -97,11 +92,14 @@ export function LayoutApp() {
 
   return (
     <pf-app-layout>
-      <div className="shell">
+      {/* Em telas largas (>= 1600 px) a gaveta do Perdidinho empurra o conteúdo: o atributo reserva os 380 px. */}
+      <div className="shell" data-gaveta={gaveta ? 'aberta' : undefined}>
         <Sidebar />
-        <main ref={conteudo} className="content"><Tela conteudo={conteudo} /></main>
+        <div className="coluna">
+          <BarraTopo aoMudarGaveta={setGaveta} />
+          <main ref={conteudo} className="content"><Tela conteudo={conteudo} /></main>
+        </div>
       </div>
-      {usuario && <AjudantePerdidinho variante="lado" />}
       <PaletaComandos />
       <TourGuiado />
     </pf-app-layout>

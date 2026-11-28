@@ -7,17 +7,20 @@ import { Logo } from '../compartilhado/Logo';
 import { TRANSICAO } from '../compartilhado/movimento';
 import { authServico, inicialDe, useNivel, useUsuario } from '../nucleo/estado/auth';
 import { interfaceServico, teclaComando, useMenuRecolhido } from '../nucleo/estado/interface';
-import { useTotalNaoLidas } from '../nucleo/servicos/notificacoes';
 import { corDoAvatar, gruposPermitidos } from './itens-menu';
 import './sidebar.scss';
+
+const ROTA_NOTIFICACOES = '/app/notificacoes';
 
 export function Sidebar() {
   const usuario = useUsuario();
   const nivel = useNivel();
-  const naoLidas = useTotalNaoLidas();
   const navegar = useNavigate();
   const recolhido = useMenuRecolhido();
-  const grupos = gruposPermitidos(nivel);
+  // O sino de notificações mora na barra superior do desktop (BarraTopo); a tela continua na paleta e no celular.
+  const grupos = gruposPermitidos(nivel)
+    .map((g) => ({ ...g, itens: g.itens.filter((i) => i.rota !== ROTA_NOTIFICACOES) }))
+    .filter((g) => g.itens.length > 0);
 
   // "[" recolhe/expande o menu (fora de campos de texto).
   useEffect(() => {
@@ -65,7 +68,6 @@ export function Sidebar() {
             <div key={grupo.id} className="grupo" role="group" aria-labelledby={`grupo-${grupo.id}`}>
               <p id={`grupo-${grupo.id}`} className="grupo__titulo">{grupo.titulo}</p>
               {grupo.itens.map((item) => {
-                const contador = item.rota === '/app/notificacoes' && naoLidas ? (naoLidas > 99 ? '99+' : String(naoLidas)) : '';
                 return (
                   <Dica key={item.rota} texto={item.label} lado="right" desligada={!recolhido}>
                     <NavLink className={({ isActive }) => `nav-item${isActive ? ' nav-item--active' : ''}`} to={item.rota}
@@ -75,7 +77,6 @@ export function Sidebar() {
                           {isActive && <motion.span layoutId="nav-ativo" className="nav-item__fundo" transition={TRANSICAO.mola} />}
                           <Icone nome={item.icone} tamanho={17} />
                           <span className="nav-item__rotulo">{item.label}</span>
-                          {contador && <span className="nav-item__contador" aria-label={`${naoLidas} não lidas`}>{contador}</span>}
                         </>
                       )}
                     </NavLink>

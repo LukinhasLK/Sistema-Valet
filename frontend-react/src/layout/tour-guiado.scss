@@ -59,39 +59,21 @@ pf-tour {
   .tour__espaco { flex: 1; }
   .tour__pular { color: var(--pf-text-muted); font-weight: 500; }
 
-  /* Convite de primeiro acesso ----------------------------------------- */
+  /* Convite de primeiro acesso (celular; no desktop ele é uma fala na barra superior) ------------------ */
   .convite {
     position: fixed;
-    /* Desktop: balão ancorado acima do Perdidinho do canto (botão de 52 px a 16 px da borda + 12 px de respiro). */
-    right: calc(16px + env(safe-area-inset-right));
-    bottom: calc(16px + 52px + 12px + env(safe-area-inset-bottom));
+    right: 10px;
+    left: 10px;
+    bottom: calc(var(--pf-bottomnav-h) + 10px + env(safe-area-inset-bottom));
     z-index: 800;
     display: flex;
     gap: 12px;
-    width: min(380px, calc(100vw - 20px));
     padding: 14px 16px;
     border: 1px solid var(--pf-border);
     border-radius: 14px;
     background: var(--pf-surface);
     box-shadow: var(--pf-shadow-lg);
-  }
-
-  /* Nasce do companheiro: a escala parte da ponta da cauda, que fica sobre o centro do botão (42 px da borda direita). */
-  .convite[data-origem='ajudante'] { transform-origin: calc(100% - 42px) calc(100% + 7px); }
-  .convite[data-origem='cartao'] { transform-origin: 50% 100%; }
-
-  /* Cauda do balão: aponta para o Perdidinho (centro do botão de 52 px: right 36 + 12/2 = 42 px). */
-  .convite[data-origem='ajudante']::after {
-    content: '';
-    position: absolute;
-    right: 36px;
-    bottom: -7px;
-    width: 12px;
-    height: 12px;
-    background: var(--pf-surface);
-    border-right: 1px solid var(--pf-border);
-    border-bottom: 1px solid var(--pf-border);
-    transform: rotate(45deg);
+    transform-origin: 50% 100%;
   }
 
   .convite__titulo { font-family: var(--pf-font-display); font-weight: 700; font-size: 14.5px; }
@@ -99,9 +81,6 @@ pf-tour {
   .convite__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
   .convite__nunca { margin-left: 4px; font-weight: 500; color: var(--pf-text-muted); font-size: 12.5px; }
 
-  @media (max-width: 767px) {
-    .convite { right: 10px; left: 10px; width: auto; bottom: calc(var(--pf-bottomnav-h) + 10px + env(safe-area-inset-bottom)); }
-  }
 }
 
 .pf-dica-contextual { overflow: hidden; }
@@ -124,5 +103,3 @@ pf-tour {
 
 /* O convite nunca disputa espaço com um diálogo aberto (modal, painel, "Mais", paleta). */
 body:has([aria-modal='true']) pf-tour .convite { display: none; }
-/* No desktop o painel de pendências abre no mesmo lugar do balão: um de cada vez. */
-body:has(pf-painel-atencao [role='dialog']) pf-tour .convite[data-origem='ajudante'] { display: none; }

@@ -7,6 +7,7 @@ import { useOnboarding } from '../../nucleo/onboarding/estado';
 import { limparAlertasDoPainel, pendenciasServico, publicarAlertasDoPainel, registrarPresenca, reiniciarChamadasParaTeste, silencioServico, usePresenca } from '../../nucleo/servicos/pendencias';
 import { salvarRascunho } from '../../nucleo/servicos/rascunho-ficha';
 import { AjudantePerdidinho } from './AjudantePerdidinho';
+import { useFalaAtiva, type Fala } from '../../nucleo/servicos/falas-estado';
 import { TEXTO_EM_DIA } from './PainelAtencao';
 
 const GERENTE: Usuario = { id: 2, nome: 'Pedro', email: 'p@x.com', nivel: 'Gerente' };
@@ -14,12 +15,12 @@ const OPERADOR: Usuario = { id: 3, nome: 'Dario', email: 'd@x.com', nivel: 'Oper
 
 const pendencia = (p: object) => ({ id: 'prontas', tipo: 'prontas', nivel: 'ATENCAO', quantidade: 3, rota: '/app/fichas?situacao=PRONTA', ...p });
 
-async function montar(usuario: Usuario = GERENTE, variante: 'lado' | 'topo' = 'lado') {
+async function montar(usuario: Usuario = GERENTE, variante: 'barra' | 'topo' = 'barra', aoMudarGaveta?: (aberta: boolean) => void) {
   useAuth.setState({ usuario, token: 't' });
   let resultado!: ReturnType<typeof render>;
   // Deixa a primeira busca de pendências terminar dentro do act.
   await act(async () => {
-    resultado = render(<MemoryRouter initialEntries={['/app/dashboard']}><AjudantePerdidinho variante={variante} /></MemoryRouter>);
+    resultado = render(<MemoryRouter initialEntries={['/app/dashboard']}><AjudantePerdidinho variante={variante} aoMudarGaveta={aoMudarGaveta} /></MemoryRouter>);
   });
   return resultado;
 }
@@ -29,10 +30,12 @@ describe('AjudantePerdidinho', () => {
     localStorage.clear();
     pendenciasServico.reiniciar();
     reiniciarChamadasParaTeste();
+    useOnboarding.setState({ conviteAdiado: true }); // sem o convite do tour na barra (há um teste só dele)
   });
   afterEach(() => {
     useAuth.setState({ usuario: null, token: null });
-    useOnboarding.setState({ ativo: null });
+    useFalaAtiva.setState({ ativa: null });
+    useOnboarding.setState({ ativo: null, conviteAdiado: false, conviteRecolhido: false });
     usePresenca.setState({ total: 0 });
   });
 
@@ -180,14 +183,78 @@ describe('AjudantePerdidinho', () => {
     await waitFor(() => expect(regiao.textContent).toContain('1 unidade sem divisão entre sócios.'));
   });
 
-  it('desktop: entra (data-entrada) só na primeira vez de cada usuário nesta carga da página', async () => {
+  it('desktop: não há mais companheiro flutuante (nada fixo no canto) e o botão é um alvo de 44 px na barra', async () => {
     apiFalsa({ '/api/pendencias': { corpo: [] } });
-    const novo: Usuario = { id: 77, nome: 'Nina', email: 'n@x.com', nivel: 'Gerente' };
-    const primeira = await montar(novo);
-    expect(primeira.container.querySelector('pf-ajudante-perdidinho')?.hasAttribute('data-entrada')).toBe(true);
-    primeira.unmount();
-    const segunda = await montar(novo);
-    expect(segunda.container.querySelector('pf-ajudante-perdidinho')?.hasAttribute('data-entrada')).toBe(false);
+    const { container } = await montar();
+    const raiz = container.querySelector('pf-ajudante-perdidinho')!;
+    expect(raiz.getAttribute('data-variante')).toBe('barra');
+    expect(raiz.hasAttribute('data-entrada')).toBe(false);
+    expect(container.querySelector('pf-balao-companheiro')).toBeNull();
+  });
+
+  it('gaveta: avisa o layout ao abrir/fechar (para reservar os 380 px em telas largas), não é modal e devolve ao desmontar', async () => {
+    apiFalsa({ '/api/pendencias': { corpo: [pendencia({})] } });
+    const aoMudar = vi.fn();
+    const { unmount } = await montar(GERENTE, 'barra', aoMudar);
+    expect(aoMudar).toHaveBeenLastCalledWith(false);
+    fireEvent.click(await screen.findByRole('button', { name: /Pendências: 1$/ }));
+    expect(aoMudar).toHaveBeenLastCalledWith(true);
+    expect(screen.getByRole('dialog', { name: 'Precisa da sua atenção' }).getAttribute('aria-modal')).toBeNull();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(aoMudar).toHaveBeenLastCalledWith(false));
+    fireEvent.click(screen.getByRole('button', { name: /Pendências: 1$/ }));
+    expect(aoMudar).toHaveBeenLastCalledWith(true);
+    unmount();
+    expect(aoMudar).toHaveBeenLastCalledWith(false);
+  });
+
+  it('gaveta: Tab saindo do último elemento fecha; Tab no meio não fecha', async () => {
+    apiFalsa({ '/api/pendencias': { corpo: [pendencia({})] } });
+    await montar();
+    fireEvent.click(await screen.findByRole('button', { name: /Pendências: 1$/ }));
+    const dialogo = screen.getByRole('dialog', { name: 'Precisa da sua atenção' });
+    const focaveis = [...dialogo.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')];
+    act(() => focaveis[0].focus());
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(screen.queryByRole('dialog')).not.toBeNull();
+    act(() => focaveis[focaveis.length - 1].focus());
+    fireEvent.keyDown(document, { key: 'Tab' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  const falaDeTeste: Fala = {
+    id: 'resumoOntem', numero: 1, canais: ['balao', 'painel'], prioridade: 3, humor: 'explicando', noPainel: true,
+    texto: 'Ontem: 42 carros, R$ 750,00 líquido das fichas.', acao: { rotulo: 'Ver ontem', rota: '/app/fichas?mes=11' },
+    chave: 'resumoOntem:2026-11-27', validaAte: Date.now() + 60_000,
+  };
+
+  it('fala na barra: renderiza DENTRO da barra (antes do botão), sem região própria; a região viva única a anuncia', async () => {
+    apiFalsa({ '/api/pendencias': { corpo: [] } });
+    const { container } = await montar();
+    await screen.findByRole('button', { name: /Pendências: nenhuma$/ });
+    act(() => useFalaAtiva.setState({ ativa: falaDeTeste }));
+    const fala = container.querySelector('pf-balao-companheiro[data-variante=barra]')!;
+    expect(fala).not.toBeNull();
+    const botao = container.querySelector('.ajud__botao')!;
+    expect(fala.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(container.querySelectorAll('[aria-live]').length).toBe(1);
+    await waitFor(() => expect(container.querySelector('.ajud__anuncio')?.textContent).toBe(falaDeTeste.texto));
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar mensagem' }));
+    await waitFor(() => expect(container.querySelector('pf-balao-companheiro')).toBeNull());
+    await waitFor(() => expect(container.querySelector('.ajud__anuncio')?.textContent).toBe(''));
+  });
+
+  it('convite do tour (primeiro acesso) vira fala na barra, com as 3 ações, e não é um balão no canto', async () => {
+    apiFalsa({ '/api/pendencias': { corpo: [] } });
+    useOnboarding.setState({ conviteAdiado: false, conviteRecolhido: false, progresso: {} });
+    const { container } = await montar();
+    const convite = await screen.findByRole('group', { name: 'Convite para o tour' });
+    expect(container.contains(convite)).toBe(true);
+    expect(screen.getByRole('button', { name: 'Fazer o tour' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Lembrar depois' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Não mostrar mais' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Lembrar depois' }));
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Convite para o tour' })).toBeNull());
   });
 
   it('no topo do celular só mostra o cubo (sem o texto), com alvo próprio', async () => {

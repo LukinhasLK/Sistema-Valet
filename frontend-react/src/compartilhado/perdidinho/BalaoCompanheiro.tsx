@@ -6,13 +6,14 @@ import './balao-companheiro.scss';
 /**
  * BalaoCompanheiro: o recado curto do Perdidinho (fato + ação), sem mascote, sem som.
  *
- * - `balao` (desktop): cartão fixo acima do companheiro do canto inferior direito, com a cauda
- *   apontando para o centro do botão (52 px). Nasce da cauda; sai mais rápido do que entra.
+ * - `barra` (desktop): pílula de uma linha DENTRO da barra superior, à esquerda do botão do Perdidinho, com um
+ *   indicador apontando para ele. Texto com reticências (o completo fica no histórico), ação e X. Nada flutua.
  * - `faixa` (celular): bloco no fluxo, logo abaixo do cabeçalho. Empurra o conteúdo (nada flutua).
  *
  * Acessibilidade:
- * - O texto fica numa região `role="status"` (`aria-live="polite"`), preenchida depois da montagem
- *   para ser anunciada uma vez. O componente nunca toma o foco.
+ * - Faixa: o texto fica numa região `role="status"` (`aria-live="polite"`), preenchida depois da montagem
+ *   para ser anunciada uma vez. Barra: a região viva é única e mora no AjudantePerdidinho (fala + contagem, sem
+ *   anúncio duplo), então aqui o texto é só visual. O componente nunca toma o foco.
  * - Fecha pelo X ("Fechar mensagem"), por Esc (exceto com outro diálogo modal aberto), pelo tempo
  *   ou depois da ação. O tempo pausa com o ponteiro em cima, com foco dentro e com a aba oculta
  *   (WCAG 2.2.1); ao voltar, sobra pelo menos `FOLGA_MS` para terminar de ler.
@@ -20,18 +21,18 @@ import './balao-companheiro.scss';
  *   (ex.: a ação navegou), o aviso sai na desmontagem, sem se perder.
  *
  * Movimento (só transform/opacity no balão; altura só na faixa, uma vez e curta):
- * - Entrada: DURACAO.base + CURVA.saida. Saída: 140 ms + CURVA.entrada.
+ * - Entrada: DURACAO.base + CURVA.saida (barra: opacidade + x 8→0, 190 ms). Saída: 140 ms + CURVA.entrada.
  * - Reduzir movimento (sistema ou `reduzirMovimento`): só opacidade, 120 ms.
  */
 export interface PropsBalaoCompanheiro {
-  /** 'balao' = desktop, nasce do companheiro no canto inferior direito; 'faixa' = celular, presa ao topo abaixo do cabeçalho, empurra o conteúdo. */
-  variante: 'balao' | 'faixa';
+  /** 'barra' = desktop, dentro da barra superior; 'faixa' = celular, presa ao topo abaixo do cabeçalho, empurra o conteúdo. */
+  variante: 'barra' | 'faixa';
   texto: string;
   /** Ação opcional (link/botão). */
   acao?: { rotulo: string; aoClicar: () => void };
   /** Chamado ao fechar (X, Esc, tempo esgotado ou depois da ação). motivo para telemetria/histórico. */
   aoFechar: (motivo: 'fechar' | 'tempo' | 'acao') => void;
-  /** Tempo de vida em ms (padrão 8000); pausa enquanto houver hover ou foco dentro. 0 = sem tempo. */
+  /** Tempo de vida em ms (padrão 8000; 10000 na barra); pausa enquanto houver hover ou foco dentro. 0 = sem tempo. */
   duracaoMs?: number;
   reduzirMovimento?: boolean;
 }
@@ -46,7 +47,7 @@ export const SAIDA_BALAO_REDUZIDA_MS = 120;
 export const FOLGA_MS = 1500;
 
 export function BalaoCompanheiro({
-  variante, texto, acao, aoFechar, duracaoMs = 8000, reduzirMovimento = false,
+  variante, texto, acao, aoFechar, duracaoMs = variante === 'barra' ? 10_000 : 8000, reduzirMovimento = false,
 }: PropsBalaoCompanheiro): JSX.Element {
   const raiz = useRef<HTMLElement>(null);
   const [pronto, setPronto] = useState(false);
@@ -132,6 +133,7 @@ export function BalaoCompanheiro({
   if (fechado) return <></>;
 
   const faixa = variante === 'faixa';
+  const barra = variante === 'barra';
 
   // Estado em data-* (no React 18, `className` em elemento customizado vira o atributo "classname").
   return (
@@ -143,11 +145,15 @@ export function BalaoCompanheiro({
       <div className="balc__dobra">
         <div className="balc__cartao">
           {faixa && <span className="balc__icone" aria-hidden="true"><Icone nome="dica" tamanho={16} /></span>}
-          <div className="balc__texto" role="status" aria-live="polite" aria-atomic="true">
-            {pronto ? texto : null}
-          </div>
+          {barra ? (
+            <div className="balc__texto">{texto}</div>
+          ) : (
+            <div className="balc__texto" role="status" aria-live="polite" aria-atomic="true">
+              {pronto ? texto : null}
+            </div>
+          )}
           {acao && (
-            <button type="button" className={faixa ? 'balc__acao' : 'pf-btn pf-btn--ghost pf-btn--sm balc__acao'} onClick={aoAgir}>
+            <button type="button" className="balc__acao" onClick={aoAgir}>
               {acao.rotulo}
             </button>
           )}
