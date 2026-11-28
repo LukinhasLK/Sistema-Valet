@@ -11,8 +11,8 @@ import { onboardingServico, useConvitePendente, useConviteVisivel, useOnboarding
 import { roteiroDo } from '../../nucleo/onboarding/roteiros';
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
 import {
-  decidirAceno, pendenciasServico, registrarAceno, silencioServico, usePendencias, usePresenca, useSilenciado,
-  type NivelGeral,
+  decidirAceno, humorDasPendencias, pendenciasServico, registrarAceno, silencioServico, TIPOS_PREJUIZO, usePendencias, usePresenca,
+  useSilenciado,
 } from '../../nucleo/servicos/pendencias';
 import { PerdidinhoTardio } from './index';
 import { PainelAtencao } from './PainelAtencao';
@@ -39,7 +39,6 @@ const OLHAR_CSS: Record<ModoOlhar, { dur: string; atraso: string }> = {
 /** Entrada do companheiro: só a primeira vez que ele aparece para cada usuário nesta carga da página. */
 let entrouPara: number | null = null;
 
-const HUMOR_DO_NIVEL: Record<NivelGeral, HumorMascote> = { nada: 'feliz', info: 'explicando', atencao: 'pensando', urgente: 'surpreso' };
 const ROTA_QUIETA = /^\/app\/fichas\/(nova|\d+\/editar)\/?$/;
 const CAMPO = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
 
@@ -110,14 +109,14 @@ interface Props {
 
 /**
  * Perdidinho ajudante: o lugar das pendências. Desktop: companheiro fixo no canto inferior direito (mascote de 42 px);
- * celular: botão no topo. Humor conforme o nível mais alto (feliz, explicando, pensando, surpreso), selo com o número
+ * celular: botão no topo. Humor por situação (triste sem conexão, surpreso se urgente, preocupado se há prejuízo, apontando se há o que fazer, explicando, feliz), selo com o número
  * de pendências e um painel "Precisa da sua atenção". No desktop o olhar acompanha onde a pessoa age (foco/clique) e
  * os olhos se fecham em campo de senha. Nunca é modal sozinho, não faz som e só acena uma vez por pendência urgente.
  */
 export function AjudantePerdidinho({ variante }: Props) {
   const { pathname } = useLocation();
   const usuario = useUsuario();
-  const { itens, resumo, carregadoEm } = usePendencias(pathname);
+  const { itens, resumo, carregadoEm, falhou } = usePendencias(pathname);
   const [aberto, setAberto] = useState(false);
   const [acenando, setAcenando] = useState(false);
   const [anuncio, setAnuncio] = useState('');
@@ -133,7 +132,7 @@ export function AjudantePerdidinho({ variante }: Props) {
   const paletaAberta = useInterface((s) => s.paletaAberta);
   const silenciado = useSilenciado();
   const campoFocado = useCampoFocado();
-  const dormindo = useAdormecido(resumo.nivel === 'nada');
+  const dormindo = useAdormecido(resumo.nivel === 'nada' && !falhou);
   // O convite de primeiro acesso é anunciado por este próprio Perdidinho (ele acena), no desktop e no celular.
   const semOlhos = comPresenca || tourAtivo;
   const { olhar: alvoOlhar, senha, modo, saltos } = useAlvoDoOlhar(mascote, lado && !parado && !semOlhos);
@@ -182,10 +181,10 @@ export function AjudantePerdidinho({ variante }: Props) {
     };
   }, [conviteAberto, parado, semOlhos]);
 
-  // Aceno: uma vez por pendência urgente nova, com 10 min de intervalo, fora dos momentos quietos.
+  // Aceno: uma vez por pendência urgente (ou alerta de prejuízo do painel) nova, com 10 min de intervalo, fora dos momentos quietos.
   useEffect(() => {
     if (parado || semOlhos || convitePendente || !usuario) return;
-    const urgentes = itens.filter((i) => i.nivel === 'URGENTE').map((i) => i.id);
+    const urgentes = itens.filter((i) => i.nivel === 'URGENTE' || TIPOS_PREJUIZO.includes(i.tipo)).map((i) => i.id);
     if (!urgentes.length) return;
     const quieto = campoFocado || tourAtivo || paletaAberta || aberto || ROTA_QUIETA.test(pathname)
       || !!document.querySelector('[aria-modal="true"], dialog[open]');
@@ -223,7 +222,7 @@ export function AjudantePerdidinho({ variante }: Props) {
 
   if (!usuario) return null;
 
-  const humor: HumorMascote = acenoConvite || acenando ? 'acenando' : resumo.nivel === 'nada' && dormindo ? 'dormindo' : HUMOR_DO_NIVEL[resumo.nivel];
+  const humor: HumorMascote = acenoConvite || acenando ? 'acenando' : resumo.nivel === 'nada' && !falhou && dormindo ? 'dormindo' : humorDasPendencias(resumo, falhou);
   const mostraNumero = resumo.contador > 0;
   const urgente = resumo.nivel === 'urgente';
   const temTour = roteiroDo(usuario.nivel).length > 0;

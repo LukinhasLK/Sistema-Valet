@@ -88,7 +88,7 @@ function guiaDe(e: Estado): { estado: string; humor: HumorMascote; texto: string
     case 3:
       return e.fechada
         ? { estado: 'fechada', humor: 'comemorando', texto: 'Carimbado. Quem lançou, conferiu e fechou fica no histórico.' }
-        : { estado: 'aberta', humor: 'pensando', texto: 'Fechar o caixa trava a ficha. Depois, ninguém altera os números.' };
+        : { estado: 'aberta', humor: 'apontando', texto: 'Fechar o caixa trava a ficha. Depois, ninguém altera os números.' };
     default:
       if (e.pagos.every(Boolean)) return { estado: 'fim', humor: 'feliz', texto: 'Tudo registrado, do turno ao pagamento. Quer usar no seu estacionamento?' };
       if (e.pagos.some(Boolean)) {

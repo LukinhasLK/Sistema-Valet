@@ -128,7 +128,12 @@ pf-ajudante-perdidinho {
     .ajud__botao:active { background: var(--pf-surface-hover); }
     &[data-aberto] .ajud__botao { background: var(--pf-blue-soft); }
     .ajud__selo, .ajud__ponto { top: 3px; right: 1px; margin: 0; box-shadow: 0 0 0 2px #fff; }
-    .ajud__selo { min-width: 18px; height: 18px; padding: 0 4px; font-size: 10.5px; }
+    /* Selo pequeno (14 px) e para fora do cubo: o mascote de 28 px fica no meio do alvo de 44 px
+       (de 8 a 36 px), então o selo só encosta no canto arredondado, sem cobrir olhos nem sobrancelhas.
+       Cores e contraste AA são os mesmos do selo grande (aviso ~6:1, urgente ~5,8:1). */
+    .ajud__selo { top: 0; right: -3px; min-width: 14px; height: 14px; padding: 0 3px; font-size: 9.5px; letter-spacing: -.01em; box-shadow: 0 0 0 1.5px #fff; }
+    .ajud__selo[data-nivel='info'] { box-shadow: 0 0 0 1.5px #fff, inset 0 0 0 1px var(--pf-border-strong); }
+    .ajud__selo[data-nivel='atencao'] { box-shadow: 0 0 0 1.5px #fff, inset 0 0 0 1px rgba(183, 121, 31, .45); }
     .ajud__selo svg { display: none; }
   }
 }

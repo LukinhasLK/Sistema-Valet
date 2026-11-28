@@ -143,7 +143,7 @@ export default function Conheca() {
   const reservaDemo = useRef<HTMLDivElement>(null);
   const demoMontada = useEntrouNaTela(reservaDemo, 0);
 
-  // FAQ: o Perdidinho pensa até a primeira pergunta aberta, e daí explica (o texto não muda).
+  // FAQ: o Perdidinho explica até a primeira pergunta aberta, e daí fica feliz (o texto não muda).
   const secaoFaq = useRef<HTMLElement>(null);
   const guiaFaq = useRef<HTMLDivElement>(null);
   const faqMontado = useEntrouNaTela(secaoFaq, 0.4);
@@ -333,7 +333,7 @@ export default function Conheca() {
                 <div className="perguntas__reserva" aria-hidden="true">{TEXTO_GUIA_FAQ}</div>
                 {faqMontado && (
                   <div className="perguntas__guia-entra">
-                    <PerdidinhoDiz humor={faqAberto ? 'explicando' : 'pensando'} texto={TEXTO_GUIA_FAQ}
+                    <PerdidinhoDiz humor={faqAberto ? 'feliz' : 'explicando'} texto={TEXTO_GUIA_FAQ}
                       lado="esquerda" tamanho={telaEstreita ? 40 : 48} anunciar={false} />
                   </div>
                 )}

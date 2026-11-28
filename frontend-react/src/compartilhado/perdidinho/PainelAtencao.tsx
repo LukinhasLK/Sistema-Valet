@@ -65,13 +65,13 @@ function Conteudo({ itens, tituloId, titulo, silenciado, temTour, comPendencia, 
                   <li key={item.id}>
                     {item.rota ? (
                       <Link className="painel__item" to={item.rota} onClick={aoNavegar}>
-                        <span className="painel__texto">{item.texto}</span>
+                        <span className="painel__texto">{item.texto}{item.grupo && <small className="painel__origem">{item.grupo}</small>}</span>
                         <span className="painel__qtd" aria-hidden="true">{item.quantidade}</span>
                         <Icone nome="seta" tamanho={15} />
                       </Link>
                     ) : (
                       <div className="painel__item painel__item--so-info">
-                        <span className="painel__texto">{item.texto}</span>
+                        <span className="painel__texto">{item.texto}{item.grupo && <small className="painel__origem">{item.grupo}</small>}</span>
                       </div>
                     )}
                   </li>

@@ -83,6 +83,7 @@ pf-painel-atencao {
   .painel__grupo[data-nivel='URGENTE'] .painel__item { border-color: rgba(194, 65, 65, .4); background: var(--pf-danger-soft); }
   .painel__item--so-info { cursor: default; }
   .painel__texto { flex: 1; min-width: 0; }
+  .painel__origem { display: block; margin-top: 2px; font-size: 11.5px; color: var(--pf-text-muted); }
   .painel__qtd {
     flex: none; min-width: 24px; padding: 2px 7px; border-radius: 999px; text-align: center;
     font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;

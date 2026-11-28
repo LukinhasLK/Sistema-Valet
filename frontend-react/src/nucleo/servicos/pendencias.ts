@@ -5,6 +5,7 @@ import { api, ErroHttp } from './api';
 import { podeAcessar } from './permissoes';
 import { listarRascunhos, ResumoRascunho } from './rascunho-ficha';
 import { carregar, salvar } from './storage';
+import type { HumorMascote } from '../onboarding/mascote';
 
 /**
  * Pendências do "Perdidinho ajudante": o que precisa de ação agora (some sozinha quando resolvida).
@@ -32,7 +33,15 @@ export interface ItemPendencia {
   quantidade: number;
   rota: string | null;
   texto: string;
+  /** Tipo da pendência (do servidor, local ou do painel): o humor do Perdidinho decide por ele. */
+  tipo: string;
+  /** Subtítulo pequeno no painel: de onde veio o item (ex.: "Do painel (Nov/2026)"). */
+  grupo?: string;
 }
+
+/** Tipos dos alertas que o Dashboard publica (o servidor não os conhece). */
+export const TIPOS_PREJUIZO: readonly string[] = ['fichasNegativas', 'resultadoNegativo'];
+export const TIPO_RATEIO_PAINEL = 'rateioInvalido';
 
 const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios);
 
@@ -67,18 +76,23 @@ interface Entrada {
   semConexao: boolean;
   /** Tela aberta agora: um rascunho dessa própria tela não é pendência (a pessoa já está nele). */
   rotaAtual?: string;
+  /** Alertas publicados pelo painel (enquanto montado). */
+  doPainel?: ItemPendencia[];
 }
 
 /** Junta o que veio do servidor com o que é local, ordenado por urgência. */
-export function montarItens({ servidor, rascunhos, semConexao, rotaAtual }: Entrada): ItemPendencia[] {
+export function montarItens({ servidor, rascunhos, semConexao, rotaAtual, doPainel = [] }: Entrada): ItemPendencia[] {
   const itens: ItemPendencia[] = servidor.filter((p) => p.quantidade > 0).map((p) => ({
-    id: p.id, nivel: p.nivel, quantidade: p.quantidade, rota: p.rota, texto: textoDaPendencia(p.tipo, p.quantidade, p.nivel),
+    id: p.id, tipo: p.tipo, nivel: p.nivel, quantidade: p.quantidade, rota: p.rota, texto: textoDaPendencia(p.tipo, p.quantidade, p.nivel),
   }));
+  // Rateio inválido do painel só entra se o servidor não trouxe "unidades sem rateio" (sem duplicar).
+  const servidorCobreRateio = itens.some((i) => i.tipo === 'unidadesSemRateio');
+  itens.push(...doPainel.filter((i) => !(servidorCobreRateio && i.tipo === TIPO_RATEIO_PAINEL)));
   const abertos = rascunhos.filter((r) => rotaDoRascunho(r) !== rotaAtual);
   if (abertos.length) {
-    itens.push({ id: 'rascunho', nivel: 'ATENCAO', quantidade: abertos.length, rota: rotaDoRascunho(abertos[0]), texto: textoDaPendencia('rascunho', abertos.length) });
+    itens.push({ id: 'rascunho', tipo: 'rascunho', nivel: 'ATENCAO', quantidade: abertos.length, rota: rotaDoRascunho(abertos[0]), texto: textoDaPendencia('rascunho', abertos.length) });
   }
-  if (semConexao) itens.push({ id: 'semConexao', nivel: 'INFO', quantidade: 1, rota: null, texto: textoDaPendencia('semConexao', 1) });
+  if (semConexao) itens.push({ id: 'semConexao', tipo: 'semConexao', nivel: 'INFO', quantidade: 1, rota: null, texto: textoDaPendencia('semConexao', 1) });
   return itens.sort((a, b) => ORDEM[a.nivel] - ORDEM[b.nivel]);
 }
 
@@ -90,7 +104,19 @@ export interface ResumoPendencias {
   contador: number;
   /** Itens urgentes. */
   urgentes: number;
+  /** Prejuízo à vista (resultado ou fichas com líquido negativo): o Perdidinho fica preocupado. */
+  preocupado: boolean;
   rotulo: string;
+}
+
+/** Humor por situação, de cima para baixo: triste, surpreso, pensando (preocupado), apontando, explicando, feliz. */
+export function humorDasPendencias(resumo: Pick<ResumoPendencias, 'nivel' | 'preocupado'>, falhou: boolean): HumorMascote {
+  if (falhou) return 'triste';
+  if (resumo.nivel === 'urgente') return 'surpreso';
+  if (resumo.preocupado) return 'pensando';
+  if (resumo.nivel === 'atencao') return 'apontando';
+  if (resumo.nivel === 'info') return 'explicando';
+  return 'feliz';
 }
 
 export function resumir(itens: ItemPendencia[]): ResumoPendencias {
@@ -98,12 +124,13 @@ export function resumir(itens: ItemPendencia[]): ResumoPendencias {
   const urgentes = contados.filter((i) => i.nivel === 'URGENTE').length;
   const atencao = contados.filter((i) => i.nivel === 'ATENCAO').length;
   const temInfo = itens.some((i) => i.nivel === 'INFO');
+  const preocupado = contados.some((i) => TIPOS_PREJUIZO.includes(i.tipo));
   const nivel: NivelGeral = urgentes ? 'urgente' : atencao ? 'atencao' : temInfo ? 'info' : 'nada';
   const contador = contados.length;
   const rotulo = contador
-    ? `Pendências: ${contador}${urgentes ? `, ${urgentes} ${urgentes === 1 ? 'urgente' : 'urgentes'}` : ''}`
+    ? `Pendências: ${contador}${urgentes ? `, ${urgentes} ${urgentes === 1 ? 'urgente' : 'urgentes'}` : ''}${preocupado ? ', com prejuízo no período' : ''}`
     : temInfo ? 'Pendências: só avisos para saber' : 'Pendências: nenhuma';
-  return { nivel, contador, urgentes, rotulo };
+  return { nivel, contador, urgentes, preocupado, rotulo };
 }
 
 /* ------------------------------------------------------------------------- */
@@ -119,9 +146,11 @@ interface EstadoPendencias {
   carregadoEm: number;
   /** A última tentativa falhou por falta de rede (status 0). */
   offline: boolean;
+  /** A última tentativa falhou por qualquer motivo (o Perdidinho fica triste). */
+  erro: boolean;
 }
 
-const VAZIO: EstadoPendencias = { usuarioId: null, itens: [], carregadoEm: 0, offline: false };
+const VAZIO: EstadoPendencias = { usuarioId: null, itens: [], carregadoEm: 0, offline: false, erro: false };
 export const usePendenciasStore = create<EstadoPendencias>(() => VAZIO);
 
 let ultima = 0;
@@ -138,12 +167,11 @@ export const pendenciasServico = {
     emAndamento = api.get<PendenciaServidor[]>('/pendencias')
       .then((itens) => {
         if (useAuth.getState().usuario?.id !== usuarioId) return;
-        usePendenciasStore.setState({ usuarioId, itens, carregadoEm: Date.now(), offline: false });
+        usePendenciasStore.setState({ usuarioId, itens, carregadoEm: Date.now(), offline: false, erro: false });
       })
       .catch((erro) => {
-        if (erro instanceof ErroHttp && erro.status === 0 && useAuth.getState().usuario?.id === usuarioId) {
-          usePendenciasStore.setState({ offline: true });
-        }
+        if (useAuth.getState().usuario?.id !== usuarioId) return;
+        usePendenciasStore.setState(erro instanceof ErroHttp && erro.status === 0 ? { offline: true, erro: true } : { erro: true });
       })
       .finally(() => { emAndamento = null; });
     return emAndamento;
@@ -154,9 +182,21 @@ export const pendenciasServico = {
     ultima = 0;
     emAndamento = null;
     usePendenciasStore.setState(VAZIO);
+    usePainelStore.setState({ itens: [] });
     reiniciarChamadas();
   },
 };
+
+/* Alertas do painel inicial: publicados pelo Dashboard enquanto montado (para o período filtrado). */
+export const usePainelStore = create<{ itens: ItemPendencia[] }>(() => ({ itens: [] }));
+
+export function publicarAlertasDoPainel(itens: ItemPendencia[]): void {
+  usePainelStore.setState({ itens });
+}
+
+export function limparAlertasDoPainel(): void {
+  if (usePainelStore.getState().itens.length) usePainelStore.setState({ itens: [] });
+}
 
 // Logout ou troca de conta: nada do usuário anterior sobra (pendências, acenos já dados).
 useAuth.subscribe((estado, anterior) => {
@@ -307,13 +347,15 @@ export function usePresencaPerdidinho(ativa = true, ref?: RefObject<Element | nu
  * Pendências do usuário logado: servidor (atualizado pelo ciclo de `atualizacao.ts`, ao trocar de rota e ao montar)
  * mais as locais (rascunho e sem conexão). `rotaAtual` re-lê o rascunho e dispara a atualização do servidor.
  */
-export function usePendencias(rotaAtual: string): { itens: ItemPendencia[]; resumo: ResumoPendencias; carregadoEm: number } {
+export function usePendencias(rotaAtual: string): { itens: ItemPendencia[]; resumo: ResumoPendencias; carregadoEm: number; falhou: boolean } {
   const usuario = useAuth((s) => s.usuario);
   const usuarioId = usuario?.id ?? null;
   const nivel = usuario?.nivel ?? null;
   const servidor = usePendenciasStore((s) => (s.usuarioId === usuarioId ? s.itens : []));
   const carregadoEm = usePendenciasStore((s) => s.carregadoEm);
   const offline = usePendenciasStore((s) => s.offline);
+  const erroBusca = usePendenciasStore((s) => s.erro);
+  const doPainel = usePainelStore((s) => s.itens);
   const semConexaoAuth = useAuth((s) => s.semConexao);
   const [leitura, reler] = useState(0);
 
@@ -342,9 +384,9 @@ export function usePendencias(rotaAtual: string): { itens: ItemPendencia[]; resu
   );
 
   const itens = useMemo(
-    () => montarItens({ servidor, rascunhos, semConexao: offline || semConexaoAuth, rotaAtual }),
-    [servidor, rascunhos, offline, semConexaoAuth, rotaAtual],
+    () => montarItens({ servidor, rascunhos, semConexao: offline || semConexaoAuth, rotaAtual, doPainel }),
+    [servidor, rascunhos, offline, semConexaoAuth, rotaAtual, doPainel],
   );
   const resumo = useMemo(() => resumir(itens), [itens]);
-  return { itens, resumo, carregadoEm };
+  return { itens, resumo, carregadoEm, falhou: erroBusca || offline || semConexaoAuth };
 }

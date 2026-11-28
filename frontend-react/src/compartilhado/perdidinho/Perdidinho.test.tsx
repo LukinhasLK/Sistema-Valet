@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { gsap } from 'gsap';
 import type { HumorMascote } from '../../nucleo/onboarding/mascote';
-import { Perdidinho, direcaoDoAlvo, olhosDoHumor, sobrancelhasDoHumor } from './Perdidinho';
+import { Perdidinho, direcaoApontada, direcaoDoAlvo, olhosDoHumor, posturaDoHumor, sobrancelhasDoHumor } from './Perdidinho';
 
 const HUMORES: HumorMascote[] = ['acenando', 'explicando', 'apontando', 'comemorando', 'pensando', 'feliz', 'triste', 'chorando', 'surpreso', 'dormindo'];
 
@@ -39,7 +39,7 @@ describe('Perdidinho', () => {
     const contexto = vi.spyOn(gsap, 'context');
     for (const humor of HUMORES) {
       const { container, unmount } = render(<Perdidinho humor={humor} falando passo="p1" lado="right" reduzirMovimento />);
-      const alegre = humor === 'acenando' || humor === 'comemorando' || humor === 'feliz';
+      const alegre = humor === 'comemorando' || humor === 'feliz';
       expect(!!container.querySelector('.perdidinho__alegre')).toBe(alegre);
       expect(container.querySelector('pf-perdidinho')?.getAttribute('data-olhos')).toBe(olhosDoHumor(humor));
       expect(container.querySelector('.perdidinho--vivo')).toBeNull();
@@ -91,8 +91,8 @@ describe('Perdidinho', () => {
     const sb = container.querySelector('.perdidinho__sobrancelhas');
     const esperado = sobrancelhasDoHumor(humor);
     expect(sb?.getAttribute('data-forma') ?? null).toBe(esperado);
-    if (sb) expect(sb.querySelectorAll('path')).toHaveLength(2);
-    expect(['triste', 'chorando', 'surpreso', 'pensando'].includes(humor)).toBe(!!esperado);
+    if (sb) expect(sb.querySelectorAll('path')).toHaveLength(esperado === 'alerta' ? 1 : 2);
+    expect(['triste', 'chorando', 'surpreso', 'pensando', 'explicando', 'apontando'].includes(humor)).toBe(!!esperado);
   });
 
   it('feliz: olhos em arco (^^), sem sobrancelha nem lágrima', () => {
@@ -180,6 +180,97 @@ describe('Perdidinho', () => {
       restaurar();
     }
   });
+  describe('humores do companheiro: reconhecíveis no tamanho pequeno (28–42 px)', () => {
+    const SETE: HumorMascote[] = ['feliz', 'explicando', 'apontando', 'pensando', 'surpreso', 'triste', 'dormindo'];
+    /** O que o olho distingue: forma dos olhos, sobrancelhas, postura do corpo, deslocamento do rosto e sinais. */
+    const assinatura = (humor: HumorMascote) => {
+      const { container, unmount } = render(<Perdidinho humor={humor} falando={false} passo="p" lado="centro" tamanho={28} reduzirMovimento />);
+      const raiz = container.querySelector('pf-perdidinho')!;
+      const a = [
+        raiz.getAttribute('data-olhos'), raiz.getAttribute('data-sobrancelhas') ?? '-',
+        (container.querySelector('.perdidinho__postura') as SVGGElement).style.transform,
+        container.querySelector('.perdidinho__rosto')?.getAttribute('transform') ?? '-',
+        container.querySelectorAll('.perdidinho__suor, .perdidinho__zzz, .perdidinho__pupila').length,
+      ].join('|');
+      unmount();
+      return a;
+    };
+
+    it('os 7 humores têm assinaturas visuais diferentes entre si, mesmo com reduzir movimento', () => {
+      const todas = SETE.map(assinatura);
+      expect(new Set(todas).size).toBe(SETE.length);
+    });
+
+    it('acenando não é igual ao feliz: piscadela (^ + olho aberto) em vez de ^^', () => {
+      expect(olhosDoHumor('acenando')).toBe('piscadela');
+      expect(assinatura('acenando')).not.toBe(assinatura('feliz'));
+      const { container } = render(<Perdidinho humor="acenando" falando passo="p" lado="centro" reduzirMovimento />);
+      expect(container.querySelectorAll('.perdidinho__piscadela path')).toHaveLength(1);
+      expect(container.querySelectorAll('.perdidinho__piscadela rect')).toHaveLength(1);
+    });
+
+    it('apontando: olho do alvo aberto, o outro semicerrado e UMA sobrancelha levantada; espelha com o alvo à direita', () => {
+      const { container, rerender } = render(<Perdidinho humor="apontando" falando passo="p" lado="centro" reduzirMovimento olhar={{ x: 0, y: 0 }} />);
+      expect(container.querySelector('pf-perdidinho')?.getAttribute('data-olhos')).toBe('mirando');
+      expect(container.querySelectorAll('.perdidinho__mirando > *')).toHaveLength(2);
+      expect(container.querySelectorAll('.perdidinho__sobrancelhas[data-forma="alerta"] path')).toHaveLength(1);
+      expect(container.querySelector('.perdidinho__rosto')?.getAttribute('transform')).not.toContain('scale(-1 1)');
+      rerender(<Perdidinho humor="apontando" falando passo="p" lado="left" reduzirMovimento />); // cartão à esquerda: item à direita
+      expect(container.querySelector('.perdidinho__rosto')?.getAttribute('transform')).toContain('scale(-1 1)');
+    });
+
+    it('preocupado x triste: olhos redondos abertos e sobrancelhas altas, contra olhos semicerrados e baixos', () => {
+      const { container, rerender } = render(<Perdidinho humor="pensando" falando passo="p" lado="centro" reduzirMovimento />);
+      expect(container.querySelectorAll('.perdidinho__redondos circle')).toHaveLength(2);
+      expect(container.querySelector('.perdidinho__pupila')).toBeNull(); // a pupila é só do susto
+      rerender(<Perdidinho humor="triste" falando passo="p" lado="centro" reduzirMovimento />);
+      expect(container.querySelector('.perdidinho__redondos')).toBeNull();
+      expect(container.querySelector('.perdidinho__tristes')).not.toBeNull();
+      expect(container.querySelector('.perdidinho__suor')).toBeNull();
+    });
+
+    it('pensando (preocupado): sobrancelhas preocupadas e gotinha de suor; nenhum outro humor tem a gota', () => {
+      for (const humor of HUMORES) {
+        const { container, unmount } = render(<Perdidinho humor={humor} falando passo="p" lado="centro" reduzirMovimento />);
+        expect(container.querySelectorAll('.perdidinho__suor')).toHaveLength(humor === 'pensando' ? 1 : 0);
+        unmount();
+      }
+      expect(sobrancelhasDoHumor('pensando')).toBe('preocupadas');
+    });
+
+    it('surpreso: olhos redondos com pupila', () => {
+      const { container } = render(<Perdidinho humor="surpreso" falando passo="p" lado="centro" reduzirMovimento />);
+      expect(container.querySelectorAll('.perdidinho__arregalados .perdidinho__pupila')).toHaveLength(2);
+    });
+
+    it('apontando no companheiro (lado centro): corpo inclinado e rosto deslocado para cima e à esquerda, mesmo com olhar fixo', () => {
+      expect(direcaoApontada('centro')).toEqual({ x: -0.7, y: -0.6 });
+      expect(direcaoApontada('left')).toEqual(direcaoDoAlvo('left'));
+      expect(posturaDoHumor('apontando', 'centro').rotation).toBeLessThan(-5);
+      const { container } = render(<Perdidinho humor="apontando" falando passo="p" lado="centro" reduzirMovimento olhar={{ x: 0, y: 0 }} />);
+      expect((container.querySelector('.perdidinho__postura') as SVGGElement).style.transform).toContain('rotate(-7.70deg)');
+      expect(container.querySelector('.perdidinho__rosto')?.getAttribute('transform')).toBe('translate(-2.66 -2.04)');
+    });
+
+    it('triste fica murcho e de olhos baixos; feliz fica em pé, sem postura', () => {
+      const { container, rerender } = render(<Perdidinho humor="triste" falando passo="p" lado="centro" reduzirMovimento olhar={{ x: 0, y: 0 }} />);
+      const postura = () => (container.querySelector('.perdidinho__postura') as SVGGElement).style.transform;
+      expect(postura()).toContain('scale(1.03, 0.94)');
+      expect(container.querySelector('.perdidinho__rosto')?.getAttribute('transform')).toBe('translate(0 1.6)');
+      rerender(<Perdidinho humor="feliz" falando passo="p" lado="centro" reduzirMovimento />);
+      expect(postura()).toBe('none');
+      expect(container.querySelector('.perdidinho__rosto')?.hasAttribute('transform')).toBe(false);
+    });
+
+    it('a postura é CSS (sem GSAP) e só transita com movimento permitido', () => {
+      const { container, rerender } = render(<Perdidinho humor="explicando" falando passo="p" lado="centro" reduzirMovimento />);
+      expect(container.querySelector('.perdidinho--vivo')).toBeNull(); // sem a classe, a transição CSS não se aplica
+      rerender(<Perdidinho humor="dormindo" falando passo="p" lado="centro" reduzirMovimento={false} />);
+      expect(container.querySelector('.perdidinho--vivo .perdidinho__postura')).not.toBeNull();
+      expect((container.querySelector('.perdidinho__postura') as SVGGElement).style.transform).toContain('rotate(-6.00deg)');
+    });
+  });
+
   describe('controles opcionais', () => {
     it('olhos="espiando": esquerdo fechado (traço) e direito aberto e menor, sem piscar', () => {
       const delayed = vi.spyOn(gsap, 'delayedCall');

@@ -4,7 +4,7 @@ import { apiFalsa } from '../../testes/api-falsa';
 import { useAuth } from '../../nucleo/estado/auth';
 import type { Usuario } from '../../nucleo/modelos';
 import { useOnboarding } from '../../nucleo/onboarding/estado';
-import { pendenciasServico, registrarPresenca, reiniciarChamadasParaTeste, silencioServico, usePresenca } from '../../nucleo/servicos/pendencias';
+import { limparAlertasDoPainel, pendenciasServico, publicarAlertasDoPainel, registrarPresenca, reiniciarChamadasParaTeste, silencioServico, usePresenca } from '../../nucleo/servicos/pendencias';
 import { salvarRascunho } from '../../nucleo/servicos/rascunho-ficha';
 import { AjudantePerdidinho } from './AjudantePerdidinho';
 import { TEXTO_EM_DIA } from './PainelAtencao';
@@ -44,6 +44,43 @@ describe('AjudantePerdidinho', () => {
     expect(container.querySelector('pf-ajudante-perdidinho')?.getAttribute('data-nivel')).toBe('nada');
     fireEvent.click(botao);
     expect(await screen.findByText(TEXTO_EM_DIA)).toBeTruthy();
+  });
+
+  const humorAtual = (c: HTMLElement) => c.querySelector('pf-perdidinho[data-humor]')?.getAttribute('data-humor');
+
+  it('humor por situação: atenção aponta, só aviso explica, urgente surpreende, falha de rede entristece', async () => {
+    apiFalsa({ '/api/pendencias': { corpo: [pendencia({})] } });
+    const a = await montar();
+    await waitFor(() => expect(humorAtual(a.container)).toBe('apontando'));
+    a.unmount();
+    pendenciasServico.reiniciar();
+    apiFalsa({ '/api/pendencias': { corpo: [pendencia({ id: 'e', tipo: 'eventosHojeAmanha', nivel: 'INFO' })] } });
+    const b = await montar();
+    await waitFor(() => expect(humorAtual(b.container)).toBe('explicando'));
+    b.unmount();
+    pendenciasServico.reiniciar();
+    apiFalsa({ '/api/pendencias': { corpo: [pendencia({ nivel: 'URGENTE' })] } });
+    const c = await montar();
+    await waitFor(() => expect(['surpreso', 'acenando']).toContain(humorAtual(c.container)));
+    c.unmount();
+    pendenciasServico.reiniciar();
+    apiFalsa({ '/api/pendencias': { status: 500, corpo: { erro: 'x' } } });
+    const d = await montar();
+    await waitFor(() => expect(humorAtual(d.container)).toBe('triste'));
+  });
+
+  it('alerta de prejuízo do painel: preocupado, com subtítulo do período; some ao limpar', async () => {
+    apiFalsa({ '/api/pendencias': { corpo: [pendencia({})] } });
+    const { container } = await montar();
+    act(() => publicarAlertasDoPainel([{ id: 'painel:resultadoNegativo:2026-11', tipo: 'resultadoNegativo', nivel: 'ATENCAO', quantidade: 1,
+      rota: '/app/despesas', texto: 'Resultado de novembro negativo após despesas fixas', grupo: 'Do painel (Nov/2026)' }]));
+    const botao = await screen.findByRole('button', { name: /Pendências: 2, com prejuízo no período$/ });
+    await waitFor(() => expect(['pensando', 'acenando']).toContain(humorAtual(container)));
+    fireEvent.click(botao);
+    expect(screen.getByText('Do painel (Nov/2026)')).toBeTruthy();
+    act(() => limparAlertasDoPainel());
+    await screen.findByRole('button', { name: /Pendências: 1$/ });
+    await waitFor(() => expect(humorAtual(container)).toBe('apontando'));
   });
 
   it('mostra o número de atenção+urgente, rótulo com urgentes e links por grupo', async () => {

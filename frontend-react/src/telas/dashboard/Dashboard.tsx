@@ -1,12 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ChartConfiguration } from 'chart.js';
-import { AnimatePresence, motion } from 'motion/react';
 import { BarraFiltros } from '../../compartilhado/BarraFiltros';
 import { CartaoKpi } from '../../compartilhado/CartaoKpi';
 import { EstadoVazio } from '../../compartilhado/EstadoVazio';
 import { EsqueletoKpis } from '../../compartilhado/Esqueleto';
-import { TRANSICAO } from '../../compartilhado/movimento';
 import { moeda, numero } from '../../compartilhado/formatos';
 import { Grafico } from '../../compartilhado/Grafico';
 import { Icone } from '../../compartilhado/Icone';
@@ -20,6 +18,7 @@ import { totaisPorUnidade, useSocios } from '../../nucleo/estado/socios';
 import { useUnidades } from '../../nucleo/estado/unidades';
 import { anoDe, hojeIso, MESES, MESES_CURTOS, mesDe, rotuloPeriodo, TODAS_UNIDADES } from '../../nucleo/servicos/periodo';
 import { podeAcessar } from '../../nucleo/servicos/permissoes';
+import { limparAlertasDoPainel, publicarAlertasDoPainel, TIPO_RATEIO_PAINEL, type ItemPendencia } from '../../nucleo/servicos/pendencias';
 import { relatoriosServico } from '../../nucleo/servicos/relatorios';
 import { carregar, salvar } from '../../nucleo/servicos/storage';
 import { useFiltroPeriodo } from '../../compartilhado/useFiltroPeriodo';
@@ -42,7 +41,6 @@ export default function Dashboard() {
   const { mes, ano, unidadeId } = filtroPeriodo;
   const chaveValores = `parkflash.painel.ocultar-valores.${usuario?.id}`;
   const [valoresOcultos, setValoresOcultos] = useState(() => carregar(chaveValores, false));
-  const [alertasAbertos, setAlertasAbertos] = useState(false);
   const primeiroNome = usuario?.nome.split(' ')[0] ?? '';
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
@@ -57,27 +55,40 @@ export default function Dashboard() {
   const fichasDoMes = useMemo(() => filtrarFichas(fichas, { mes, ano, unidadeId }), [fichas, mes, ano, unidadeId]);
   const melhorDia = useMemo(() => melhorDiaDaSemana(fichasDoMes), [fichasDoMes]);
 
-  const alertas = useMemo(() => {
-    const lista: { texto: string; rota: string }[] = [];
+  // Alertas do período que o servidor não cobre: vão para o Perdidinho enquanto o painel está montado.
+  const alertasDoPainel = useMemo<ItemPendencia[]>(() => {
+    const lista: ItemPendencia[] = [];
     const nomeMes = MESES[mes - 1].toLowerCase();
+    const grupo = `Do painel (${MESES_CURTOS[mes - 1]}/${ano})`;
     if (podeAcessar(usuario?.nivel, 'socios')) {
       for (const t of totaisPorUnidade(socios, unidades)) {
-        if (!t.valido) {
-          lista.push({
-            texto: t.vazia ? `${t.unidade} não tem sócios cadastrados` : `Rateio de ${t.unidade} soma ${t.total}% (precisa de 100%)`,
-            rota: '/app/socios',
-          });
-        }
+        if (t.valido) continue;
+        lista.push({
+          id: `painel:rateioInvalido:${t.unidade}`, tipo: TIPO_RATEIO_PAINEL, nivel: 'ATENCAO', quantidade: 1, rota: '/app/socios', grupo,
+          texto: t.vazia ? `${t.unidade} não tem sócios cadastrados` : `Rateio de ${t.unidade} soma ${t.total}% (precisa de 100%)`,
+        });
       }
     }
     const negativas = fichasDoMes.filter((f) => f.totalLiquido < 0).length;
-    if (negativas > 0) lista.push({ texto: `${negativas} ficha(s) com líquido negativo em ${nomeMes}`, rota: '/app/fichas' });
-    if (painel && painel.mes.resultado < 0) lista.push({ texto: `Resultado de ${nomeMes} negativo após despesas fixas`, rota: '/app/despesas' });
-    if (painel?.fichasParaConferir) lista.push({ texto: `${painel.fichasParaConferir} ficha(s) para conferência`, rota: '/app/fichas' });
-    if (painel?.pagamentosPendentes) lista.push({ texto: 'Há diárias reconhecidas com saldo a pagar no recorte', rota: '/app/pagamentos-manobristas' });
-    if (painel?.eventosProximos) lista.push({ texto: `${painel.eventosProximos} evento(s) nos próximos 7 dias`, rota: '/app/eventos' });
+    if (negativas > 0) {
+      lista.push({
+        id: `painel:fichasNegativas:${ano}-${mes}`, tipo: 'fichasNegativas', nivel: 'ATENCAO', quantidade: negativas, rota: '/app/fichas', grupo,
+        texto: `${negativas} ${negativas === 1 ? 'ficha com líquido negativo' : 'fichas com líquido negativo'} em ${nomeMes}`,
+      });
+    }
+    if (painel && painel.mes.resultado < 0) {
+      lista.push({
+        id: `painel:resultadoNegativo:${ano}-${mes}`, tipo: 'resultadoNegativo', nivel: 'ATENCAO', quantidade: 1, rota: '/app/despesas', grupo,
+        texto: `Resultado de ${nomeMes} negativo após despesas fixas`,
+      });
+    }
     return lista;
-  }, [usuario, socios, unidades, fichasDoMes, painel, mes]);
+  }, [usuario, socios, unidades, fichasDoMes, painel, mes, ano]);
+
+  useEffect(() => {
+    publicarAlertasDoPainel(alertasDoPainel);
+  }, [alertasDoPainel]);
+  useEffect(() => limparAlertasDoPainel, []);
 
   function alternarValores() {
     const novo = !valoresOcultos;
@@ -163,26 +174,6 @@ export default function Dashboard() {
               <Icone nome="plus" tamanho={17} />
               Nova ficha
             </Link>
-            <div className="dash__alertas">
-              <button type="button" className="pf-btn pf-btn--ghost dash__pendencias"
-                aria-expanded={alertasAbertos} onClick={() => setAlertasAbertos((a) => !a)}
-                onKeyDown={(e) => { if (e.key === 'Escape') setAlertasAbertos(false); }}>
-                <Icone nome="sino" tamanho={16} />
-                Alertas {alertas.length > 0 && <span className="dash__contador" aria-hidden="true">{alertas.length}</span>}
-              </button>
-              <AnimatePresence>
-              {alertasAbertos && (
-                <motion.div className="alertas" role="region" aria-label="Alertas do período"
-                  initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, transition: TRANSICAO.saida }} transition={TRANSICAO.mola}
-                  onKeyDown={(e) => { if (e.key === 'Escape') setAlertasAbertos(false); }}>
-                  <p className="alertas__titulo">Alertas do período</p>
-                  {alertas.length ? alertas.map((alerta) => (
-                    <Link key={alerta.texto} className="alertas__item" to={alerta.rota} onClick={() => setAlertasAbertos(false)}>{alerta.texto}</Link>
-                  )) : <p className="alertas__vazio"><Icone nome="sucesso" tamanho={16} />Nenhum alerta. Tudo em dia!</p>}
-                </motion.div>
-              )}
-              </AnimatePresence>
-            </div>
           </div>
         </header>
 

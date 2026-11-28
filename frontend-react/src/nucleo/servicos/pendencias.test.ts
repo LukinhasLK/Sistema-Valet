@@ -2,7 +2,7 @@ import { act, waitFor } from '@testing-library/react';
 import { apiFalsa } from '../../testes/api-falsa';
 import { useAuth } from '../estado/auth';
 import {
-  decidirAceno, INTERVALO_ACENO_MS, montarItens, pendenciasServico, proximaMeiaNoiteSP, registrarAceno, registrarPresenca,
+  decidirAceno, humorDasPendencias, INTERVALO_ACENO_MS, limparAlertasDoPainel, publicarAlertasDoPainel, usePainelStore, type ItemPendencia, montarItens, pendenciasServico, proximaMeiaNoiteSP, registrarAceno, registrarPresenca,
   reiniciarChamadasParaTeste, resumir, rotaDoRascunho, silencioServico, textoDaPendencia, usePendenciasStore, usePresenca,
   type PendenciaServidor,
 } from './pendencias';
@@ -54,6 +54,43 @@ describe('montar e resumir', () => {
       servidor: servidor({ id: 'x', nivel: 'ATENCAO', quantidade: 2 }, { id: 'y', nivel: 'URGENTE', quantidade: 1 }, { id: 'z', nivel: 'INFO', quantidade: 5 }), rascunhos: [], semConexao: true,
     }));
     expect(misto).toMatchObject({ nivel: 'urgente', contador: 3, urgentes: 1, rotulo: 'Pendências: 3, 1 urgente' });
+  });
+});
+
+const doPainel = (tipo: string, extra: Partial<ItemPendencia> = {}): ItemPendencia => ({
+  id: `painel:${tipo}`, tipo, nivel: 'ATENCAO', quantidade: 1, rota: '/app/fichas', texto: tipo, grupo: 'Do painel (Nov/2026)', ...extra,
+});
+
+describe('alertas do painel e humor', () => {
+  it('entram na lista com o grupo; rateio do painel some quando o servidor já traz unidadesSemRateio', () => {
+    const base = { rascunhos: [], semConexao: false };
+    const painel = [doPainel('fichasNegativas'), doPainel('rateioInvalido', { rota: '/app/socios' })];
+    const sem = montarItens({ ...base, servidor: [], doPainel: painel });
+    expect(sem.map((i) => i.tipo)).toEqual(['fichasNegativas', 'rateioInvalido']);
+    expect(sem[0].grupo).toBe('Do painel (Nov/2026)');
+    const com = montarItens({ ...base, servidor: servidor({ id: 'u', tipo: 'unidadesSemRateio', nivel: 'URGENTE' }), doPainel: painel });
+    expect(com.map((i) => i.tipo)).toEqual(['unidadesSemRateio', 'fichasNegativas']);
+  });
+
+  it('publicar e limpar (unmount) o store do painel', () => {
+    publicarAlertasDoPainel([doPainel('resultadoNegativo')]);
+    expect(usePainelStore.getState().itens).toHaveLength(1);
+    limparAlertasDoPainel();
+    expect(usePainelStore.getState().itens).toEqual([]);
+  });
+
+  it('humor: triste > surpreso > preocupado (pensando) > apontando > explicando > feliz', () => {
+    const r = (itens: ItemPendencia[]) => resumir(itens);
+    const item = (nivel: ItemPendencia['nivel'], tipo = 'prontas'): ItemPendencia => ({ id: `${tipo}${nivel}`, tipo, nivel, quantidade: 1, rota: '/x', texto: '' });
+    const prejuizo = doPainel('resultadoNegativo');
+    expect(humorDasPendencias(r([item('URGENTE')]), true)).toBe('triste');
+    expect(humorDasPendencias(r([item('URGENTE'), prejuizo]), false)).toBe('surpreso');
+    expect(humorDasPendencias(r([item('ATENCAO'), prejuizo]), false)).toBe('pensando');
+    expect(r([prejuizo]).preocupado).toBe(true);
+    expect(r([prejuizo]).rotulo).toBe('Pendências: 1, com prejuízo no período');
+    expect(humorDasPendencias(r([item('ATENCAO')]), false)).toBe('apontando');
+    expect(humorDasPendencias(r([item('INFO')]), false)).toBe('explicando');
+    expect(humorDasPendencias(r([]), false)).toBe('feliz');
   });
 });
 

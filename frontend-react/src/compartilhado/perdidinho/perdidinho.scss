@@ -28,9 +28,16 @@ pf-perdidinho {
   .perdidinho__olhos { fill: var(--perdidinho-olho); }
   .perdidinho__traco { stroke: var(--perdidinho-olho); }
   .perdidinho__raio { fill: var(--perdidinho-raio); }
+  /* Pupila só no "surpreso" (olhos redondos): na cor da espessura, para o branco continuar lendo como olho. */
+  .perdidinho__pupila { fill: var(--perdidinho-lado); }
+  /* Gotinha de suor do "pensando" (preocupado): mesma cor e fio da lágrima. */
+  .perdidinho__suor { fill: var(--perdidinho-lagrima); stroke: var(--perdidinho-lado); }
+  /* Postura de repouso de cada humor (inclinar, murchar, espichar): transform em CSS só nesta camada,
+     que o GSAP não toca. Origem na base da face, como os gestos. */
+  .perdidinho__postura { transform-box: view-box; transform-origin: 28px 58px; }
   .perdidinho__sombra { fill: var(--perdidinho-sombra); opacity: .22; }
   /* "z" do sono: na cor da face; parados (reduzir movimento) ficam visíveis, sem flutuar. */
-  .perdidinho__zzz { stroke: var(--perdidinho-face-luz, #2a86c0); stroke-width: 2; opacity: .85; }
+  .perdidinho__zzz { stroke: var(--perdidinho-face-luz, #2a86c0); stroke-width: 2.4; opacity: .9; }
   .perdidinho--vivo .perdidinho__zzz > * { opacity: 0; }
   /* Lágrimas: azul-claro com fio marinho (destaca na face azul). Paradas: uma em cada olho, no
      canto de baixo; vivas, começam invisíveis e o GSAP as faz escorrer. Sem transform em CSS:
@@ -44,5 +51,7 @@ pf-perdidinho {
     .perdidinho--vivo .perdidinho__olhar {
       transition: transform var(--perdidinho-olhar-dur, .45s) cubic-bezier(.22, 1, .36, 1) var(--perdidinho-olhar-atraso, 60ms);
     }
+    /* Troca de humor: a postura assenta em 300 ms (mesma curva de saída). Com reduzir movimento, instantânea. */
+    .perdidinho--vivo .perdidinho__postura { transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
   }
 }

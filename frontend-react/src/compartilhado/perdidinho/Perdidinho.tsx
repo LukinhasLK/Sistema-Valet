@@ -5,9 +5,9 @@ import { reduzido } from '../movimento';
 import './perdidinho.scss';
 
 export type Direcao = { x: number; y: number };
-type Pose = { x: number; y: number; rotation: number; scaleX: number; scaleY: number };
+export type Pose = { x: number; y: number; rotation: number; scaleX: number; scaleY: number };
 /** Desenho dos olhos de cada humor. */
-export type Olhos = 'abertos' | 'alegres' | 'tristes' | 'arregalados' | 'fechados';
+export type Olhos = 'abertos' | 'alegres' | 'piscadela' | 'mirando' | 'redondos' | 'tristes' | 'arregalados' | 'fechados';
 
 /** Olhos que podem ser pedidos por fora: os do humor ou `espiando` (um fechado, outro aberto). */
 export type OlhosPerdidinho = Olhos | 'espiando';
@@ -39,6 +39,8 @@ const JANELA_CONTINUIDADE = 450;
 
 // Última pose de quem desmontou: o tour troca o cartão a cada passo e o mascote é recriado.
 let ultimaSaida: { t: number; pose: Pose } | null = null;
+// Última postura (transform CSS) de quem desmontou: o próximo transita a partir dela.
+let ultimaPostura: { t: number; transform: string } | null = null;
 
 /**
  * Para onde fica o item destacado, visto do cartão. `lado` diz onde o cartão está em relação
@@ -57,32 +59,92 @@ export function direcaoDoAlvo(lado: PropsMascote['lado']): Direcao {
 export function olhosDoHumor(humor: HumorMascote): Olhos {
   switch (humor) {
     case 'feliz':
-    case 'acenando':
     case 'comemorando': return 'alegres';
+    case 'acenando': return 'piscadela';
     case 'triste':
     case 'chorando': return 'tristes';
     case 'surpreso': return 'arregalados';
+    case 'pensando': return 'redondos';
+    case 'apontando': return 'mirando';
     case 'dormindo': return 'fechados';
     default: return 'abertos';
   }
 }
 
-/** Sobrancelhas: só nos humores em que elas fazem a expressão. */
-export type Sobrancelhas = 'tristes' | 'levantadas' | 'curiosa';
+/**
+ * Sobrancelhas: elas é que separam os humores de olhos parecidos no tamanho pequeno (28–42 px).
+ * - `tristes`: baixas, encostadas na pálpebra, pontas de fora caídas (erro, sem conexão);
+ * - `preocupadas`: altas e bem inclinadas, pontas de dentro para cima (prejuízo, "hmm, isso não está bom");
+ * - `levantadas`: arcos altos e afastados (susto, urgente);
+ * - `calmas`: arcos suaves e simétricos, altura normal (explicando: atento, sem alarme);
+ * - `alerta`: UMA só, bem levantada, do lado para onde ele olha (apontando: "olha ali!").
+ * Sem sobrancelha: feliz/comemorando (o ^^ basta), acenando (piscadela) e dormindo.
+ */
+export type Sobrancelhas = 'tristes' | 'preocupadas' | 'levantadas' | 'calmas' | 'alerta';
 export function sobrancelhasDoHumor(humor: HumorMascote): Sobrancelhas | null {
-  if (humor === 'triste' || humor === 'chorando') return 'tristes';
-  if (humor === 'surpreso') return 'levantadas';
-  if (humor === 'pensando') return 'curiosa';
-  return null;
+  switch (humor) {
+    case 'triste':
+    case 'chorando': return 'tristes';
+    case 'pensando': return 'preocupadas';
+    case 'surpreso': return 'levantadas';
+    case 'explicando': return 'calmas';
+    case 'apontando': return 'alerta';
+    default: return null;
+  }
+}
+
+/** Para onde o "apontando" aponta: o item destacado ou, sem lado (companheiro do canto), para cima e à esquerda. */
+export function direcaoApontada(lado: PropsMascote['lado']): Direcao {
+  return lado === 'centro' ? { x: -0.7, y: -0.6 } : direcaoDoAlvo(lado);
+}
+
+/**
+ * Postura de repouso de cada humor (camada própria, CSS): é ela que fica, inclusive com "reduzir
+ * movimento", e transita em 300 ms na troca de humor. Os gestos do GSAP partem dela e voltam a ela.
+ */
+export function posturaDoHumor(humor: HumorMascote, lado: PropsMascote['lado']): Pose {
+  switch (humor) {
+    case 'apontando': {
+      // Inclina o corpo para o alvo (e estica de leve quando ele está acima).
+      const d = direcaoApontada(lado);
+      return { x: d.x * 2, y: d.y * 0.8, rotation: d.x * 11, scaleX: d.y < 0 ? 0.985 : 1, scaleY: d.y < 0 ? 1.02 : 1 };
+    }
+    case 'explicando': return { ...NEUTRA, rotation: 3 };           // cabeça de lado, de conversa
+    case 'acenando': return { ...NEUTRA, rotation: -4 };            // o charme do "oi"
+    case 'pensando': return { ...NEUTRA, y: 0.6, scaleX: 1.02, scaleY: 0.97 }; // encolhido, tenso
+    case 'surpreso': return { ...NEUTRA, y: -1, scaleX: 0.97, scaleY: 1.04 };  // espichado, em alerta
+    case 'triste':
+    case 'chorando': return { x: 0, y: 1.5, rotation: -2, scaleX: 1.03, scaleY: 0.94 }; // murcho
+    case 'dormindo': return { ...NEUTRA, y: 0.5, rotation: -6 };    // cabeça pendendo
+    default: return NEUTRA;
+  }
+}
+
+const transformPostura = (p: Pose) => ehNeutra(p) ? 'none'
+  : `translate(${p.x.toFixed(2)}px, ${p.y.toFixed(2)}px) rotate(${p.rotation.toFixed(2)}deg) scale(${p.scaleX}, ${p.scaleY})`;
+
+/**
+ * Transform fixo do rosto (olhos e sobrancelhas), independente do olhar: vale mesmo com `olhar` fixo
+ * por fora (o companheiro fixa o olhar). No "apontando" o rosto vai para o alvo e, se o alvo está à
+ * direita, espelha (a sobrancelha levantada e o olho aberto ficam do lado do alvo).
+ */
+export function rostoDoHumor(humor: HumorMascote, lado: PropsMascote['lado']): string | undefined {
+  if (humor === 'apontando') {
+    const d = direcaoApontada(lado);
+    const mover = `translate(${(d.x * 3.8).toFixed(2)} ${(d.y * 3.4).toFixed(2)})`;
+    return d.x > 0 ? `${mover} translate(56 0) scale(-1 1)` : mover;
+  }
+  if (humor === 'triste' || humor === 'chorando') return 'translate(0 1.6)'; // olhos baixos
+  return undefined;
 }
 
 /** Olhos que piscam (os outros já estão fechados ou em arco). */
-const PISCAM: ReadonlySet<OlhosPerdidinho> = new Set(['abertos', 'tristes', 'arregalados']);
+const PISCAM: ReadonlySet<OlhosPerdidinho> = new Set(['abertos', 'mirando', 'redondos', 'tristes', 'arregalados']);
 
 /** Olhar fixo de cada humor (null = livre: segue o mouse em ponteiro fino). */
 function olharDoHumor(humor: HumorMascote, lado: PropsMascote['lado']): Direcao | null {
   if (humor === 'pensando') return { x: -0.5, y: -1 };
-  if (humor === 'apontando') return direcaoDoAlvo(lado);
+  if (humor === 'apontando') return direcaoApontada(lado);
   if (humor === 'triste' || humor === 'chorando') return { x: 0, y: 0.8 };
   if (humor === 'dormindo') return { x: 0, y: 0 };
   return null;
@@ -127,6 +189,8 @@ export function Perdidinho({
   const entrada = useRef<SVGGElement>(null);
   const respira = useRef<SVGGElement>(null);
   const vira = useRef<SVGGElement>(null);
+  const postura = useRef<SVGGElement>(null);
+  const suor = useRef<SVGPathElement>(null);
   const gesto = useRef<SVGGElement>(null);
   const sombra = useRef<SVGEllipseElement>(null);
   const olhar = useRef<SVGGElement>(null);
@@ -150,6 +214,8 @@ export function Perdidinho({
   const olharFixo = olharPedido ?? olharDoHumor(humor, lado);
   const olharX = olharFixo?.x ?? 0;
   const olharY = olharFixo?.y ?? 0;
+  const posturaCss = transformPostura(posturaDoHumor(humor, lado));
+  const rosto = rostoDoHumor(humor, lado);
 
   /** Registra um ciclo infinito: ele pausa fora da tela e volta ao reaparecer. */
   const ciclo = <T extends gsap.core.Animation>(anim: T): T => {
@@ -246,18 +312,18 @@ export function Perdidinho({
       if (humor === 'apontando') {
         // Recolhe para o lado oposto (antecipação), lança-se para o item e assenta na metade.
         // Na vertical, estica ao apontar para cima e amassa ao apontar para baixo.
-        const d = direcaoDoAlvo(lado);
+        // A inclinação que fica é da postura (CSS); o gesto é só o "lance" por cima dela e volta ao zero.
+        const d = direcaoApontada(lado);
         const esticar = d.y < 0 ? { scaleX: 0.96, scaleY: 1.06 } : d.y > 0 ? { scaleX: 1.05, scaleY: 0.95 } : { scaleX: 0.97, scaleY: 1.02 };
-        const meio = { rotation: d.x * 5, x: d.x * 2, y: d.y * 2 };
         const tl = gsap.timeline({ delay: t0 })
           .to(corpo, { rotation: -d.x * 4, x: -d.x * 1.5, y: -d.y * 1.5, scaleX: 1.03, scaleY: 0.96, duration: 0.12, ease: EASE.entrada })
-          .to(corpo, { rotation: d.x * 11, x: d.x * 4.5, y: d.y * 4.5, ...esticar, duration: 0.2, ease: EASE.saida })
-          .to(corpo, { ...meio, scaleX: 1, scaleY: 1, duration: 0.45, ease: EASE.mola });
+          .to(corpo, { rotation: d.x * 6, x: d.x * 2.5, y: d.y * 2.5, ...esticar, duration: 0.2, ease: EASE.saida })
+          .to(corpo, { ...NEUTRA, duration: 0.45, ease: EASE.mola });
         const fimIntro = t0 + tl.duration();
         // "Cutuca" de novo de tempos em tempos.
         repete({ delay: fimIntro + 1.6, repeatDelay: 2.2 })
-          .to(corpo, { rotation: d.x * 10, x: d.x * 4, y: d.y * 4, duration: 0.18, ease: EASE.saida })
-          .to(corpo, { ...meio, duration: 0.4, ease: EASE.mola });
+          .to(corpo, { rotation: d.x * 5, x: d.x * 2, y: d.y * 2, duration: 0.18, ease: EASE.saida })
+          .to(corpo, { ...NEUTRA, duration: 0.4, ease: EASE.mola });
       }
 
       if (humor === 'comemorando') {
@@ -284,29 +350,25 @@ export function Perdidinho({
       }
 
       if (humor === 'pensando') {
-        // Cabeça de lado ("hmm"), oscilando bem devagar.
-        gsap.timeline({ delay: t0 - 0.12 }).to(corpo, { rotation: -5, y: -1, duration: 0.45, ease: 'power2.out' });
-        const fimIntro = t0 + 0.33;
-        repete({ delay: fimIntro, yoyo: true }).to(corpo, { rotation: -2, duration: 1.6, ease: EASE.suave });
+        // Preocupado: a postura encolhida é do CSS; aqui só um balanço lento de inquietação.
+        repete({ delay: t0 + 0.3, yoyo: true }).to(corpo, { rotation: -2, duration: 1.6, ease: EASE.suave });
       }
 
       if (humor === 'triste' || humor === 'chorando') {
-        // Encolhe devagar (murcha).
-        const murcho = { y: 1.5, scaleX: 1.03, scaleY: 0.94, rotation: -2 };
-        gsap.to(corpo, { ...murcho, duration: 0.55, ease: 'power2.out', delay: t0 - 0.12 });
+        // Murchar é da postura (CSS, 300 ms); aqui só o suspiro/soluço por cima dela.
         const fimIntro = t0 + 0.43;
         if (humor === 'triste') {
           // Suspira de tempos em tempos.
           repete({ delay: fimIntro + 1.4, repeatDelay: 3.2 })
-            .to(corpo, { y: 2.2, scaleX: 1.045, scaleY: 0.91, duration: 0.7, ease: EASE.suave })
-            .to(corpo, { ...murcho, duration: 1.1, ease: EASE.suave });
+            .to(corpo, { y: 0.7, scaleX: 1.015, scaleY: 0.97, duration: 0.7, ease: EASE.suave })
+            .to(corpo, { ...NEUTRA, duration: 1.1, ease: EASE.suave });
         } else {
           // Soluço: dois trancos curtos para cima e volta a murchar.
           repete({ delay: fimIntro + 0.6, repeatDelay: 1.8 })
-            .to(corpo, { y: 0.3, scaleX: 1.015, scaleY: 0.97, duration: 0.08, ease: EASE.saida })
-            .to(corpo, { ...murcho, duration: 0.16, ease: EASE.entrada })
-            .to(corpo, { y: 0.6, scaleX: 1.02, scaleY: 0.96, duration: 0.07, ease: EASE.saida }, '+=0.05')
-            .to(corpo, { ...murcho, duration: 0.22, ease: 'power2.inOut' });
+            .to(corpo, { y: -1.2, scaleX: 0.985, scaleY: 1.03, duration: 0.08, ease: EASE.saida })
+            .to(corpo, { ...NEUTRA, duration: 0.16, ease: EASE.entrada })
+            .to(corpo, { y: -0.9, scaleX: 0.99, scaleY: 1.02, duration: 0.07, ease: EASE.saida }, '+=0.05')
+            .to(corpo, { ...NEUTRA, duration: 0.22, ease: 'power2.inOut' });
           // Lágrimas: brotam no canto de baixo de cada olho, escorrem e somem, alternando os olhos.
           const gotas = lagrimas.current ? [...lagrimas.current.children] : [];
           gotas.forEach((gota, i) => {
@@ -332,8 +394,7 @@ export function Perdidinho({
       }
 
       if (humor === 'dormindo') {
-        // Cabeça pende devagar; os "z" sobem e somem, um depois do outro.
-        gsap.to(corpo, { rotation: -4, y: 0.5, duration: 0.8, ease: EASE.suave, delay: t0 - 0.12 });
+        // A cabeça pendida é da postura (CSS); os "z" sobem e somem, um depois do outro.
         const zs = zzz.current ? [...zzz.current.children] : [];
         zs.forEach((z, i) => {
           loop({ delay: 0.4 + i * 1.6, repeatDelay: 0.6 })
@@ -399,6 +460,8 @@ export function Perdidinho({
         else if (tipoSobrancelhas === 'tristes') gsap.from(sb, { y: -1.5, opacity: 0, duration: 0.4, ease: 'power2.out' });
         else gsap.from(sb, { y: 1, opacity: 0, duration: 0.3, ease: EASE.saida, delay: 0.1 });
       }
+      // Gotinha de suor do preocupado: aparece escorregando 1 px, uma vez (sem laço).
+      if (suor.current && !soOlhos) gsap.from(suor.current, { opacity: 0, y: -1.5, duration: 0.3, ease: EASE.saida, delay: 0.12 });
       if (!PISCAM.has(tipoOlhos)) return;
 
       const lenta = tipoOlhos === 'tristes';
@@ -419,6 +482,21 @@ export function Perdidinho({
       ctx.revert();
     };
   }, [humor, tipoOlhos, tipoSobrancelhas, parado]);
+
+  // Postura: o React aplica o transform (estilo); a transição CSS faz a troca entre humores. Se este
+  // Perdidinho continua um que acabou de desmontar (tour), parte da postura dele para não "saltar".
+  const posturaAtual = useRef(posturaCss);
+  posturaAtual.current = posturaCss;
+  useLayoutEffect(() => {
+    const el = postura.current;
+    const antes = ultimaPostura;
+    if (el && !parado && antes && performance.now() - antes.t < JANELA_CONTINUIDADE && antes.transform !== posturaAtual.current) {
+      el.style.transform = antes.transform;
+      el.getBoundingClientRect(); // fixa o ponto de partida da transição
+      el.style.transform = posturaAtual.current;
+    }
+    return () => { ultimaPostura = { t: performance.now(), transform: posturaAtual.current }; };
+  }, [parado]);
 
   // Virar: camada própria entre a respiração e o gesto (os gestos também mexem em rotation/x).
   // Primeira pintura já na pose pedida; depois, 200 ms power2.out (instantâneo se parado).
@@ -498,6 +576,7 @@ export function Perdidinho({
           <ellipse ref={sombra} className="perdidinho__sombra" cx="29" cy="61.5" rx="17" ry="2.4" />
           <g ref={respira}>
             <g ref={vira}>
+            <g ref={postura} className="perdidinho__postura" style={{ transform: posturaCss }}>
             <g ref={gesto}>
               <g className="perdidinho__lado">
                 {PROFUNDIDADE.map((d) => <rect key={d} x={6 + d} y={14 - d} width="44" height="44" rx="12" />)}
@@ -507,12 +586,39 @@ export function Perdidinho({
               <path className="perdidinho__brilho" d="M10.8 22.6 Q11.2 18.6 15.2 18" strokeOpacity="0.28" strokeWidth="2.2" strokeLinecap="round" fill="none" />
               {/* Raio âmbar do logo, no canto da face. */}
               <path className="perdidinho__raio" d="M44.6 44.5 L40.4 50.2 H43.2 L41.8 55.2 L46.2 49 H43.4 Z" />
+              {humor === 'pensando' && (
+                // Preocupado: gotinha de suor na têmpora (o único sinal além do rosto, bem discreto).
+                <path ref={suor} className="perdidinho__suor" d={gota(44.6, 17.6)} strokeWidth="0.9" strokeLinejoin="round" />
+              )}
               <g ref={olhar} className="perdidinho__olhar" style={{ transform: transformOlhar({ x: olharX, y: olharY }) }}>
+              <g className="perdidinho__rosto" transform={rosto}>
                 <g ref={olhos}>
                   {tipoOlhos === 'alegres' && (
-                    <g className="perdidinho__alegre perdidinho__traco" strokeWidth="3.2" strokeLinecap="round" fill="none">
-                      <path d="M17 38.5 Q20.5 32.5 24 38.5" />
-                      <path d="M32 38.5 Q35.5 32.5 39 38.5" />
+                    // Arcos altos e grossos (^^): no tamanho pequeno são o que separa o feliz do resto.
+                    <g className="perdidinho__alegre perdidinho__traco" strokeWidth="3.6" strokeLinecap="round" fill="none">
+                      <path d="M16.6 38.4 Q20.5 30.6 24.4 38.4" />
+                      <path d="M31.6 38.4 Q35.5 30.6 39.4 38.4" />
+                    </g>
+                  )}
+                  {tipoOlhos === 'piscadela' && (
+                    // "Oi!": o esquerdo em ^ (mesmo arco do feliz) e o direito aberto. Assimetria = aceno, não "feliz".
+                    <g className="perdidinho__piscadela">
+                      <path className="perdidinho__traco" d="M16.6 38.4 Q20.5 30.6 24.4 38.4" strokeWidth="3.6" strokeLinecap="round" fill="none" />
+                      <rect className="perdidinho__olhos" x="32.5" y="29" width="6" height="12" rx="3" />
+                    </g>
+                  )}
+                  {tipoOlhos === 'mirando' && (
+                    // "Olha ali!": o olho do lado do alvo aberto e mais alto; o outro semicerrado (topo reto, menor).
+                    <g className="perdidinho__olhos perdidinho__mirando">
+                      <rect x="17.2" y="28.4" width="6.6" height="12.6" rx="3.3" />
+                      <path d="M32.5 33.2 H38.5 V38 A3 3 0 0 1 32.5 38 Z" />
+                    </g>
+                  )}
+                  {tipoOlhos === 'redondos' && (
+                    // Preocupado: redondos, abertos e lisos (sem a pupila do susto), um pouco abaixo do meio.
+                    <g className="perdidinho__olhos perdidinho__redondos">
+                      <circle cx="20.5" cy="35.4" r="4.3" />
+                      <circle cx="35.5" cy="35.4" r="4.3" />
                     </g>
                   )}
                   {tipoOlhos === 'abertos' && (
@@ -522,16 +628,19 @@ export function Perdidinho({
                     </g>
                   )}
                   {tipoOlhos === 'tristes' && (
-                    // Pálpebra inclinada para fora (cantinhos caídos) e olhos mais baixos.
+                    // Semicerrados: pálpebra inclinada para fora (cantinhos caídos), metade do olho à vista.
                     <g className="perdidinho__olhos perdidinho__tristes">
-                      <path d="M17.5 34.5 L23.5 31.5 V38 A3 3 0 0 1 17.5 38 Z" />
-                      <path d="M32.5 31.5 L38.5 34.5 V38 A3 3 0 0 1 32.5 38 Z" />
+                      <path d="M17.5 36 L23.5 33.4 V38.2 A3 3 0 0 1 17.5 38.2 Z" />
+                      <path d="M32.5 33.4 L38.5 36 V38.2 A3 3 0 0 1 32.5 38.2 Z" />
                     </g>
                   )}
                   {tipoOlhos === 'arregalados' && (
-                    <g className="perdidinho__olhos perdidinho__arregalados">
-                      <ellipse cx="20.5" cy="34.5" rx="4.4" ry="5.4" />
-                      <ellipse cx="35.5" cy="34.5" rx="4.4" ry="5.4" />
+                    // Redondos e maiores, com pupila pequena no meio: o único olho "com pupila" (olhar fixo de susto).
+                    <g className="perdidinho__arregalados">
+                      <ellipse className="perdidinho__olhos" cx="20.5" cy="34.5" rx="5.2" ry="5.6" />
+                      <ellipse className="perdidinho__olhos" cx="35.5" cy="34.5" rx="5.2" ry="5.6" />
+                      <circle className="perdidinho__pupila" cx="20.5" cy="34.8" r="2.3" />
+                      <circle className="perdidinho__pupila" cx="35.5" cy="34.8" r="2.3" />
                     </g>
                   )}
                   {tipoOlhos === 'espiando' && (
@@ -542,36 +651,48 @@ export function Perdidinho({
                     </g>
                   )}
                   {tipoOlhos === 'fechados' && (
-                    <g className="perdidinho__fechados perdidinho__traco" strokeWidth="2.6" strokeLinecap="round" fill="none">
-                      <path d="M17 36.5 Q20.5 39.5 24 36.5" />
-                      <path d="M32 36.5 Q35.5 39.5 39 36.5" />
+                    // Arcos baixos e rasos (‿‿), opostos ao ^^ do feliz.
+                    <g className="perdidinho__fechados perdidinho__traco" strokeWidth="2.8" strokeLinecap="round" fill="none">
+                      <path d="M16.8 37.4 Q20.5 41.4 24.2 37.4" />
+                      <path d="M31.8 37.4 Q35.5 41.4 39.2 37.4" />
                     </g>
                   )}
                 </g>
                 {/* Sobrancelhas: traço curto e arredondado na cor dos olhos, só onde fazem a expressão. */}
                 {tipoSobrancelhas && (
                   <g ref={sobrancelhas} className="perdidinho__sobrancelhas perdidinho__traco" data-forma={tipoSobrancelhas}
-                    strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none">
+                    strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" fill="none">
                     {tipoSobrancelhas === 'tristes' && (
-                      // "/ \" invertidas: a ponta de dentro sobe (preocupação).
+                      // Baixas, quase encostadas na pálpebra, curvando para baixo na ponta de fora (desânimo).
                       <>
-                        <path d="M17 29.4 L23.4 25.8" />
-                        <path d="M32.6 25.8 L39 29.4" />
+                        <path d="M16.4 32.8 Q18.6 29.8 23.4 29.6" />
+                        <path d="M32.6 29.6 Q37.4 29.8 39.6 32.8" />
+                      </>
+                    )}
+                    {tipoSobrancelhas === 'preocupadas' && (
+                      // Altas e íngremes, retas, pontas de dentro bem para cima, longe dos olhos (aflição).
+                      <>
+                        <path d="M16.4 27.4 L23.4 21.4" />
+                        <path d="M32.6 21.4 L39.6 27.4" />
                       </>
                     )}
                     {tipoSobrancelhas === 'levantadas' && (
-                      // Arcos altos e um pouco afastados do centro.
+                      // Arcos altos e afastados do centro.
                       <>
-                        <path d="M15.4 25.4 Q18.6 22.2 22.2 23.6" />
-                        <path d="M33.8 23.6 Q37.4 22.2 40.6 25.4" />
+                        <path d="M14.6 24.6 Q18.4 20.4 22.4 22.2" />
+                        <path d="M33.6 22.2 Q37.6 20.4 41.4 24.6" />
                       </>
                     )}
-                    {tipoSobrancelhas === 'curiosa' && (
-                      // Uma reta e a outra arqueada ("hmm").
+                    {tipoSobrancelhas === 'calmas' && (
+                      // Arcos suaves e simétricos, na altura normal: atento e tranquilo.
                       <>
-                        <path d="M17.2 25.6 L23.4 25" />
-                        <path d="M32.6 24.6 Q35.6 21.6 39 23.4" />
+                        <path d="M17 25.6 Q20.5 23.6 24 25.2" />
+                        <path d="M32 25.2 Q35.5 23.6 39 25.6" />
                       </>
+                    )}
+                    {tipoSobrancelhas === 'alerta' && (
+                      // Uma só, bem levantada e arqueada, sobre o olho aberto (o do lado do alvo).
+                      <path d="M15.4 25.4 Q18.8 18.4 24.6 21.2" />
                     )}
                   </g>
                 )}
@@ -583,6 +704,8 @@ export function Perdidinho({
                   </g>
                 )}
               </g>
+              </g>
+            </g>
             </g>
             </g>
           </g>
