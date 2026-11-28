@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icone } from '../Icone';
 import { DURACAO, reduzido } from '../movimento';
+import type { HumorMascote } from '../../nucleo/onboarding/mascote';
+import { PerdidinhoTardio } from './index';
 import './balao-companheiro.scss';
 
 /**
@@ -8,7 +10,8 @@ import './balao-companheiro.scss';
  *
  * - `barra` (desktop): pílula de uma linha DENTRO da barra superior, à esquerda do botão do Perdidinho, com um
  *   indicador apontando para ele. Texto com reticências (o completo fica no histórico), ação e X. Nada flutua.
- * - `faixa` (celular): bloco no fluxo, logo abaixo do cabeçalho. Empurra o conteúdo (nada flutua).
+ * - `faixa` (celular): bloco no fluxo, logo abaixo do cabeçalho. Empurra o conteúdo (nada flutua). Com `humor`, quem
+ *   fala é o próprio Perdidinho (no lugar da lâmpada), com a expressão da fala.
  *
  * Acessibilidade:
  * - Faixa: o texto fica numa região `role="status"` (`aria-live="polite"`), preenchida depois da montagem
@@ -35,6 +38,8 @@ export interface PropsBalaoCompanheiro {
   /** Tempo de vida em ms (padrão 8000; 10000 na barra); pausa enquanto houver hover ou foco dentro. 0 = sem tempo. */
   duracaoMs?: number;
   reduzirMovimento?: boolean;
+  /** Faixa: o Perdidinho aparece falando, com este humor, no lugar da lâmpada. */
+  humor?: HumorMascote;
 }
 
 type Motivo = Parameters<PropsBalaoCompanheiro['aoFechar']>[0];
@@ -45,9 +50,11 @@ export const SAIDA_BALAO_MS = Math.round(DURACAO.rapida * 1000);
 export const SAIDA_BALAO_REDUZIDA_MS = 120;
 /** Depois de uma pausa, o recado fica pelo menos este tempo antes de sumir sozinho. */
 export const FOLGA_MS = 1500;
+/** Tamanho do Perdidinho na faixa do celular (cabe na altura da faixa, sem aumentá-la muito). */
+export const TAMANHO_MASCOTE_FAIXA = 36;
 
 export function BalaoCompanheiro({
-  variante, texto, acao, aoFechar, duracaoMs = variante === 'barra' ? 10_000 : 8000, reduzirMovimento = false,
+  variante, texto, acao, aoFechar, duracaoMs = variante === 'barra' ? 10_000 : 8000, reduzirMovimento = false, humor,
 }: PropsBalaoCompanheiro): JSX.Element {
   const raiz = useRef<HTMLElement>(null);
   const [pronto, setPronto] = useState(false);
@@ -144,7 +151,13 @@ export function BalaoCompanheiro({
       onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocoDentro(false); }}>
       <div className="balc__dobra">
         <div className="balc__cartao">
-          {faixa && <span className="balc__icone" aria-hidden="true"><Icone nome="dica" tamanho={16} /></span>}
+          {faixa && humor && (
+            <span className="balc__mascote" aria-hidden="true">
+              <PerdidinhoTardio decorativo tamanho={TAMANHO_MASCOTE_FAIXA} humor={humor} falando passo={texto} lado="left"
+                reduzirMovimento={parado} />
+            </span>
+          )}
+          {faixa && !humor && <span className="balc__icone" aria-hidden="true"><Icone nome="dica" tamanho={16} /></span>}
           {barra ? (
             <div className="balc__texto">{texto}</div>
           ) : (

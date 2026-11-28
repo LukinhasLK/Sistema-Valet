@@ -34,6 +34,15 @@ describe('BalaoCompanheiro', () => {
     expect(container.querySelector('.balc__icone')?.getAttribute('aria-hidden')).toBe('true');
   });
 
+  it('a faixa com humor mostra o Perdidinho falando (decorativo) no lugar da lâmpada', async () => {
+    const { container } = render(<BalaoCompanheiro variante="faixa" humor="apontando" texto="Você começou uma ficha de Beef às 13:14. Continuar?" aoFechar={() => {}} />);
+    expect(container.querySelector('.balc__icone')).toBeNull();
+    expect(container.querySelector('.balc__mascote')?.getAttribute('aria-hidden')).toBe('true');
+    await act(async () => { await vi.dynamicImportSettled(); });
+    expect(container.querySelector('.balc__mascote pf-perdidinho')?.getAttribute('data-humor')).toBe('apontando');
+    expect(screen.getByRole('status').textContent).toContain('Você começou uma ficha de Beef');
+  });
+
   it('o X chama aoFechar("fechar") depois da saída e desmonta', () => {
     const aoFechar = vi.fn();
     render(<BalaoCompanheiro variante="barra" texto="Recado" aoFechar={aoFechar} />);

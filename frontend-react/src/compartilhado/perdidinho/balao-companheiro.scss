@@ -163,10 +163,14 @@ pf-balao-companheiro {
     &[data-pronto] .balc__cartao { visibility: visible; }
 
     .balc__icone { display: grid; place-items: center; flex: none; margin-right: 6px; color: var(--pf-blue, #186a9d); }
+    /* O Perdidinho que fala (espaço reservado: nada pula enquanto ele carrega). */
+    .balc__mascote { display: grid; place-items: center; flex: none; width: 38px; height: 44px; margin: 4px 4px 4px -6px; }
+    .balc__mascote + .balc__texto { -webkit-line-clamp: 3; line-clamp: 3; }
     .balc__texto {
       flex: 1 1 auto;
-      padding: 8px 0;
-      /* Uma linha; se não couber, no máximo duas. */
+      /* Margem (e não padding): o recorte das linhas extras é na borda do padding, então padding deixaria vazar a linha seguinte. */
+      margin: 8px 0;
+      /* Uma linha; se não couber, no máximo duas (três com o Perdidinho, que ocupa a largura da lâmpada e um pouco mais). */
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;

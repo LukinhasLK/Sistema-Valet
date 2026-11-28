@@ -105,7 +105,10 @@ function Silhueta({ tamanho }: { tamanho: number }) {
 
 const ORDEM_NIVEL: Record<ItemPendencia['nivel'], number> = { URGENTE: 0, ATENCAO: 1, INFO: 2 };
 
-/** Faixa do celular: a fala do Perdidinho presa abaixo do cabeçalho (empurra o conteúdo, nunca flutua). Renderizada pelo LayoutApp. */
+/**
+ * Faixa do celular: a fala do Perdidinho presa abaixo do cabeçalho (empurra o conteúdo, nunca flutua). Renderizada pelo LayoutApp.
+ * Quem fala é o próprio Perdidinho, com o humor da fala; enquanto isso, o do topo vira silhueta (um Perdidinho com olhos por vez).
+ */
 export function FaixaDeFala() {
   const ativa = useFalaAtiva((s) => s.ativa);
   const navegar = useNavigate();
@@ -113,7 +116,7 @@ export function FaixaDeFala() {
   const aoFechar = useCallback(() => useFalaAtiva.setState({ ativa: null }), []);
   if (!ativa) return null;
   return (
-    <BalaoCompanheiro key={`${ativa.id}:${ativa.chave}`} variante="faixa" texto={ativa.texto} reduzirMovimento={parado}
+    <BalaoCompanheiro key={`${ativa.id}:${ativa.chave}`} variante="faixa" texto={ativa.texto} reduzirMovimento={parado} humor={ativa.humor}
       acao={ativa.acao ? { rotulo: ativa.acao.rotulo, aoClicar: () => navegar(ativa.acao!.rota) } : undefined} aoFechar={aoFechar} />
   );
 }
@@ -167,7 +170,8 @@ export function AjudantePerdidinho({ variante, aoMudarGaveta }: Props) {
   const aoFecharFala = useCallback(() => useFalaAtiva.setState({ ativa: null }), []);
   const dormindo = useAdormecido(resumo.nivel === 'nada' && !falhou);
   // O convite de primeiro acesso é anunciado por este próprio Perdidinho (ele acena), no desktop e no celular.
-  const semOlhos = comPresenca || tourAtivo;
+  // No celular, enquanto a faixa mostra o Perdidinho falando, o do topo cede os olhos para ele.
+  const semOlhos = comPresenca || tourAtivo || (!barra && falaAtiva !== null);
   const { olhar: alvoOlhar, senha, modo, saltos } = useAlvoDoOlhar(mascote, barra && !parado && !semOlhos);
   const timerAceno = useRef<ReturnType<typeof setTimeout>>();
   const anteriorUrgentes = useRef<number | null>(null);
