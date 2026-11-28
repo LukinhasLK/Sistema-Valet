@@ -1,0 +1,154 @@
+<div class="pf-page relatorio">
+  <pf-page-header title="Relatórios" subtitle="Visão geral financeira por período">
+    <button type="button" class="pf-btn pf-btn--ghost nao-imprimir" [disabled]="consulta().tipo !== 'pronta' || exportando() !== null" (click)="exportar('pdf')">
+      <pf-icon name="baixar" [size]="17" />
+      {{ exportando() === 'pdf' ? 'Gerando PDF…' : 'Baixar PDF' }}
+    </button>
+    <button type="button" class="pf-btn pf-btn--ghost nao-imprimir"
+      [disabled]="consulta().tipo !== 'pronta' || exportando() !== null" (click)="exportar('excel')">
+      <pf-icon name="baixar" [size]="17" />
+      {{ exportando() === 'excel' ? 'Gerando Excel…' : 'Baixar Excel' }}
+    </button>
+  </pf-page-header>
+
+  <div class="pf-filters nao-imprimir">
+    <select class="pf-select" [ngModel]="mes()" (ngModelChange)="mes.set(+$event)" aria-label="Mês">
+      <option [value]="0">Ano inteiro</option>
+      @for (nome of meses; track nome; let i = $index) {
+        <option [value]="i + 1">{{ nome }}</option>
+      }
+    </select>
+
+    <select class="pf-select" [ngModel]="ano()" (ngModelChange)="ano.set(+$event)" aria-label="Ano">
+      @for (a of anos(); track a) { <option [value]="a">{{ a }}</option> }
+    </select>
+
+    <select class="pf-select" [ngModel]="unidadeId()" (ngModelChange)="unidadeId.set($event)" aria-label="Unidade">
+      <option [ngValue]="todas">Consolidado</option>
+      @for (u of unidades(); track u.id) { <option [ngValue]="u.id">{{ u.nome }}</option> }
+    </select>
+  </div>
+
+  @if (consulta(); as estado) {
+    @if (estado.tipo === 'carregando') {
+      <p class="pf-card vazio" role="status">Carregando relatório…</p>
+    } @else if (estado.tipo === 'erro') {
+      <div class="pf-card vazio">
+        <p class="pf-error" role="alert">{{ estado.mensagem }}</p>
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="tentarNovamente()">Tentar novamente</button>
+      </div>
+    } @else {
+      @let relatorio = estado.dados;
+      @let resumo = relatorio.resumo;
+      <p class="periodo">{{ periodoLabel() }} · {{ relatorio.unidade }}</p>
+
+      <section class="cards-resumo">
+        <pf-kpi-card label="Receita total" [value]="resumo.totalBruto | currencyBr" [hint]="periodoLabel()" />
+        <pf-kpi-card label="Custos das fichas" [value]="relatorio.custosFichas | currencyBr" hint="diárias, taxas e gastos da ficha" tone="danger" />
+        <pf-kpi-card
+          label="Lucro das fichas"
+          [value]="resumo.lucroFichas | currencyBr"
+          [hint]="resumo.quantidadeFichas + ' fichas no período'"
+          [tone]="resumo.lucroFichas >= 0 ? 'success' : 'danger'"
+        />
+        <pf-kpi-card label="Despesas fixas" [value]="resumo.despesasFixas | currencyBr" hint="aluguel, seguro, manutenção" tone="danger" />
+        <pf-kpi-card
+          label="Resultado do período"
+          [value]="resumo.resultado | currencyBr"
+          hint="lucro das fichas − despesas fixas"
+          [tone]="resumo.resultado >= 0 ? 'success' : 'danger'"
+        />
+      </section>
+
+      @if (relatorio.linhas.length === 0) {
+        <div class="pf-card vazio">
+          <p class="vazio__titulo">Nenhuma ficha neste período</p>
+          @if (resumo.despesasFixas > 0) {
+            <p class="vazio__texto">
+              O resultado de {{ resumo.resultado | currencyBr }} vem só das despesas fixas ({{ resumo.despesasFixas | currencyBr }}).
+            </p>
+          } @else {
+            <p class="vazio__texto">Escolha outro mês, ano ou unidade.</p>
+          }
+        </div>
+      } @else if (isMobile()) {
+        <div class="cards">
+          @for (linha of relatorio.linhas; track linha.id) {
+            <article class="pf-card card-rel">
+              <div class="card-rel__topo">
+                <span class="card-rel__data">{{ linha.data | dataBr }}</span>
+                <span class="pf-badge" [class]="linha.turno === 'dia' ? 'pf-badge--blue' : 'pf-badge--night'">
+                  {{ linha.turno === 'dia' ? 'Dia' : 'Noite' }}
+                </span>
+              </div>
+              <p class="card-rel__unidade">{{ linha.unidade }}</p>
+              <div class="card-rel__linha"><span>Receita</span><span>{{ linha.bruto | currencyBr }}</span></div>
+              <div class="card-rel__linha"><span>Custos</span><span>{{ linha.custos | currencyBr }}</span></div>
+              <div class="card-rel__linha card-rel__linha--forte">
+                <span>Saldo</span>
+                <span [class.pf-money--neg]="linha.liquido < 0" [class.pf-money--pos]="linha.liquido >= 0">
+                  {{ linha.liquido | currencyBr }}
+                </span>
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="pf-card tabela">
+          <div class="pf-table-wrap">
+            <table class="pf-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Turno</th>
+                  <th>Unidade</th>
+                  <th class="num">Receita</th>
+                  <th class="num">Custos</th>
+                  <th class="num">Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (linha of relatorio.linhas; track linha.id) {
+                  <tr>
+                    <td>{{ linha.data | dataBr }}</td>
+                    <td>
+                      <span class="pf-badge" [class]="linha.turno === 'dia' ? 'pf-badge--blue' : 'pf-badge--night'">
+                        {{ linha.turno === 'dia' ? 'Dia' : 'Noite' }}
+                      </span>
+                    </td>
+                    <td>{{ linha.unidade }}</td>
+                    <td class="num">{{ linha.bruto | currencyBr }}</td>
+                    <td class="num">{{ linha.custos | currencyBr }}</td>
+                    <td class="num" [class.pf-money--neg]="linha.liquido < 0" [class.pf-money--pos]="linha.liquido >= 0">
+                      {{ linha.liquido | currencyBr }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3">Total do período</td>
+                  <td class="num">{{ resumo.totalBruto | currencyBr }}</td>
+                  <td class="num">{{ relatorio.custosFichas | currencyBr }}</td>
+                  <td class="num" [class.pf-money--neg]="resumo.lucroFichas < 0" [class.pf-money--pos]="resumo.lucroFichas >= 0">
+                    {{ resumo.lucroFichas | currencyBr }}
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="5">(−) Despesas fixas do período</td>
+                  <td class="num pf-money--neg">{{ resumo.despesasFixas | currencyBr }}</td>
+                </tr>
+                <tr>
+                  <td colspan="5">Resultado do período</td>
+                  <td class="num" [class.pf-money--neg]="resumo.resultado < 0" [class.pf-money--pos]="resumo.resultado >= 0">
+                    {{ resumo.resultado | currencyBr }}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      }
+    }
+  }
+</div>

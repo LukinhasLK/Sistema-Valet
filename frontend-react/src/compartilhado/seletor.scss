@@ -1,0 +1,131 @@
+pf-seletor {
+  .pf-seletor__veu {
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    background: rgba(16, 40, 63, .4);
+  }
+
+  .pf-seletor__painel {
+    position: fixed;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    max-width: min(360px, calc(100vw - 16px));
+    max-height: min(340px, 60vh);
+    padding: 5px;
+    border: 1px solid var(--pf-border);
+    border-radius: 12px;
+    background: var(--pf-surface);
+    box-shadow: 0 14px 40px rgba(16, 40, 63, .16), 0 2px 6px rgba(16, 40, 63, .06);
+    transform-origin: top left;
+  }
+
+  /* Abrindo para cima: a caixa cresce a partir da base. */
+  .pf-seletor__painel--acima { transform: translateY(-100%); transform-origin: bottom left; }
+
+  .pf-seletor__painel--folha {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    max-width: none;
+    max-height: 72dvh;
+    padding: 8px 10px calc(14px + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .pf-seletor__titulo {
+    padding: 8px 10px 10px;
+    font-family: var(--pf-font-display);
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .pf-seletor__busca {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 4px;
+    padding: 0 10px;
+    height: 36px;
+    border-bottom: 1px solid var(--pf-border);
+    color: var(--pf-text-muted);
+
+    input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font: inherit;
+      font-size: 13.5px;
+      color: var(--pf-text);
+    }
+  }
+
+  .pf-seletor__lista {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    outline: none;
+  }
+
+  .pf-seletor__opcao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 6px 10px 6px 8px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: var(--pf-text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .pf-seletor__opcao--ativa { background: var(--pf-surface-hover); }
+  .pf-seletor__opcao--selecionada { color: var(--pf-blue-press); font-weight: 600; }
+  .pf-seletor__opcao--selecionada.pf-seletor__opcao--ativa { background: var(--pf-blue-soft); }
+
+  .pf-seletor__marca { display: grid; place-items: center; flex: none; width: 18px; color: var(--pf-blue); }
+  .pf-seletor__rotulo { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .pf-seletor__detalhe { font-size: 12px; color: var(--pf-text-muted); }
+  .pf-seletor__vazio { padding: 12px; font-size: 13px; color: var(--pf-text-muted); text-align: center; }
+
+  .pf-seletor__painel--folha .pf-seletor__opcao { min-height: 46px; font-size: 15px; }
+}
+
+/* Campo de formulário (substituto do <select>) */
+.pf-campo-selecao {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+.pf-campo-selecao__nativo {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: 0; padding: 0;
+  border: 0; opacity: 0;
+  overflow: hidden; clip: rect(0, 0, 0, 0);
+  pointer-events: none;
+}
+.pf-campo-selecao__botao {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+  span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &[aria-expanded='true'] { border-color: var(--pf-blue); box-shadow: var(--pf-focus); }
+  &:focus-visible { outline: none; border-color: var(--pf-blue); box-shadow: var(--pf-focus); }
+}
+.pf-campo-selecao__vazio { color: var(--pf-text-faint); }
+.pf-filters .pf-campo-selecao { flex: 0 1 auto; }
+.pf-filters .pf-campo-selecao .pf-select { width: auto; min-width: 160px; }
+@media (max-width: 767px) {
+  .pf-filters .pf-campo-selecao { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .pf-filters .pf-campo-selecao .pf-select { width: 100%; min-width: 0; }
+}

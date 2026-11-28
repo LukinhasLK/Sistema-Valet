@@ -1,0 +1,88 @@
+/* Gerado de src/app/features/usuarios/usuarios.component.scss — escopado em <pf-usuarios>. */
+pf-usuarios {
+/* A opção ficava colada na tabela: mesmo respiro (16px) usado entre os blocos das outras telas. */
+.usuarios__inativos { margin-bottom: 16px; }
+.tabela { overflow: hidden; }
+.cards { display: flex; flex-direction: column; gap: 10px; }
+
+.celula-nome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.voce {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--pf-accent-soft);
+  color: var(--pf-warning-ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+
+.card-usuario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+
+  &__info { flex: 1; min-width: 0; }
+  &__nome { font-size: 14px; font-weight: 600; }
+  &__email {
+    font-size: 12px;
+    color: var(--pf-text-muted);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.acao {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pf-text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  font-family: inherit;
+
+  &:hover:not(:disabled) { background: var(--pf-surface-hover); color: var(--pf-text); }
+  &--danger:hover:not(:disabled) { background: var(--pf-danger-soft); color: var(--pf-danger-ink); }
+  &:disabled { opacity: .4; cursor: not-allowed; }
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__acoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+}
+
+.card-usuario__escopo { font-size: 12px; color: var(--pf-text-muted); }
+.card-usuario__acoes { display: grid; justify-items: end; gap: 3px; }
+.escopo {
+  min-width: 0;
+  border: 1px solid var(--pf-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.escopo__opcao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+}
+

@@ -1,0 +1,161 @@
+<div class="pf-page">
+  <pf-page-header title="Sócios" subtitle="Porcentagem de cada sócio por estabelecimento">
+    <button type="button" class="pf-btn pf-btn--primary" (click)="abrir()">
+      <pf-icon name="plus" [size]="17" />
+      Novo sócio
+    </button>
+  </pf-page-header>
+
+  <!-- Validação do rateio por unidade -->
+  <div class="validacao">
+    @for (u of unidades(); track u.id) {
+      @let t = totais()[$index];
+      <button type="button" (click)="abrirRateio(u)"
+        class="pf-btn pf-btn--ghost validacao__item"
+        [class.validacao__item--erro]="!t.valido && !t.vazia"
+        [class.validacao__item--vazia]="t.vazia"
+      >
+        <pf-icon [name]="t.valido ? 'check' : 'alerta'" [size]="14" />
+        {{ t.unidade }} · {{ t.vazia ? 'sem rateio' : t.total + '%' }}
+      </button>
+    }
+  </div>
+
+  @if (socios().length === 0) {
+    <div class="pf-card vazio">
+      <p class="vazio__titulo">Nenhum sócio cadastrado</p>
+      <p class="vazio__texto">Cadastre os sócios para que o app calcule a divisão do lucro.</p>
+    </div>
+  } @else if (isMobile()) {
+    <div class="cards">
+      @for (s of socios(); track s.id) {
+        <article class="pf-card card-socio">
+          <p class="card-socio__nome">{{ s.nome }}</p>
+          <button type="button" class="acao" (click)="abrir(s)" [attr.aria-label]="'Editar ' + s.nome">Editar</button>
+          @if (participacoes(s).length) {
+            <ul class="card-socio__lista">
+              @for (p of participacoes(s); track p.unidadeId) {
+                <li><span>{{ nomeUnidade(p.unidadeId) }}</span><span class="pf-badge pf-badge--gray">{{ p.percentual }}%</span></li>
+              }
+            </ul>
+          } @else {
+            <p class="card-socio__vazio">Sem participação ativa.</p>
+          }
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="pf-card tabela">
+      <div class="pf-table-wrap">
+        <table class="pf-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              @for (u of unidades(); track u.id) {
+                <th class="num">{{ u.nome }}</th>
+              }
+              <th class="actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of socios(); track s.id) {
+              <tr>
+                <td class="forte">{{ s.nome }}</td>
+                @for (u of unidades(); track u.id) {
+                  <td class="num">
+                    @if (percentual(s, u.id); as pct) {
+                      <span class="pf-badge pf-badge--gray">{{ pct }}%</span>
+                    } @else {
+                      <span class="tracinho">—</span>
+                    }
+                  </td>
+                }
+                <td class="actions">
+                  <button type="button" class="acao" (click)="abrir(s)">Editar</button>
+                  <button type="button" class="acao acao--danger" (click)="paraExcluir.set(s)">Excluir</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
+
+@if (formAberto()) {
+  <pf-modal [title]="editando() ? 'Editar sócio' : 'Novo sócio'" (fechar)="formAberto.set(false)">
+    <form class="modal-form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+      <div class="pf-field">
+        <label class="pf-label" for="s-nome">Nome</label>
+        <input id="s-nome" class="pf-input" type="text" formControlName="nome" />
+        @if (invalido('nome')) { <span class="pf-error">Informe o nome.</span> }
+      </div>
+
+      <p class="modal-form__nota">Configure os percentuais no botão de cada unidade.</p>
+
+      <div class="modal-form__acoes">
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="formAberto.set(false)">Cancelar</button>
+        <button type="submit" class="pf-btn pf-btn--primary">Salvar</button>
+      </div>
+    </form>
+  </pf-modal>
+}
+
+@if (paraExcluir(); as s) {
+  <pf-confirm
+    [message]="s.nome + ' será removido se não houver participações no histórico.'"
+    (confirmar)="confirmarExclusao()"
+    (cancelar)="paraExcluir.set(null)"
+  />
+}
+
+
+@if (rateando(); as unidade) {
+  <pf-modal [title]="'Rateio · ' + unidade.nome" (fechar)="rateando.set(null)">
+    @if (carregandoRateio()) {
+      <p role="status">Carregando rateio…</p>
+    } @else if (erroRateio()) {
+      <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirRateio(unidade)">Tentar novamente</button>
+    } @else {
+      <form class="modal-form" (ngSubmit)="salvarRateio()">
+        <p class="modal-form__nota">O total deve somar 100%. A versão se aplica a partir do mês escolhido.</p>
+        <div class="pf-field">
+          <label class="pf-label" for="vigencia-rateio">Mês de início</label>
+          <input id="vigencia-rateio" class="pf-input" type="month" required [min]="mesAtual"
+            [ngModel]="vigencia()" (ngModelChange)="vigencia.set($event)" name="vigencia" />
+        </div>
+        <div class="percentuais">
+          @for (socio of socios(); track socio.id) {
+            <div class="percentuais__linha">
+              <label class="pf-label" [for]="'cota-rateio-' + socio.id">{{ socio.nome }}</label>
+              <input class="pf-input" [id]="'cota-rateio-' + socio.id" [name]="'cota-' + socio.id"
+                type="number" min="0" max="100" step="0.01" inputmode="decimal"
+                [ngModel]="cotas()[socio.id] ?? 0" (ngModelChange)="alterarCota(socio.id, $event)" />
+            </div>
+          } @empty {
+            <p>Cadastre pelo menos um sócio para configurar o rateio.</p>
+          }
+        </div>
+        <p role="status">Total informado: {{ somaRateio() }}%</p>
+        @if (revisoes().length) {
+          <div>
+            <h3 class="modal-form__secao">Vigências registradas</h3>
+            <ul class="previa">
+              @for (r of revisoes(); track r.id) {
+                <li>{{ r.vigenteDesde | date:'MM/yyyy':'UTC' }} · {{ r.autor }}</li>
+              }
+            </ul>
+          </div>
+        }
+        <div class="modal-form__acoes">
+          <button type="button" class="pf-btn pf-btn--ghost" (click)="rateando.set(null)">Cancelar</button>
+          <button type="submit" class="pf-btn pf-btn--primary"
+            [disabled]="somaRateio() !== 100 || !vigencia() || salvandoRateio()">
+            {{ salvandoRateio() ? 'Salvando…' : 'Salvar distribuição' }}
+          </button>
+        </div>
+      </form>
+    }
+  </pf-modal>
+}

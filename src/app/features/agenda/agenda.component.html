@@ -1,0 +1,182 @@
+<div class="pf-page">
+  <pf-page-header [title]="tipo === 'eventos' ? 'Eventos' : 'Escalas'"
+    [subtitle]="tipo === 'eventos' ? 'Planeje a operação e registre as condições do evento.' : 'Organize turnos e profissionais por unidade ou evento.'">
+    @if (tipo === 'eventos') {
+      <button type="button" class="pf-btn pf-btn--primary" (click)="abrirEvento()"><pf-icon name="plus" [size]="17" /> Novo evento</button>
+    } @else {
+      <button type="button" class="pf-btn pf-btn--primary" (click)="abrirEscala()"><pf-icon name="plus" [size]="17" /> Nova escala</button>
+    }
+  </pf-page-header>
+
+  <div class="pf-filters">
+    <label class="pf-field"><span class="pf-label">Unidade</span>
+      <select class="pf-select" [ngModel]="unidade()" (ngModelChange)="filtrar($event, de(), ate())">
+        <option [ngValue]="null">Unidades autorizadas</option>
+        @for (u of unidades(); track u.id) { <option [ngValue]="u.id">{{ u.nome }}</option> }
+      </select>
+    </label>
+    <label class="pf-field"><span class="pf-label">De</span>
+      <input class="pf-input" type="date" [ngModel]="de()" (ngModelChange)="filtrar(unidade(), $event, ate())" />
+    </label>
+    <label class="pf-field"><span class="pf-label">Até</span>
+      <input class="pf-input" type="date" [ngModel]="ate()" (ngModelChange)="filtrar(unidade(), de(), $event)" />
+    </label>
+  </div>
+
+  @let lista = tipo === 'eventos' ? eventos() : escalas();
+  @if (lista.carregando) {
+    <p class="pf-card agenda-estado" role="status">Carregando agenda…</p>
+  } @else if (lista.erro) {
+    <div class="pf-card agenda-estado">
+      <p class="pf-error" role="alert">{{ lista.erro }}</p>
+      <button type="button" class="pf-btn pf-btn--ghost" (click)="recarregar()">Tentar novamente</button>
+    </div>
+  } @else if (!lista.itens.length) {
+    <p class="pf-card agenda-estado">Nenhum registro neste recorte. Ajuste os filtros ou inclua um novo registro.</p>
+  } @else {
+    <div class="lista-agenda">
+      @if (tipo === 'eventos') {
+        @for (e of eventos().itens; track e.id) {
+          <article class="pf-card agenda-item">
+            <div><span class="pf-badge pf-badge--gray">{{ rotulos[e.situacao] }}</span></div>
+            <div><h2>{{ e.nome }}</h2><p>{{ e.contratante }} · {{ e.local }}</p></div>
+            <p>{{ nomeUnidade(e.unidadeId) }} · {{ e.inicio | date:'dd/MM/yyyy HH:mm' }} a {{ e.fim | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p>{{ e.veiculosPrevistos }} veículos previstos · {{ e.equipePrevista }} profissionais</p>
+            @if (e.valorContratado != null) { <p>Valor contratado: {{ e.valorContratado | currencyBr }}</p> }
+            @if (e.despesasPrevistas != null) { <p>Despesas previstas: {{ e.despesasPrevistas | currencyBr }}</p> }
+            @if (e.valorContratado != null && e.despesasPrevistas != null) {
+              <p>Resultado previsto: {{ (e.valorContratado - e.despesasPrevistas) | currencyBr }}</p>
+            }
+            <footer>
+              @if (e.id; as id) { <pf-financeiro-evento [id]="id" [nome]="e.nome" /> }
+              <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirEvento(e)">Ver e editar</button>
+            </footer>
+          </article>
+        }
+      } @else {
+        @for (s of escalas().itens; track s.id) {
+          <article class="pf-card agenda-item">
+            <div><span class="pf-badge pf-badge--gray">{{ rotulos[s.situacao] }}</span></div>
+            <div><h2>{{ nomeUnidade(s.unidadeId) }}</h2><p>Responsável: {{ s.responsavel }}</p></div>
+            <p>{{ s.inicio | date:'dd/MM/yyyy HH:mm' }} a {{ s.fim | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p>{{ equipes(s.manobristaIds) }}</p>
+            <footer><button type="button" class="pf-btn pf-btn--ghost" (click)="abrirEscala(s)">Ver e editar</button></footer>
+          </article>
+        }
+      }
+    </div>
+  }
+
+  @if (pagina() || lista.itens.length === 50) {
+    <footer aria-label="Paginação">
+      <button type="button" class="pf-btn pf-btn--ghost" [disabled]="!pagina() || lista.carregando" (click)="pagina.set(pagina() - 1)">Anterior</button>
+      <span>Página {{ pagina() + 1 }}</span>
+      <button type="button" class="pf-btn pf-btn--ghost" [disabled]="lista.itens.length < 50 || lista.carregando" (click)="pagina.set(pagina() + 1)">Próxima</button>
+    </footer>
+  }
+</div>
+
+@if (eventoEditado(); as e) {
+  <pf-modal [title]="e.id ? 'Editar evento' : 'Novo evento'" (fechar)="eventoEditado.set(null)">
+    <form #eventoForm="ngForm" (ngSubmit)="eventoForm.valid && salvar(e)">
+      <div class="grade">
+        <label class="pf-field"><span class="pf-label">Nome</span><input class="pf-input" name="nome" required maxlength="120" [(ngModel)]="e.nome" /></label>
+        <label class="pf-field"><span class="pf-label">Contratante</span><input class="pf-input" name="contratante" required maxlength="120" [(ngModel)]="e.contratante" /></label>
+        <label class="pf-field"><span class="pf-label">Local</span><input class="pf-input" name="local" required maxlength="200" [(ngModel)]="e.local" /></label>
+        <label class="pf-field"><span class="pf-label">Unidade responsável</span>
+          <select class="pf-select" name="unidade" required [(ngModel)]="e.unidadeId">
+            <option [ngValue]="null" disabled>Selecione</option>
+            @for (u of unidades(); track u.id) {
+              <option [ngValue]="u.id" [disabled]="u.ativa === false && u.id !== e.unidadeId">{{ u.nome }}</option>
+            }
+          </select>
+        </label>
+        <label class="pf-field"><span class="pf-label">Início</span><input class="pf-input" name="inicio" type="datetime-local" required [(ngModel)]="e.inicio" /></label>
+        <label class="pf-field"><span class="pf-label">Fim</span><input class="pf-input" name="fim" type="datetime-local" required [(ngModel)]="e.fim" /></label>
+        <label class="pf-field"><span class="pf-label">Responsável</span><input class="pf-input" name="responsavel" required maxlength="100" [(ngModel)]="e.responsavel" /></label>
+        <label class="pf-field"><span class="pf-label">Situação</span>
+          <select class="pf-select" name="situacao" required [(ngModel)]="e.situacao">
+            @for (s of statusEvento; track s) { <option [ngValue]="s">{{ rotulos[s] }}</option> }
+          </select>
+        </label>
+        <label class="pf-field"><span class="pf-label">Veículos previstos</span><input class="pf-input" name="veiculos" type="number" min="0" step="1" required [(ngModel)]="e.veiculosPrevistos" /></label>
+        <label class="pf-field"><span class="pf-label">Capacidade</span><input class="pf-input" name="capacidade" type="number" min="0" step="1" required [(ngModel)]="e.capacidade" /></label>
+        <label class="pf-field"><span class="pf-label">Equipe prevista</span><input class="pf-input" name="equipe" type="number" min="0" step="1" required [(ngModel)]="e.equipePrevista" /></label>
+        <label class="pf-field"><span class="pf-label">Valor contratado (R$)</span><input class="pf-input" name="valor" type="number" min="0" step="0.01" [(ngModel)]="e.valorContratado" /></label>
+        <label class="pf-field"><span class="pf-label">Despesas previstas (R$)</span><input class="pf-input" name="despesas" type="number" min="0" step="0.01" [(ngModel)]="e.despesasPrevistas" /></label>
+      </div>
+      <p class="secundario">Use o horário de São Paulo. Valores informados aqui servem ao planejamento do evento.</p>
+      <label class="pf-field"><span class="pf-label">Observações</span><textarea class="pf-input" name="observacoes" rows="3" maxlength="1000" [(ngModel)]="e.observacoes"></textarea></label>
+      @if (erroForm()) { <p class="pf-error" role="alert">{{ erroForm() }}</p> }
+      <footer>
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="eventoEditado.set(null)">Voltar</button>
+        <button type="submit" class="pf-btn pf-btn--primary" [disabled]="eventoForm.invalid || salvando()">{{ salvando() ? 'Salvando…' : 'Salvar evento' }}</button>
+      </footer>
+    </form>
+  </pf-modal>
+}
+
+@if (escalaEditada(); as e) {
+  <pf-modal [title]="e.id ? 'Editar escala' : 'Nova escala'" (fechar)="escalaEditada.set(null)">
+    <form #escalaForm="ngForm" (ngSubmit)="escalaForm.valid && salvar(e)">
+      <div class="grade">
+        <label class="pf-field"><span class="pf-label">Unidade</span>
+          <select class="pf-select" name="unidade" required [ngModel]="e.unidadeId" (ngModelChange)="buscarEventos(e, $event)">
+            <option [ngValue]="null" disabled>Selecione</option>
+            @for (u of unidades(); track u.id) {
+              <option [ngValue]="u.id" [disabled]="u.ativa === false && u.id !== e.unidadeId">{{ u.nome }}</option>
+            }
+          </select>
+        </label>
+        <label class="pf-field"><span class="pf-label">Evento (opcional)</span>
+          <select class="pf-select" name="evento" [(ngModel)]="e.eventoId" [disabled]="consultandoEventos() || !e.unidadeId">
+            <option [ngValue]="null">Sem evento vinculado</option>
+            @for (evento of eventosDaUnidade(); track evento.id) { <option [ngValue]="evento.id">{{ evento.nome }}</option> }
+            @if (e.eventoId && !eventosDaUnidade().length) { <option [ngValue]="e.eventoId">Evento #{{ e.eventoId }}</option> }
+          </select>
+        </label>
+        <label class="pf-field"><span class="pf-label">Início</span><input class="pf-input" name="inicio" type="datetime-local" required [(ngModel)]="e.inicio" /></label>
+        <label class="pf-field"><span class="pf-label">Fim</span><input class="pf-input" name="fim" type="datetime-local" required [(ngModel)]="e.fim" /></label>
+        <label class="pf-field"><span class="pf-label">Responsável</span><input class="pf-input" name="responsavel" required maxlength="100" [(ngModel)]="e.responsavel" /></label>
+        <label class="pf-field"><span class="pf-label">Situação</span>
+          <select class="pf-select" name="situacao" required [(ngModel)]="e.situacao">
+            @for (s of statusEscala; track s) { <option [ngValue]="s">{{ rotulos[s] }}</option> }
+          </select>
+        </label>
+      </div>
+      @if (erroEventos()) { <p class="pf-error" role="alert">{{ erroEventos() }}</p> }
+      <fieldset class="papeis">
+        <legend class="pf-label">Manobristas</legend>
+        @for (m of manobristas(); track m.id) {
+          @if (m.ativo !== false || e.manobristaIds.includes(m.id)) {
+            <label><input type="checkbox" [checked]="e.manobristaIds.includes(m.id)"
+              (change)="atualizarEquipe(e, m.id, $any($event.target).checked)" /> {{ m.nome }}</label>
+          }
+        } @empty {
+          <p>Cadastre os manobristas antes de montar a escala.</p>
+        }
+      </fieldset>
+      <label class="pf-field"><span class="pf-label">Observações ou motivo da substituição</span><textarea class="pf-input" name="observacoes" rows="3" maxlength="1000" [(ngModel)]="e.observacoes"></textarea></label>
+      @if (erroForm()) { <p class="pf-error" role="alert">{{ erroForm() }}</p> }
+      @if (e.id) {
+        <div class="historico">
+          <div><button type="button" class="pf-btn pf-btn--ghost" [disabled]="carregandoHistorico()" (click)="verHistorico(e.id)">
+            {{ carregandoHistorico() ? 'Carregando…' : 'Consultar alterações' }}
+          </button></div>
+          @if (erroHistorico()) { <p class="pf-error" role="alert">{{ erroHistorico() }}</p> }
+          @if (historico(); as registros) {
+            <ul>
+              @for (r of registros; track r.id) {
+                <li>{{ r.registradoEm | date:'dd/MM/yyyy HH:mm':'-0300' }} · {{ r.ator }} · {{ rotulos[r.situacao] }}</li>
+              } @empty { <li>Nenhuma mudança registrada.</li> }
+            </ul>
+          }
+        </div>
+      }
+      <footer>
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="escalaEditada.set(null)">Voltar</button>
+        <button type="submit" class="pf-btn pf-btn--primary" [disabled]="escalaForm.invalid || salvando()">{{ salvando() ? 'Salvando…' : 'Salvar escala' }}</button>
+      </footer>
+    </form>
+  </pf-modal>
+}

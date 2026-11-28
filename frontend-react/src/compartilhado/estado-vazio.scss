@@ -1,0 +1,37 @@
+pf-estado-vazio {
+  display: block;
+
+  .vazio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    padding: 40px 24px 36px;
+  }
+
+  .vazio--compacto { padding: 24px 16px; }
+
+  .pf-ilustracao { margin-bottom: 8px; }
+
+  .vazio__titulo {
+    font-family: var(--pf-font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+  }
+
+  .vazio__texto {
+    max-width: 380px;
+    font-size: 13.5px;
+    color: var(--pf-text-muted);
+  }
+
+  .vazio__acoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+  }
+}

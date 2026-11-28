@@ -1,0 +1,124 @@
+<div class="pf-page">
+  <pf-page-header title="Carros por Mês" subtitle="Total de carros manobrados por período">
+    <button type="button" class="pf-btn pf-btn--ghost" [disabled]="exportando() !== null" (click)="exportar('pdf')">
+      {{ exportando() === 'pdf' ? 'Gerando PDF…' : 'Baixar PDF' }}
+    </button>
+    <button type="button" class="pf-btn pf-btn--ghost" [disabled]="exportando() !== null" (click)="exportar('excel')">
+      {{ exportando() === 'excel' ? 'Gerando Excel…' : 'Baixar Excel' }}
+    </button>
+  </pf-page-header>
+
+  <div class="pf-filters">
+    <select class="pf-select" [ngModel]="mes()" (ngModelChange)="mes.set(+$event)" aria-label="Mês">
+      <option [value]="0">Todos os meses</option>
+      @for (nome of meses; track nome; let i = $index) { <option [value]="i + 1">{{ nome }}</option> }
+    </select>
+    <select class="pf-select" [ngModel]="ano()" (ngModelChange)="ano.set(+$event)" aria-label="Ano">
+      @for (a of anos(); track a) { <option [value]="a">{{ a }}</option> }
+    </select>
+
+    <select class="pf-select" [ngModel]="unidadeId()" (ngModelChange)="unidadeId.set($event)" aria-label="Unidade">
+      <option [ngValue]="todas">Todas</option>
+      @for (u of unidades(); track u.id) { <option [ngValue]="u.id">{{ u.nome }}</option> }
+    </select>
+  </div>
+
+  <section class="pf-grid-kpi">
+    <pf-kpi-card [label]="mes() ? 'Total de carros no mês' : 'Total de carros no ano'" [value]="totalCarros() | numeroBr" [hint]="mes() ? nomeMes(mes()) + ' de ' + anoConsultado() : anoConsultado().toString()" />
+
+    <pf-kpi-card
+      label="Melhor mês"
+      [value]="melhorMes() ? nomeMes(melhorMes()!.mes) : '—'"
+      [hint]="melhorMes() ? (melhorMes()!.carros | numeroBr) + ' carros' : 'sem registros'"
+    />
+
+    <pf-kpi-card label="Média mensal" [value]="mediaMensal() | numeroBr" hint="meses com movimento" />
+
+    @if (comparativo(); as c) {
+      <pf-kpi-card
+        label="Comparativo ano ant."
+        [value]="(c.variacao >= 0 ? '↑ ' : '↓ ') + (c.variacao >= 0 ? c.variacao : -c.variacao) + '%'"
+        [hint]="'mesmos ' + c.meses + ' meses: ' + (c.base | numeroBr) + ' carros'"
+        [tone]="c.variacao >= 0 ? 'success' : 'danger'"
+      />
+    } @else {
+      <pf-kpi-card label="Comparativo ano ant." value="—" hint="sem base de comparação" />
+    }
+  </section>
+
+  <article class="pf-card grafico">
+    <div class="pf-card__head">
+      <h2 class="pf-card__title">Carros manobrados por mês</h2>
+      <p class="pf-card__subtitle">{{ anoConsultado() }} — o mês recorde aparece em destaque</p>
+    </div>
+    <div class="pf-card__body">
+      <pf-chart
+        [config]="grafico()"
+        [height]="isMobile() ? 230 : 300"
+        ariaLabel="Carros manobrados mês a mês"
+      />
+    </div>
+  </article>
+
+  @if (mesesComDados().length === 0) {
+    <div class="pf-card vazio">
+      <p class="vazio__titulo">Nenhum registro no período</p>
+      <p class="vazio__texto">Escolha outro mês, ano ou unidade.</p>
+    </div>
+  } @else if (isMobile()) {
+    <div class="cards">
+      @for (m of mesesComDados(); track m.mes) {
+        <article class="pf-card card-mes">
+          <div class="card-mes__topo">
+            <span class="card-mes__nome">{{ nomeMes(m.mes) }}</span>
+            <span class="card-mes__carros">{{ m.carros | numeroBr }} carros</span>
+          </div>
+          <div class="card-mes__linha">
+            <span>{{ m.fichas }} fichas</span>
+            <span>{{ m.bruto | currencyBr }}</span>
+          </div>
+          <div class="card-mes__linha card-mes__linha--forte">
+            <span>Líquido</span>
+            <span [class.pf-money--neg]="m.liquido < 0" [class.pf-money--pos]="m.liquido >= 0">
+              {{ m.liquido | currencyBr }}
+            </span>
+          </div>
+          <a class="pf-btn pf-btn--ghost" routerLink="/app/fichas"
+            [queryParams]="{ mes: m.mes, ano: anoConsultado(), unidadeId: unidadeId() }">Ver fichas de {{ nomeMes(m.mes) }}</a>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="pf-card tabela">
+      <div class="pf-table-wrap">
+        <table class="pf-table">
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th class="num">Fichas</th>
+              <th class="num">Carros</th>
+              <th class="num">Total bruto</th>
+              <th class="num">Total líquido</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of mesesComDados(); track m.mes) {
+              <tr>
+                <td>{{ nomeMes(m.mes) }}</td>
+                <td class="num">{{ m.fichas }}</td>
+                <td class="num">{{ m.carros | numeroBr }}</td>
+                <td class="num">{{ m.bruto | currencyBr }}</td>
+                <td class="num" [class.pf-money--neg]="m.liquido < 0" [class.pf-money--pos]="m.liquido >= 0">
+                  {{ m.liquido | currencyBr }}
+                </td>
+                <td><a class="pf-btn pf-btn--ghost" routerLink="/app/fichas"
+                  [queryParams]="{ mes: m.mes, ano: anoConsultado(), unidadeId: unidadeId() }">Ver fichas de {{ nomeMes(m.mes) }}</a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

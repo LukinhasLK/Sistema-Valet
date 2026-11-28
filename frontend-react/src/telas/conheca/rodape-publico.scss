@@ -1,0 +1,32 @@
+/* Rodapé único das páginas públicas (/conheca, /google-calendar, /planos). */
+.rodape-publico {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: var(--largura, min(1160px, calc(100vw - 40px)));
+  margin: 0 auto;
+  padding: 28px 0 40px;
+  border-top: 1px solid var(--pf-border);
+  font-size: 13px;
+  color: var(--pf-text-muted);
+
+  nav { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+
+  nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 8px;
+    color: var(--pf-text-muted);
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 6px;
+    &:hover { color: var(--pf-blue); }
+    &[aria-current='page'] { color: var(--pf-text); box-shadow: inset 0 -2px 0 var(--pf-blue); border-radius: 0; }
+    &:focus-visible { outline: 2px solid var(--pf-blue); outline-offset: 2px; }
+  }
+
+  p { margin: 0; max-width: 60ch; }
+}

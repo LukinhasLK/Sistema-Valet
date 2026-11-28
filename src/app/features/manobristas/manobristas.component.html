@@ -1,0 +1,169 @@
+<div class="pf-page">
+  <pf-page-header title="Manobristas" subtitle="Cadastro dos manobristas">
+    <button type="button" class="pf-btn pf-btn--primary" (click)="abrir()">
+      <pf-icon name="plus" [size]="17" />
+      Novo manobrista
+    </button>
+    @if (podeVerPagamentos()) {
+      <a class="pf-btn pf-btn--ghost" routerLink="/app/pagamentos-manobristas">Pagamentos</a>
+    }
+  </pf-page-header>
+
+  <div class="pf-filters">
+    <select class="pf-select" [ngModel]="mes()" (ngModelChange)="mes.set(+$event)" aria-label="Mês">
+      @for (nome of meses; track nome; let i = $index) {
+        <option [value]="i + 1">{{ nome }}</option>
+      }
+    </select>
+    <select class="pf-select" [ngModel]="ano()" (ngModelChange)="ano.set(+$event)" aria-label="Ano">
+      @for (a of anos(); track a) { <option [value]="a">{{ a }}</option> }
+    </select>
+  </div>
+
+  @if (linhas().length === 0) {
+    <div class="pf-card vazio">
+      <p class="vazio__titulo">Nenhum manobrista cadastrado</p>
+      <p class="vazio__texto">Cadastre a equipe para lançar custos nas fichas.</p>
+    </div>
+  } @else if (isMobile()) {
+    <div class="cards">
+      @for (m of paginacao.visiveis(); track m.id) {
+        <article class="pf-card card-mano">
+          <span class="pf-avatar" [style.background]="m.cor">{{ m.inicial }}</span>
+          <div class="card-mano__info">
+            <p class="card-mano__nome">{{ m.nome }}</p>
+            @if (m.ativo === false) { <span class="pf-badge pf-badge--gray">Inativo</span> }
+            <p class="card-mano__meta">{{ m.diasNoMes }} {{ m.diasNoMes === 1 ? 'dia' : 'dias' }} em {{ periodo() }}</p>
+          </div>
+          <p class="card-mano__valor">{{ m.custoDiarias | currencyBr }}</p>
+          <div class="card-mano__acoes">
+            <a class="acao" routerLink="/app/fichas" [queryParams]="{ manobristaId: m.id, mes: mes(), ano: ano() }"
+              [attr.aria-label]="'Ver fichas de ' + m.nome">Ver fichas</a>
+            @if (podeGerenciar()) {
+              <button type="button" class="acao" (click)="abrir(m)" [attr.aria-label]="'Editar ' + m.nome">Editar</button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="pf-card tabela">
+      <div class="pf-table-wrap">
+        <table class="pf-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              @if (podeGerenciar()) {
+              <th>Telefone</th>
+              <th>CPF</th>
+              }
+              <th class="num">Dias no mês</th>
+              <th class="num">Custo registrado</th>
+              <th class="actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of paginacao.visiveis(); track m.id) {
+              <tr>
+                <td>
+                  <span class="celula-nome">
+                    <span class="pf-avatar" [style.background]="m.cor">{{ m.inicial }}</span>
+                    {{ m.nome }}
+                    @if (m.ativo === false) { <span class="pf-badge pf-badge--gray">Inativo</span> }
+                  </span>
+                </td>
+              @if (podeGerenciar()) {
+                <td>{{ m.telefone || '—' }}</td>
+                <td>{{ m.cpf || '—' }}</td>
+              }
+                <td class="num">{{ m.diasNoMes }}</td>
+                <td class="num">{{ m.custoDiarias | currencyBr }}</td>
+                <td class="actions">
+                  <a class="acao" routerLink="/app/fichas" [queryParams]="{ manobristaId: m.id, mes: mes(), ano: ano() }"
+                    [attr.aria-label]="'Ver fichas de ' + m.nome">Ver fichas</a>
+                  @if (podeGerenciar()) {
+                    <button type="button" class="acao" (click)="abrir(m)">Editar</button>
+                    @if (m.ativo !== false) {
+                      <button type="button" class="acao acao--danger" (click)="paraDesativar.set(m)">Desativar</button>
+                    }
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+  <pf-paginacao [pagina]="paginacao.pagina()" [paginas]="paginacao.paginas()"
+    (selecionar)="paginacao.pagina.set($event)" />
+</div>
+
+@if (formAberto()) {
+  <pf-modal [title]="editando() ? 'Editar manobrista' : 'Novo manobrista'" (fechar)="formAberto.set(false)">
+    <form class="modal-form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+      <div class="pf-field">
+        <label class="pf-label" for="m-nome">Nome</label>
+        <input id="m-nome" class="pf-input" type="text" formControlName="nome" />
+        @if (invalido('nome')) { <span class="pf-error">Informe o nome.</span> }
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="m-telefone">Telefone</label>
+        <input id="m-telefone" class="pf-input" type="tel" pfMascara="telefone" placeholder="(11) 90000-0000" formControlName="telefone" />
+        @if (invalido('telefone')) { <span class="pf-error">Telefone com DDD (10 ou 11 dígitos).</span> }
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="m-cpf">CPF</label>
+        <input id="m-cpf" class="pf-input" type="text" inputmode="numeric" pfMascara="cpf" placeholder="000.000.000-00" formControlName="cpf" />
+        @if (invalido('cpf')) { <span class="pf-error">CPF inválido.</span> }
+      </div>
+
+      @if (podeGerenciar()) {
+        @if (editando()) {
+          <label class="pf-label"><input type="checkbox" formControlName="ativo" /> Manobrista ativo</label>
+        }
+        <div class="pf-field">
+          <label class="pf-label" for="mano-observacoes">Observações operacionais</label>
+          <textarea class="pf-input" id="mano-observacoes" maxlength="500" rows="3" formControlName="observacoes"></textarea>
+        </div>
+      }
+      @if (podeGerenciar() && !editando()) {
+      <label class="pf-field"><span class="pf-label">Tipo de chave Pix</span>
+        <select class="pf-select" formControlName="tipoPix">
+          <option value="CPF">CPF</option><option value="CNPJ">CNPJ</option><option value="TELEFONE">Telefone</option>
+          <option value="EMAIL">E-mail</option><option value="ALEATORIA">Chave aleatória</option>
+        </select>
+      </label>
+      <label class="pf-field"><span class="pf-label">Chave Pix (opcional)</span>
+        <input class="pf-input" formControlName="chavePix" maxlength="254" autocomplete="off" spellcheck="false" />
+      </label>
+      }
+      @if (podeVerPagamentos() && editando(); as m) {
+        <pf-pix-manobrista [manobristaId]="m.id" />
+      }
+      <p class="modal-form__nota">
+        Dias trabalhados e custo das diárias vêm das fichas do mês.
+      </p>
+
+      @if (podeVerPagamentos() && editando(); as m) {
+        <a class="pf-link-btn" routerLink="/app/pagamentos-manobristas" [queryParams]="{ manobristaId: m.id, aba: 'historico' }">
+          Consultar Pix e histórico de pagamentos
+        </a>
+      }
+      <div class="modal-form__acoes">
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="formAberto.set(false)">Cancelar</button>
+        <button type="submit" class="pf-btn pf-btn--primary">Salvar</button>
+      </div>
+    </form>
+  </pf-modal>
+}
+
+@if (paraDesativar(); as m) {
+  <pf-confirm
+    [message]="m.nome + ' ficará indisponível para novos lançamentos e escalas. O histórico será preservado.'"
+    (confirmar)="confirmarDesativacao()"
+    (cancelar)="paraDesativar.set(null)"
+  />
+}

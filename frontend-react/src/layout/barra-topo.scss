@@ -1,0 +1,27 @@
+/*
+ * Barra superior do desktop: 48 px, só na coluna de conteúdo (à direita da sidebar), colada no topo.
+ * Abriga a fala do Perdidinho e o botão dele (com as notificações dentro). Camadas: sidebar (20) < barra (30) < gaveta (55) < modal (100).
+ */
+.barra-topo {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  flex: none;
+  height: var(--pf-barra-topo-h, 48px);
+  padding: 0 20px 0 24px;
+  box-sizing: border-box;
+  background: var(--pf-bg);
+  border-bottom: 1px solid var(--pf-border);
+}
+
+.barra-topo__direita {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  height: 100%;
+  min-width: 0;
+}
+
+/* A barra fixa no topo não cobre o campo ou título para onde a rolagem/foco leva. */
+html:has(.barra-topo) { scroll-padding-top: 64px; }

@@ -1,0 +1,195 @@
+<div class="pf-page">
+  <pf-page-header title="Despesas" subtitle="Despesas fixas (aluguel, seguro, manutenção) — descontadas do resultado do mês">
+    <button type="button" class="pf-btn pf-btn--primary" (click)="abrirForm()">
+      <pf-icon name="plus" [size]="17" />
+      Nova despesa
+    </button>
+  </pf-page-header>
+
+  <div class="pf-filters">
+    <select class="pf-select" [ngModel]="mes()" (ngModelChange)="mes.set(+$event)" aria-label="Mês">
+      <option [value]="0">Todos os meses</option>
+      @for (nome of meses; track nome; let i = $index) {
+        <option [value]="i + 1">{{ nome }}</option>
+      }
+    </select>
+
+    <select class="pf-select" [ngModel]="ano()" (ngModelChange)="ano.set(+$event)" aria-label="Ano">
+      @for (a of anos(); track a) { <option [value]="a">{{ a }}</option> }
+    </select>
+
+    <select class="pf-select" [ngModel]="unidadeId()" (ngModelChange)="unidadeId.set($event)" aria-label="Unidade">
+      <option [ngValue]="todas">Todas as unidades</option>
+      @for (u of unidades(); track u.id) { <option [ngValue]="u.id">{{ u.nome }}</option> }
+    </select>
+
+    <select class="pf-select" [ngModel]="categoria()" (ngModelChange)="categoria.set($event)" aria-label="Categoria">
+      <option [value]="todasCategorias">Categoria</option>
+      @for (c of categorias; track c) { <option [value]="c">{{ c }}</option> }
+    </select>
+  </div>
+
+  <label class="pf-label"><input type="checkbox" [checked]="verCanceladas()"
+    (change)="verCanceladas.set($any($event.target).checked)" /> Mostrar canceladas</label>
+
+  <!-- Barra de resumo -->
+  <div class="pf-card barra">
+    <span class="barra__qtd">{{ despesas().length }} {{ despesas().length === 1 ? 'despesa' : 'despesas' }}</span>
+    <span class="barra__total">{{ verCanceladas() ? 'Valor dos registros cancelados:' : 'Total:' }} <strong>{{ total() | currencyBr }}</strong></span>
+  </div>
+
+  @if (despesas().length === 0) {
+    <div class="pf-card vazio">
+      <p class="vazio__titulo">Nenhuma despesa neste período</p>
+      <p class="vazio__texto">Ajuste os filtros ou registre uma nova despesa.</p>
+    </div>
+  } @else if (isMobile()) {
+    <div class="cards">
+      @for (d of paginacao.visiveis(); track d.id) {
+        <article class="pf-card card-despesa">
+          <div class="card-despesa__info">
+            <span class="pf-badge" [class]="classe(d.categoria)">{{ d.categoria }}</span>
+            <button type="button" class="acao card-despesa__desc" (click)="abrirDetalhe(d)">{{ d.descricao }}</button>
+            <p class="card-despesa__meta">{{ nomeUnidade(d.unidadeId) }} · {{ d.data | dataBr }}</p>
+          </div>
+          <p class="card-despesa__valor">{{ d.valor | currencyBr }}</p>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="pf-card tabela">
+      <div class="pf-table-wrap">
+        <table class="pf-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Unidade</th>
+              <th>Categoria</th>
+              <th>Descrição</th>
+              <th class="num">Valor</th>
+              <th class="actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of paginacao.visiveis(); track d.id) {
+              <tr>
+                <td>{{ d.data | dataBr }}</td>
+                <td>{{ nomeUnidade(d.unidadeId) }}</td>
+                <td><span class="pf-badge" [class]="classe(d.categoria)">{{ d.categoria }}</span></td>
+                <td>{{ d.descricao }}</td>
+                <td class="num">{{ d.valor | currencyBr }}</td>
+                <td class="actions">
+                  <button type="button" class="acao" (click)="abrirDetalhe(d)">Ver</button>
+                  @if (!d.cancelada) {
+                    <button type="button" class="acao" (click)="abrirForm(d)">Editar</button>
+                    <button type="button" class="acao acao--danger" (click)="abrirCancelamento(d)">Cancelar</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+  <pf-paginacao [pagina]="paginacao.pagina()" [paginas]="paginacao.paginas()"
+    (selecionar)="paginacao.pagina.set($event)" />
+</div>
+
+<!-- Nova despesa -->
+@if (formAberto()) {
+  <pf-modal [title]="emEdicao() ? 'Editar despesa' : 'Nova despesa'" (fechar)="formAberto.set(false)">
+    <form class="modal-form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+      <div class="modal-form__par">
+        <div class="pf-field">
+          <label class="pf-label" for="d-data">Data</label>
+          <pf-calendario><input id="d-data" class="pf-input" type="date" formControlName="data" /></pf-calendario>
+        </div>
+
+        <div class="pf-field">
+          <label class="pf-label" for="d-unidade">Unidade</label>
+          <select id="d-unidade" class="pf-select" formControlName="unidadeId">
+            <option [ngValue]="null" disabled>Selecione</option>
+            @for (u of unidadesParaLancamento(); track u.id) { <option [ngValue]="u.id">{{ u.nome }}</option> }
+          </select>
+          @if (invalido('unidadeId')) { <span class="pf-error">Escolha a unidade.</span> }
+        </div>
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="d-categoria">Categoria</label>
+        <select id="d-categoria" class="pf-select" formControlName="categoria">
+          @for (c of categorias; track c) { <option [value]="c">{{ c }}</option> }
+        </select>
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="d-descricao">Descrição</label>
+        <input id="d-descricao" class="pf-input" type="text" placeholder="Ex.: aluguel do terreno" formControlName="descricao" />
+        @if (invalido('descricao')) { <span class="pf-error">Descreva a despesa.</span> }
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="d-valor">Valor (R$)</label>
+        <input id="d-valor" class="pf-input" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" formControlName="valor" />
+        @if (invalido('valor')) { <span class="pf-error">Informe um valor maior que zero.</span> }
+      </div>
+
+      <div class="modal-form__acoes">
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="formAberto.set(false)">Cancelar</button>
+        <button type="submit" class="pf-btn pf-btn--primary">{{ emEdicao() ? 'Salvar alterações' : 'Salvar despesa' }}</button>
+      </div>
+    </form>
+  </pf-modal>
+}
+
+<!-- Detalhe -->
+@if (detalhe(); as d) {
+  <pf-modal title="Detalhe da despesa" (fechar)="abrirDetalhe(null)">
+    <dl class="det">
+      <div><dt>Data</dt><dd>{{ d.data | dataBr }}</dd></div>
+      <div><dt>Unidade</dt><dd>{{ nomeUnidade(d.unidadeId) }}</dd></div>
+      <div><dt>Categoria</dt><dd><span class="pf-badge" [class]="classe(d.categoria)">{{ d.categoria }}</span></dd></div>
+      <div><dt>Descrição</dt><dd>{{ d.descricao }}</dd></div>
+      <div class="det--total"><dt>Valor</dt><dd>{{ d.valor | currencyBr }}</dd></div>
+    </dl>
+
+    @if (historico(); as registros) {
+      <ul>
+        @for (r of registros; track r.id) {
+          <li>{{ r.registradoEm | date:'dd/MM/yyyy HH:mm':'-0300' }} · {{ r.ator }} · {{ rotuloHistorico[r.acao] }}
+            {{ r.valor | currencyBr }} @if (r.justificativa) { ({{ r.justificativa }}) }
+          </li>
+        } @empty { <li>Sem alterações registradas.</li> }
+      </ul>
+    } @else {
+      <button type="button" class="pf-btn pf-btn--ghost" [disabled]="carregandoHistorico()" (click)="consultarHistorico(d)">
+        {{ carregandoHistorico() ? 'Carregando…' : 'Ver histórico' }}
+      </button>
+    }
+    <div class="modal-form__acoes">
+      @if (!d.cancelada) {
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirCancelamento(d)">Cancelar despesa</button>
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirForm(d)">Editar</button>
+      }
+      <button type="button" class="pf-btn pf-btn--dark" (click)="abrirDetalhe(null)">Fechar</button>
+    </div>
+  </pf-modal>
+}
+
+@if (paraCancelar(); as d) {
+  <pf-modal title="Cancelar despesa" (fechar)="paraCancelar.set(null)">
+    <p>“{{ d.descricao }}” deixará de compor o resultado do período. O histórico será preservado.</p>
+    <div class="pf-field">
+      <label class="pf-label" for="d-motivo">Motivo</label>
+      <textarea class="pf-input" id="d-motivo" maxlength="500" rows="3"
+        [ngModel]="motivoCancelamento()" (ngModelChange)="motivoCancelamento.set($event)" required></textarea>
+    </div>
+    <div class="modal-form__acoes">
+      <button type="button" class="pf-btn pf-btn--ghost" [disabled]="cancelando()" (click)="paraCancelar.set(null)">Voltar</button>
+      <button type="button" class="pf-btn pf-btn--primary" [disabled]="cancelando() || !motivoCancelamento().trim()" (click)="confirmarCancelamento()">
+        {{ cancelando() ? 'Cancelando…' : 'Confirmar cancelamento' }}
+      </button>
+    </div>
+  </pf-modal>
+}

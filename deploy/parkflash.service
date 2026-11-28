@@ -1,0 +1,21 @@
+[Unit]
+Description=Park Flash API (Spring Boot)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=parkflash
+Group=parkflash
+WorkingDirectory=/opt/parkflash
+EnvironmentFile=/etc/parkflash/parkflash.env
+ExecStart=/usr/bin/java -Xms256m -Xmx768m -jar /opt/parkflash/parkflash-api.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,259 @@
+pf-login {
+  .login {
+    display: flex;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--pf-bg);
+  }
+
+  /* Coluna de marca -------------------------------------------------------- */
+  .brand {
+    position: relative;
+    width: clamp(380px, 46%, 620px);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp(22px, 4vh, 36px);
+    padding: 48px clamp(28px, 4vw, 60px);
+    color: #fff;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 80% at 0% 0%, rgba(24, 106, 157, .55) 0%, rgba(24, 106, 157, 0) 55%),
+      radial-gradient(90% 60% at 100% 100%, rgba(24, 106, 157, .35) 0%, rgba(24, 106, 157, 0) 60%),
+      var(--pf-navy);
+  }
+
+  /* Faixas de vaga ao fundo: assinatura visual discreta. */
+  .brand::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, .045) 0 2px, transparent 2px 96px);
+    mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .brand > * { position: relative; }
+
+  .brand__inner { max-width: 460px; }
+
+  .brand__headline {
+    margin-top: 28px;
+    color: #fff;
+    font-size: clamp(30px, 2.6vw, 40px);
+    line-height: 1.12;
+    font-weight: 800;
+    letter-spacing: -.03em;
+
+    span { color: #8fc6ea; }
+  }
+
+  .brand__sub {
+    margin-top: 14px;
+    max-width: 420px;
+    font-size: 15px;
+    color: var(--pf-on-dark-muted);
+    line-height: 1.6;
+  }
+
+  /* Cena do manobrista: sem moldura nem fundo, pousa direto sobre o painel. */
+  .brand__scene {
+    width: min(100%, 62vh, 520px);
+    aspect-ratio: 16 / 9;
+    pointer-events: none;
+  }
+
+  .brand__topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .brand__mascote-mini {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  .brand__destaques {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+    color: #d5e2ee;
+
+    li { display: flex; align-items: center; gap: 10px; }
+    span {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .07);
+      border: 1px solid rgba(255, 255, 255, .08);
+      color: #8fc6ea;
+    }
+  }
+
+  /* Coluna do formulário --------------------------------------------------- */
+  .painel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 40px 24px;
+  }
+
+  .card {
+    width: min(100%, 400px);
+    background: var(--pf-surface);
+    border: 1px solid var(--pf-border);
+    border-radius: 18px;
+    box-shadow: var(--pf-shadow-md);
+    padding: 32px 32px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card__brand { margin-bottom: 4px; }
+
+  .card__title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+
+  .card__sub {
+    font-size: 13.5px;
+    color: var(--pf-text-muted);
+    margin-top: 4px;
+  }
+
+  .campo-senha {
+    position: relative;
+    .pf-input { padding-right: 46px; }
+  }
+  .campo-senha__ver {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--pf-text-muted);
+    cursor: pointer;
+    &:hover { background: var(--pf-surface-hover); color: var(--pf-text); }
+  }
+
+  .card__erro {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--pf-danger-ink);
+    background: var(--pf-danger-soft);
+    border: 1px solid #f2d4d4;
+    border-radius: var(--pf-radius-sm);
+    padding: 10px 12px;
+  }
+
+  /* 46 px: a mesma altura dos botões principais das páginas públicas. */
+  .card__entrar { height: 46px; margin-top: 4px; }
+
+  .girando {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, .35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: pf-girar .7s linear infinite;
+  }
+
+  /* Alvo de 44 px de altura sem mudar o desenho: a margem negativa devolve o espaço extra,
+     então o texto fica onde estava (linha de ~16 px + 2 × 14 px). */
+  .card__esqueci {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -14px;
+    padding: 0 8px;
+  }
+
+  .card__ajuda {
+    font-size: 13px;
+    color: #3c4a58;
+    background: var(--pf-blue-softer);
+    border: 1px solid rgba(24, 106, 157, .14);
+    border-radius: var(--pf-radius-sm);
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .painel__conheca {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    /* Mesmo truque do "Esqueci": 44 px de alvo, ~13 px devolvidos em cima e embaixo. */
+    min-height: 44px;
+    margin-block: -13px;
+    padding: 0 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--pf-text-muted);
+    text-decoration: none;
+    &:hover { color: var(--pf-blue); }
+  }
+
+  /* No layout largo o painel azul já mostra a logo: a do cartão seria repetida. */
+  @media (min-width: 960px) {
+    .card__brand { display: none; }
+  }
+
+  /* Celular ---------------------------------------------------------------- */
+  .login--mobile {
+    flex-direction: column;
+
+    .brand {
+      width: auto;
+      min-height: 300px;
+      justify-content: flex-start;
+      padding: calc(44px + env(safe-area-inset-top)) 22px 130px;
+    }
+
+    .brand__headline { font-size: 28px; margin-top: 22px; }
+
+    .painel {
+      /* O painel azul é posicionado (faixas ao fundo): sem isto, ele pinta por cima do cartão que sobe. */
+      position: relative;
+      z-index: 1;
+      margin-top: -104px;
+      padding: 0 14px 32px;
+      justify-content: flex-start;
+    }
+
+    .card {
+      padding: 24px 20px 22px;
+      box-shadow: var(--pf-shadow-lg);
+    }
+
+    .card__brand { display: none; }
+  }
+}
+
+@keyframes pf-girar { to { transform: rotate(360deg); } }

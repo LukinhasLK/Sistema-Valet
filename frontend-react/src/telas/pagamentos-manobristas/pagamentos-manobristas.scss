@@ -1,0 +1,88 @@
+/* Gerado de src/app/features/pagamentos-manobristas/pagamentos-manobristas.component.scss — escopado em <pf-pagamentos-manobristas>. */
+pf-pagamentos-manobristas {
+
+.tudo-pago { display: flex; justify-content: center; padding: 20px 12px; }
+
+.abas, .acoes, .paginacao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.abas { margin-bottom: 14px; }
+.filtros {
+  display: grid;
+  /* Última coluna (auto) é dos botões: ficam na mesma linha dos filtros, à direita. */
+  grid-template-columns: minmax(0, 1.4fr) repeat(5, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+
+  .pf-field { min-width: 0; }
+  .acoes { grid-column: -2 / -1; flex-wrap: nowrap; justify-self: end; }
+}
+.contexto { margin-bottom: 16px; }
+.kpis, .detalhamento { margin-block: 16px; }
+.kpis { animation: mostrar .18s ease-out both; }
+.kpis pf-kpi-card { display: grid; min-width: 0; }
+.selecao { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 16px; margin-block: 16px 12px; }
+.selecao p, .muted, .subtexto, dt { color: var(--pf-text-muted); }
+.selecao strong { color: var(--pf-text); }
+.tabela { overflow: hidden; }
+.subtexto { display: block; font-size: 12px; margin-top: 3px; }
+.pf-table .num { white-space: nowrap; }
+.pf-table td .pf-btn { min-height: 36px; height: auto; padding: 6px 10px; }
+.pf-table td .acoes { flex-wrap: nowrap; }
+.estado { display: grid; justify-items: center; gap: 6px; padding: 32px 16px; text-align: center; }
+.estado .pf-btn { margin-top: 6px; }
+.paginacao { justify-content: center; margin: 16px 0; }
+.detalhamento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; }
+.detalhamento .pf-card__head { padding-bottom: 12px; }
+.orientacao { padding: 12px 14px; background: var(--pf-surface-alt); border: 1px solid var(--pf-border); border-radius: var(--pf-radius-sm); margin-bottom: 12px; }
+.orientacao p { overflow-wrap: anywhere; }
+.lista-cards, .dialogo { display: grid; gap: 12px; }
+.linha-card { padding: 14px; display: grid; gap: 6px; }
+.linha-card__head, .total { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.linha-card__head .check { min-width: 0; overflow-wrap: anywhere; }
+.valores-mobile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 6px 0; }
+.valores-mobile dt { font-size: 12px; }
+.valores-mobile dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.dialogo fieldset { padding: 0; margin: 0; border: 0; min-width: 0; display: grid; gap: 12px; }
+.dialogo .fim { justify-content: flex-end; }
+.dialogo textarea { padding-block: 8px; height: auto; min-height: 76px; resize: vertical; }
+.dialogo .arquivo { height: auto; padding-block: 8px; }
+.dialogo .orientacao { margin-bottom: 0; }
+.total { background: var(--pf-surface-alt); border-radius: var(--pf-radius-sm); padding: 12px; }
+.total strong { font-size: 17px; }
+.itens { display: grid; gap: 4px; padding: 0; margin: 0; max-height: 160px; overflow: auto; }
+.itens li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 2px; border-bottom: 1px solid var(--pf-border); font-size: 13px; }
+.itens strong { white-space: nowrap; }
+.campos-pagamento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.check { display: flex; align-items: center; gap: 8px; }
+input[type='checkbox'] { width: 18px; height: 18px; accent-color: var(--pf-primary); flex-shrink: 0; }
+.confirmacao { font-weight: 600; }
+.perigo { color: var(--pf-danger); }
+
+@media (prefers-reduced-motion: reduce) { .kpis { animation: none; } }
+@media (max-width: 1080px) {
+  .filtros { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .filtros .acoes { grid-column: 1 / -1; justify-self: end; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .filtros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filtros .busca { grid-column: 1 / -1; }
+  .detalhamento { grid-template-columns: 1fr; }
+  .pf-table th, .pf-table td { padding-inline: 10px; }
+}
+@media (max-width: 360px) {
+  .campos-pagamento { grid-template-columns: minmax(0, 1fr); }
+}
+
+.saldos-pessoa { margin-block: 12px; }
+.saldos-pessoa article + article { border-top: 1px solid var(--pf-border); margin-top: 12px; padding-top: 12px; }
+.saldo-unidade { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 6px; }
+.saldo-unidade span:first-child { flex: 1; }
+.pessoa { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pessoa__nome { display: flex; flex-direction: column; gap: 1px; }
+.pessoa__valor { font-family: var(--pf-font-display); font-weight: 700; color: var(--pf-warning-ink); font-variant-numeric: tabular-nums; }
+.pessoa__acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+
+}
+@keyframes mostrar { from { opacity: 0; transform: translateY(4px); } }

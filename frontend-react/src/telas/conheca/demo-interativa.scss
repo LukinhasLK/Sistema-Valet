@@ -1,0 +1,639 @@
+/*
+ * Demo interativa do "Como funciona" (DemoInterativa.tsx).
+ * Uma janela do próprio sistema em HTML/CSS: cartão branco, borda --pf-border, raio 16 px.
+ * Desktop: passos à esquerda (só mostram o progresso), palco à direita. ≤640 px: barra
+ * "Etapa N de 4" no lugar da lista e palco em largura total.
+ *
+ * Movimento (todos com propósito, só transform/opacity):
+ * - troca de passo: .demo__conteudo entra com opacity + translateY(8px), 220 ms ease-out
+ *   (continuidade: o conteúdo novo chega de onde o olho já está). A saída não existe porque
+ *   o React troca o nó pela key; o corte seco do antigo + entrada curta lê como uma troca só;
+ * - progresso: segmentos da linha (desktop) e barra (mobile) em scaleY/scaleX, 300 ms (orientar);
+ * - total: realce de 300 ms quando a conta passa a valer (feedback), número troca na hora;
+ * - botões: scale(.98) em 120 ms no :active (feedback tátil).
+ * Reduzir movimento: só opacity em 120 ms, sem translate nem escala.
+ */
+
+$demo-curva: var(--pf-ease-out, cubic-bezier(.22, 1, .36, 1));
+/* Texto secundário dentro do palco (--pf-bg): mistura dos tokens de texto, ≈ #4e5c6b, 6,3:1.
+   O --pf-text-muted puro ficaria no limite do AA (4,5:1) sobre o --pf-bg. */
+$demo-suave: color-mix(in srgb, var(--pf-text) 30%, var(--pf-text-muted));
+/* Desabilitado legível: ≈ #5b6774, 5,5:1 sobre --pf-surface-alt (o .pf-btn:disabled padrão usa opacity .5). */
+$demo-desligado: color-mix(in srgb, var(--pf-text) 15%, var(--pf-text-muted));
+/* Borda do campo no hover: entre --pf-border-strong e --pf-text-faint (≈ #b6bec8). */
+$demo-borda-hover: color-mix(in srgb, var(--pf-border-strong), var(--pf-text-faint));
+
+.demo {
+  display: grid;
+  grid-template-columns: minmax(232px, 300px) minmax(0, 1fr);
+  grid-template-areas: 'cabeca cabeca' 'passos palco';
+  border: 1px solid var(--pf-border);
+  border-radius: 16px;
+  background: var(--pf-surface, #fff);
+  box-shadow: 0 2px 6px rgba(16, 40, 63, .05), 0 28px 60px rgba(16, 40, 63, .10);
+  color: var(--pf-text);
+  text-align: left;
+
+  /* Foco: anel azul opaco (5,9:1 sobre branco), mais visível que o --pf-focus translúcido. */
+  :is(button, a, input):focus-visible {
+    outline: 2px solid var(--pf-blue);
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  /* Botões da demo: alvo de 44 px e o "aperto" de 120 ms. */
+  .pf-btn {
+    transition:
+      background-color var(--pf-dur-fast) ease,
+      border-color var(--pf-dur-fast) ease,
+      color var(--pf-dur-fast) ease,
+      transform 120ms $demo-curva;
+    &:active:not(:disabled):not([aria-disabled]) { transform: scale(.98); }
+  }
+}
+
+/* Cabeçalho da janela --------------------------------------------------------- */
+.demo__cabeca {
+  grid-area: cabeca;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  /* Altura fixa (36 px do botão + 16 de respiro + 1 de borda): nada se mexe quando "Recomeçar" aparece. */
+  min-height: 53px;
+  padding: 8px 10px 8px 16px;
+  border-bottom: 1px solid var(--pf-border);
+  border-radius: 15px 15px 0 0;
+  background: var(--pf-surface-alt);
+}
+
+.demo__janela {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  span { width: 9px; height: 9px; border-radius: 50%; background: var(--pf-border-strong); }
+}
+
+.demo__unidade {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: $demo-suave;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Selo "Demonstração · dados fictícios": pílula discreta, sempre visível (6,3:1 sobre branco). */
+.demo__selo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--pf-border-strong);
+  border-radius: 999px;
+  background: var(--pf-surface, #fff);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: $demo-suave;
+  white-space: nowrap;
+}
+
+.demo__recomecar.pf-btn { min-height: 44px; padding: 0 14px; }
+/* No cabeçalho o botão é discreto (36 px), mas a área de toque continua com 44 px. */
+.demo__cabeca .demo__recomecar.pf-btn {
+  flex: none;
+  min-height: 36px;
+  height: 36px;
+  &::after { content: ''; position: absolute; inset: -4px 0; }
+}
+
+/* Barra de etapa (só ≤640 px) --------------------------------------------------- */
+.demo__barra {
+  grid-area: barra;
+  display: none;
+  position: relative;
+  padding: 10px 16px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pf-blue-press);
+  font-variant-numeric: tabular-nums;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+  }
+  &::before { background: var(--pf-border); }
+  &::after {
+    background: var(--pf-blue);
+    transform: scaleX(var(--demo-barra, .25));
+    transform-origin: left;
+    transition: transform 300ms $demo-curva;
+  }
+}
+.demo[data-passo='2'] .demo__barra { --demo-barra: .5; }
+.demo[data-passo='3'] .demo__barra { --demo-barra: .75; }
+.demo[data-passo='4'] .demo__barra { --demo-barra: 1; }
+
+/* Passos (desktop) -------------------------------------------------------------- */
+.demo__passos {
+  grid-area: passos;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  margin: 0;
+  padding: 20px 14px;
+  border-right: 1px solid var(--pf-border);
+  list-style: none;
+}
+
+.demo__passo {
+  --icone: 36px;
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  transition: background-color var(--pf-dur-base) ease;
+
+  /* Trilho entre este ícone e o do próximo passo; preenche quando este passo foi feito. */
+  &:not(:last-child)::before,
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: calc(12px + var(--icone) / 2 - 1px);
+    top: calc(12px + var(--icone) + 4px);
+    bottom: -12px;
+    width: 2px;
+    border-radius: 1px;
+  }
+  &:not(:last-child)::before { background: var(--pf-border); }
+  &:not(:last-child)::after {
+    background: var(--pf-blue);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 300ms $demo-curva;
+  }
+  &[data-estado='feito']:not(:last-child)::after { transform: none; }
+
+  &[data-estado='atual'] { background: var(--pf-blue-softer); }
+}
+
+.demo__passo-icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--icone);
+  height: var(--icone);
+  border: 1px solid rgba(24, 106, 157, .25);
+  border-radius: 10px;
+  background: var(--pf-surface, #fff);
+  color: var(--pf-blue);
+  transition: background-color var(--pf-dur-base) ease, color var(--pf-dur-base) ease, border-color var(--pf-dur-base) ease;
+
+  [data-estado='feito'] > & { border-color: transparent; background: var(--pf-blue-soft); }
+  [data-estado='atual'] > & { border-color: var(--pf-blue); background: var(--pf-blue); color: #fff; }
+}
+
+.demo__passo-titulo {
+  margin: 0;
+  padding-top: 1px;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  [data-estado='atual'] & { color: var(--pf-blue-press); }
+}
+
+.demo__passo-texto {
+  margin: 3px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pf-text-muted);
+  text-wrap: pretty;
+}
+
+/* Palco --------------------------------------------------------------------------- */
+.demo__palco {
+  /* Ao trocar de passo, o palco volta à vista abaixo do cabeçalho fixo da página. */
+  scroll-margin-top: 84px;
+  --papel-fundo: var(--pf-bg);
+  grid-area: palco;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  /* Coluna única de leitura: total, resumo, ficha, equipe e notas na mesma largura. */
+  --demo-coluna: 480px;
+  justify-content: flex-start;
+  /* Altura do passo mais alto (3 fechado, com a ficha e o histórico; medido: 551 px a 1366 px):
+     trocar de passo não empurra a página. */
+  min-height: 552px;
+  padding: 22px 28px 28px;
+  border-radius: 0 0 15px 0;
+  background: var(--pf-bg);
+}
+
+/* Reserva a altura de duas linhas de balão: o texto muda a cada estado sem empurrar o conteúdo. */
+.demo__guia { display: flex; align-items: flex-end; min-height: 64px; }
+
+.demo__conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+  animation: demo-entra 220ms $demo-curva both;
+  > * { max-width: 100%; }
+}
+
+.demo__titulo {
+  margin: 0;
+  font-family: var(--pf-font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  line-height: 1.3;
+  border-radius: 6px;
+  &:focus { outline: none; }
+  &:focus-visible { outline: 2px solid var(--pf-blue); outline-offset: 4px; }
+}
+
+/* Passo 1: lance o turno ----------------------------------------------------------- */
+.demo__faixa-devolvida {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(183, 121, 31, .32);
+  border-radius: 10px;
+  background: var(--pf-warning-soft);
+  color: var(--pf-warning-ink);
+  width: min(100%, var(--demo-coluna));
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.demo__dado {
+  margin: 0;
+  font-size: 14px;
+  color: $demo-suave;
+  strong { color: var(--pf-text); font-variant-numeric: tabular-nums; }
+}
+
+.demo__campo {
+  display: grid;
+  gap: 6px;
+  /* O campo em si tem 240 px; rótulo e dica usam a coluna (a dica cabe numa linha). */
+  width: min(100%, var(--demo-coluna));
+
+  label { font-size: 13px; font-weight: 600; color: var(--pf-text); }
+
+  input {
+    width: min(100%, 240px);
+    height: 48px;
+    padding: 0 14px;
+    border: 1px solid var(--pf-border-strong);
+    border-radius: 10px;
+    background: var(--pf-surface, #fff);
+    color: var(--pf-text);
+    /* 16 px: o iOS não dá zoom ao focar. */
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    transition: border-color var(--pf-dur-fast) ease;
+
+    &:hover:not(:disabled):not(:read-only) { border-color: $demo-borda-hover; }
+    &:focus-visible { border-color: var(--pf-blue); outline-offset: 1px; }
+    &[aria-invalid='true'] { border-color: var(--pf-danger); }
+    &:read-only:not(:disabled) { background: var(--pf-surface-alt); }
+    &:disabled {
+      border-style: dashed;
+      background: var(--pf-surface-alt);
+      color: $demo-desligado;
+      -webkit-text-fill-color: $demo-desligado;
+      opacity: 1;
+      cursor: not-allowed;
+    }
+  }
+}
+
+/* Dica sob o campo, nota sob as ações e explicação do saldo: 13 px no cinza AA da demo. */
+.demo__dica,
+.demo__nota,
+.demo__resumo-nota {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: $demo-suave;
+  text-wrap: pretty;
+}
+.demo__nota,
+.demo__resumo-nota { width: min(100%, var(--demo-coluna)); }
+/* Coladas ao que explicam (o gap do conteúdo é 14 px; dentro do .demo__campo, 6 px). */
+.demo__campo + .demo__dica,
+.demo__acoes + .demo__nota,
+.demo__resumo + .demo__resumo-nota { margin-top: -8px; }
+/* Se a explicação ficar dentro do <dl>, ela vira o rodapé do cartão. */
+.demo__resumo .demo__resumo-nota {
+  width: auto;
+  padding: 0 16px 10px;
+  background: var(--pf-blue-softer);
+}
+
+.demo__erro { margin: -6px 0 0; font-size: 13.5px; font-weight: 500; color: var(--pf-danger-ink); }
+
+.demo__exemplo.pf-btn { min-height: 44px; padding: 0 14px; }
+
+.demo__total {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'rotulo saldo' 'valor saldo';
+  /* Rótulos no topo, valores na base, nas duas colunas. */
+  align-items: start;
+  column-gap: 16px;
+  row-gap: 2px;
+  width: min(100%, var(--demo-coluna));
+  padding: 14px 16px;
+  border: 1px solid var(--pf-border);
+  border-radius: 12px;
+  background: var(--pf-surface, #fff);
+  transition: border-color 300ms ease;
+
+  > span:first-child { grid-area: rotulo; font-size: 13px; font-weight: 600; color: $demo-suave; }
+
+  output {
+    grid-area: valor;
+    align-self: end;
+    justify-self: start;
+    margin-left: -6px;
+    padding: 0 6px;
+    border-radius: 6px;
+    font-family: var(--pf-font-display);
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--pf-text-muted);
+    transition: color 300ms ease;
+  }
+
+  &[data-valido] {
+    border-color: rgba(24, 106, 157, .35);
+    output { color: var(--pf-text); animation: demo-realce 300ms ease-out; }
+  }
+}
+
+.demo__saldo {
+  grid-area: saldo;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  align-self: stretch;
+  justify-content: space-between;
+  gap: 2px;
+  font-size: 13px;
+  color: $demo-suave;
+  text-align: right;
+  strong { font-size: 16px; line-height: 1.3; color: var(--pf-text); font-variant-numeric: tabular-nums; }
+}
+
+.demo__acao.pf-btn { min-height: 44px; padding: 0 18px; }
+/* Desabilitado com contraste AA (o padrão do .pf-btn só apaga para 50 %). */
+.demo__acao.pf-btn:disabled {
+  border-color: var(--pf-border-strong);
+  background: var(--pf-surface-alt);
+  color: $demo-desligado;
+  box-shadow: none;
+  opacity: 1;
+}
+
+/* Passo 2: conferência --------------------------------------------------------------- */
+.demo__resumo {
+  width: min(100%, var(--demo-coluna));
+  margin: 0;
+  border: 1px solid var(--pf-border);
+  border-radius: 12px;
+  background: var(--pf-surface, #fff);
+  overflow: hidden;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 16px;
+    font-size: 14px;
+    & + div { border-top: 1px solid var(--pf-border); }
+  }
+  dt { color: $demo-suave; }
+  dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+}
+
+.demo__resumo-saldo {
+  background: var(--pf-blue-softer);
+  dt { font-weight: 600; color: var(--pf-text) !important; }
+  dd { font-size: 16px; font-weight: 800; color: var(--pf-blue-press); }
+}
+
+.demo__acoes { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* Passo 3: fechamento ----------------------------------------------------------------- */
+/* Ficha de papel da demo (ajustes só aqui; a tela real de fichas não muda):
+   - série na cor da marca, não no vermelho da numeradora;
+   - carimbo ancorado na linha "Carros" (rótulo e valor curtos): em 375 px o cabeçalho quebra em
+     duas linhas e o top fixo caía sobre "#1200 a #1342";
+   - canhoto: ao fechar, sai do fluxo (absolute, no mesmo lugar) e cai por cima do que vem embaixo;
+     o histórico sobe na hora e não sobra o vão de ~50 px. Só transform/opacity, sem animar altura. */
+.demo__conteudo pf-ficha-papel {
+  --serie: var(--pf-blue-press);
+  /* A ficha (e o canhoto que cai) passa na frente do histórico que entra logo abaixo. */
+  position: relative;
+  z-index: 1;
+  width: min(100%, var(--demo-coluna));
+  margin-top: 0;
+
+  .papel__carimbo {
+    top: auto;
+    /* Centro na linha "Carros": respiro do corpo (14) + Líquido (≈ 38) + Faturamento (≈ 33) + meia linha. */
+    bottom: 84px;
+    left: 30%;
+    font-size: 19px;
+  }
+  .papel--fechada .papel__canhoto {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+}
+
+/* Ordem do fechamento: rasga (0 s) → carimba (0,5 s) → histórico (0,6 s), quando o canhoto já
+   está quase sumido. Com reduzir movimento não há queda, então o histórico aparece na hora. */
+@media (prefers-reduced-motion: no-preference) {
+  .demo__conteudo pf-ficha-papel + .demo__historico { animation-delay: .6s; }
+}
+
+.demo__historico {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: min(100%, var(--demo-coluna));
+  font-size: 13.5px;
+  color: $demo-suave;
+  animation: demo-entra 220ms $demo-curva both;
+
+  li { position: relative; padding-left: 18px; }
+  li::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: .5em;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pf-success);
+  }
+}
+
+/* Passo 4: pagamento da equipe ---------------------------------------------------------- */
+.demo__equipe {
+  display: grid;
+  gap: 10px;
+  width: min(100%, var(--demo-coluna));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    padding: 12px 12px 12px 16px;
+    border: 1px solid var(--pf-border);
+    border-radius: 12px;
+    background: var(--pf-surface, #fff);
+    transition: border-color var(--pf-dur-base) ease;
+    > div { min-width: 0; }
+  }
+  > li[data-pago] { border-color: rgba(35, 132, 93, .35); }
+  > li[data-pago] .demo__acao.pf-btn {
+    border-color: transparent;
+    background: var(--pf-success-soft);
+    color: var(--pf-success-ink);
+    box-shadow: none;
+    cursor: default;
+  }
+}
+
+.demo__equipe-nome { margin: 0; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.demo__equipe-pix { margin: 2px 0 0; font-size: 13px; color: $demo-suave; overflow-wrap: anywhere; }
+
+.demo__fim {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  animation: demo-entra 220ms $demo-curva both;
+}
+
+/* Responsivo ------------------------------------------------------------------------------ */
+@media (max-width: 960px) {
+  .demo { grid-template-columns: minmax(208px, 240px) minmax(0, 1fr); }
+  .demo__passo-texto { display: none; }
+  .demo__palco { padding: 20px 22px 24px; }
+}
+
+/* Em celular estreito o nome da unidade viraria só "P…": sai, e o selo ocupa o lugar (a unidade
+   continua na ficha do passo 3). */
+@media (max-width: 480px) {
+  .demo__unidade { display: none; }
+}
+
+@media (max-width: 640px) {
+  .demo {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'cabeca' 'barra' 'palco';
+  }
+  .demo__cabeca { gap: 10px; padding-left: 14px; }
+  .demo__janela { display: none; }
+  .demo__recomecar { margin-left: auto; }
+  .demo__passos { display: none; }
+  .demo__barra { display: block; }
+  .demo__palco {
+    gap: 14px;
+    min-height: 0;
+    padding: 16px 16px 20px;
+    border-radius: 0 0 15px 15px;
+  }
+  .demo__guia { min-height: 0; }
+  .demo__selo { height: 22px; padding: 0 8px; font-size: 11.5px; }
+  /* Carimbo menor e mais à esquerda: o vão entre "Carros" e "140" é o único livre em 375 px. */
+  .demo__conteudo pf-ficha-papel .papel__carimbo { left: 26%; bottom: 86px; padding: 3px 10px; font-size: 15px; }
+  .demo__total {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'rotulo' 'valor' 'saldo';
+  }
+  .demo__saldo {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    align-self: auto;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--pf-border);
+    text-align: left;
+  }
+  .demo__acoes,
+  .demo__fim { width: 100%; }
+  .demo__acoes .demo__acao,
+  .demo__fim .demo__acao { flex: 1 1 auto; }
+  .demo__conteudo > .demo__acao { width: 100%; }
+  .demo__equipe > li .demo__acao { width: 100%; }
+}
+
+/* Reduzir movimento: só opacity curta; trilho e barra mudam sem deslizar. ------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .demo__conteudo,
+  .demo__historico,
+  .demo__fim { animation: demo-aparece 120ms linear both; }
+  .demo__total[data-valido] output { animation: none; }
+  .demo__passo:not(:last-child)::after,
+  .demo__barra::after { transition: none; }
+  .demo .pf-btn:active:not(:disabled) { transform: none; }
+  /* O canhoto some sem cair e sem recolher: sai do fluxo na hora. */
+  .demo__conteudo pf-ficha-papel .papel--fechada .papel__canhoto { display: none; animation: none; }
+}
+
+@keyframes demo-entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes demo-aparece {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Realce curto do total quando a conta passa a valer (sem contagem: o número já está certo). */
+@keyframes demo-realce {
+  from { background-color: var(--pf-blue-soft); }
+  to { background-color: transparent; }
+}

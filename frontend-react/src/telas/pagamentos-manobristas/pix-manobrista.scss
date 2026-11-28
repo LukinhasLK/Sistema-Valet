@@ -1,0 +1,8 @@
+pf-pix-manobrista {
+    .pix { display: grid; gap: 8px; padding: 12px; background: var(--pf-surface-alt); border-radius: var(--pf-radius-sm); }
+    .pix h3 { font-size: 14px; }
+    .pix p { font-size: 13px; overflow-wrap: anywhere; }
+    .acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pf-field .acoes { margin-top: 6px; }
+    .feedback:empty, .acoes:empty { display: none; }
+}

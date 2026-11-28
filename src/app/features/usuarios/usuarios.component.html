@@ -1,0 +1,149 @@
+<div class="pf-page">
+  <pf-page-header title="Usuários" subtitle="Gerencie os usuários do sistema">
+    <button type="button" class="pf-btn pf-btn--primary" (click)="abrir()">
+      <pf-icon name="plus" [size]="17" />
+      Novo usuário
+    </button>
+  </pf-page-header>
+
+  <label class="pf-btn pf-btn--ghost">
+    <input type="checkbox" [checked]="mostrarInativos()" (change)="mostrarInativos.set($any($event.target).checked)" />
+    Incluir contas desativadas
+  </label>
+
+  @if (isMobile()) {
+    <div class="cards">
+      @for (u of usuarios(); track u.id) {
+        <article class="pf-card card-usuario">
+          <span class="pf-avatar" [style.background]="cor(u.nome)">{{ u.nome.charAt(0) }}</span>
+          <div class="card-usuario__info">
+            <p class="card-usuario__nome">{{ u.nome }}@if (ehVoce(u)) { <span class="voce">você</span> }</p>
+            <p class="card-usuario__email">{{ u.email }}</p>
+            <p class="card-usuario__escopo">{{ resumoEscopo(u) }}</p>
+          </div>
+          <div class="card-usuario__acoes">
+            <span class="pf-badge" [class]="classe(u.nivel)">{{ u.nivel }}</span>
+            @if (u.ativo === false) { <span class="pf-badge pf-badge--gray">Desativado</span> }
+            @if (u.ativo !== false) { <button type="button" class="acao" (click)="abrir(u)" [attr.aria-label]="'Editar ' + u.nome">Editar</button> }
+            <pf-historico-administrativo tipo="usuarios" [id]="u.id" [nome]="u.nome" />
+            @if (u.ativo !== false && !ehVoce(u)) {
+              <button type="button" class="acao acao--danger" (click)="paraExcluir.set(u)">Desativar</button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="pf-card tabela">
+      <div class="pf-table-wrap">
+        <table class="pf-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Nível de acesso</th>
+              <th>Unidades autorizadas</th>
+              <th class="actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of usuarios(); track u.id) {
+              <tr>
+                <td>
+                  <span class="celula-nome">
+                    <span class="pf-avatar" [style.background]="cor(u.nome)">{{ u.nome.charAt(0) }}</span>
+                    {{ u.nome }}
+                    @if (ehVoce(u)) { <span class="voce">você</span> }
+                  </span>
+                </td>
+                <td>{{ u.email }}</td>
+                <td><span class="pf-badge" [class]="classe(u.nivel)">{{ u.nivel }}</span>
+            @if (u.ativo === false) { <span class="pf-badge pf-badge--gray">Desativado</span> }</td>
+                <td>{{ resumoEscopo(u) }}</td>
+                <td class="actions">
+                  <pf-historico-administrativo tipo="usuarios" [id]="u.id" [nome]="u.nome" />
+                  @if (u.ativo !== false) { <button type="button" class="acao" (click)="abrir(u)">Editar</button> }
+                  <button
+                    type="button"
+                    class="acao acao--danger"
+                    [disabled]="ehVoce(u)"
+                    [title]="ehVoce(u) ? 'Você não pode desativar a própria conta' : 'Desativar usuário'"
+                    (click)="paraExcluir.set(u)"
+                  >Desativar</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
+
+@if (formAberto()) {
+  <pf-modal [title]="editando() ? 'Editar usuário' : 'Novo usuário'" (fechar)="formAberto.set(false)">
+    <form class="modal-form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+      <div class="pf-field">
+        <label class="pf-label" for="us-nome">Nome</label>
+        <input id="us-nome" class="pf-input" type="text" formControlName="nome" />
+        @if (invalido('nome')) { <span class="pf-error">Informe o nome.</span> }
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="us-email">E-mail</label>
+        <input id="us-email" class="pf-input" type="email" placeholder="nome@email.com" formControlName="email" />
+        @if (invalido('email')) { <span class="pf-error">Informe um e-mail válido.</span> }
+        @if (emailDuplicado()) { <span class="pf-error">Este e-mail já está em uso.</span> }
+      </div>
+
+      <div class="pf-field">
+        <label class="pf-label" for="us-nivel">Nível de acesso</label>
+        <select id="us-nivel" class="pf-select" formControlName="nivel">
+          @for (n of niveis; track n) { <option [value]="n">{{ n }}</option> }
+        </select>
+      </div>
+
+      @if (form.controls.nivel.value !== 'Proprietário') {
+        <fieldset class="escopo" aria-describedby="us-escopo-ajuda">
+          <legend class="pf-label">Unidades autorizadas</legend>
+          <p id="us-escopo-ajuda" class="card-usuario__escopo">Sem seleção, este usuário não verá dados de nenhuma unidade.</p>
+          @for (unidade of unidades(); track unidade.id) {
+            <label class="escopo__opcao">
+              <input type="checkbox" [checked]="form.controls.unidadeIds.value.includes(unidade.id)"
+                (change)="alternarUnidade(unidade.id, $any($event.target).checked)" />
+              {{ unidade.nome }}
+            </label>
+          } @empty {
+            <p class="card-usuario__escopo">Cadastre uma unidade para conceder acesso.</p>
+          }
+        </fieldset>
+      }
+
+      <div class="pf-field">
+        <label class="pf-label" for="us-senha">{{ editando() ? 'Nova senha (opcional)' : 'Senha' }}</label>
+        <input
+          id="us-senha"
+          class="pf-input"
+          type="password"
+          autocomplete="new-password"
+          [placeholder]="editando() ? 'Deixe em branco para manter' : 'Mínimo de 6 caracteres'"
+          formControlName="senha"
+        />
+        @if (invalido('senha')) { <span class="pf-error">A senha precisa ter ao menos 6 caracteres.</span> }
+      </div>
+
+      <div class="modal-form__acoes">
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="formAberto.set(false)">Cancelar</button>
+        <button type="submit" class="pf-btn pf-btn--primary" [disabled]="salvando()">{{ salvando() ? 'Salvando…' : 'Salvar' }}</button>
+      </div>
+    </form>
+  </pf-modal>
+}
+
+@if (paraExcluir(); as u) {
+  <pf-confirm
+    [message]="u.nome + ' perderá o acesso ao Park Flash.'"
+    (confirmar)="confirmarExclusao()"
+    (cancelar)="paraExcluir.set(null)"
+  />
+}

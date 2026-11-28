@@ -1,0 +1,44 @@
+<div class="pf-page perfil">
+  <pf-page-header title="Meu perfil" subtitle="Seus dados de acesso" />
+
+  @if (usuario(); as u) {
+    <section class="pf-card perfil__card">
+      <span class="pf-avatar perfil__avatar" [style.background]="cor(u.nome)">{{ inicial() }}</span>
+      <div>
+        <p class="perfil__nome">{{ u.nome }}</p>
+        <p class="perfil__email">{{ u.email }}</p>
+        <span class="pf-badge pf-badge--gray">{{ u.nivel }}</span>
+      </div>
+    </section>
+  }
+
+  <form class="pf-card perfil__card perfil__form" [formGroup]="form" (ngSubmit)="trocarSenha()" novalidate>
+    <h2 class="perfil__titulo">Trocar senha</h2>
+
+    <div class="pf-field">
+      <label class="pf-label" for="p-atual">Senha atual</label>
+      <input id="p-atual" class="pf-input" type="password" autocomplete="current-password" formControlName="senhaAtual" />
+      @if (invalido('senhaAtual')) { <span class="pf-error">Informe a senha atual.</span> }
+    </div>
+
+    <div class="pf-field">
+      <label class="pf-label" for="p-nova">Nova senha</label>
+      <input id="p-nova" class="pf-input" type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres" formControlName="novaSenha" />
+      @if (invalido('novaSenha')) { <span class="pf-error">A nova senha precisa ter ao menos 6 caracteres.</span> }
+    </div>
+
+    <div class="pf-field">
+      <label class="pf-label" for="p-conf">Confirmar nova senha</label>
+      <input id="p-conf" class="pf-input" type="password" autocomplete="new-password" formControlName="confirmacao" />
+      @if (form.errors?.['senhasDiferentes'] && form.controls.confirmacao.touched) {
+        <span class="pf-error">As senhas não conferem.</span>
+      }
+    </div>
+
+    @if (mensagem(); as m) {
+      <p class="perfil__msg" [class.perfil__msg--erro]="m.tipo === 'erro'" role="status">{{ m.texto }}</p>
+    }
+
+    <button type="submit" class="pf-btn pf-btn--primary" [disabled]="salvando()">Salvar nova senha</button>
+  </form>
+</div>

@@ -1,0 +1,112 @@
+/* Painel "Precisa da sua atenção": gaveta à direita (desktop) e folha inferior (celular). */
+pf-painel-atencao {
+  display: block;
+
+  .painel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--pf-surface);
+    color: var(--pf-text);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Gaveta à direita (desktop, não modal): 380 px, borda à esquerda e sombra. Em < 1600 px sobrepõe o conteúdo, SEMPRE abaixo
+     da barra superior (48 px), para que o botão do Perdidinho nunca fiquem cobertos; em >= 1600 px o layout reserva
+     os 380 px (app-layout.scss) e ela ocupa a altura toda.
+     * z-index 55: acima do conteúdo e da barra (30); abaixo de modais (100), convite (800), paleta (900), tour (950), toasts (1000). */
+  .painel--gaveta {
+    position: fixed;
+    z-index: 55;
+    top: var(--pf-barra-topo-h, 48px);
+    right: 0;
+    width: 380px;
+    max-width: 100vw;
+    height: calc(100vh - var(--pf-barra-topo-h, 48px));
+    height: calc(100dvh - var(--pf-barra-topo-h, 48px));
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+    border-left: 1px solid var(--pf-border);
+    box-shadow: -8px 0 32px rgba(16, 40, 63, .10);
+    will-change: transform;
+
+    .painel__cabeca { flex: none; padding: 10px 8px 10px 20px; border-bottom: 1px solid var(--pf-border); }
+    .painel__corpo { flex: 1 1 auto; min-height: 0; padding: 16px 20px; overflow-y: auto; overscroll-behavior: contain; }
+    .painel__vazio--avisos { margin: 0 0 6px; font-size: 13.5px; color: var(--pf-text-muted); }
+  .painel__avisos-acoes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; .pf-btn { min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; } }
+
+  .painel__rodape { flex: none; padding: 10px 20px; background: var(--pf-surface); }
+    .painel__nota { flex: none; margin: 0; padding: 0 20px 12px; }
+    .painel__fechar { width: 44px; height: 44px; }
+  }
+  @media (min-width: 1600px) {
+    .painel--gaveta { top: 0; height: 100vh; height: 100dvh; }
+  }
+
+  .painel-fundo {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(16, 40, 63, .45);
+  }
+
+  .painel--folha {
+    width: 100%;
+    max-height: calc(100dvh - 40px);
+    padding: 10px 16px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+  }
+
+  .painel__alca { padding: 4px 0 6px; margin: -10px -16px 0; touch-action: none; cursor: grab; }
+  .painel__handle { display: block; width: 40px; height: 4px; margin: 0 auto 6px; border-radius: 2px; background: var(--pf-border-strong); }
+
+  .painel__cabeca { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .painel__titulo { margin: 0; font-size: 15px; font-weight: 700; &:focus { outline: none; } &:focus-visible { outline: 2px solid var(--pf-blue); outline-offset: 3px; border-radius: 4px; } }
+
+  .painel__fechar {
+    display: grid; place-items: center; flex: none; width: 44px; height: 44px;
+    border: 0; border-radius: 8px; background: transparent; color: var(--pf-text-muted); cursor: pointer;
+    &:hover { background: var(--pf-surface-hover); color: var(--pf-text); }
+  }
+
+  .painel__corpo { display: flex; flex-direction: column; gap: 16px; }
+  .painel__vazio { margin: 4px 0 2px; font-size: 14px; color: var(--pf-text); }
+
+  .painel__grupo-titulo {
+    display: flex; align-items: center; gap: 5px;
+    margin: 0 0 6px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--pf-text-muted);
+  }
+  .painel__grupo[data-nivel='URGENTE'] .painel__grupo-titulo { color: var(--pf-danger-ink); }
+  .painel__grupo[data-nivel='ATENCAO'] .painel__grupo-titulo { color: var(--pf-warning-ink); }
+
+  .painel__lista { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+  .painel__item {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 44px; padding: 8px 10px;
+    border: 1px solid var(--pf-border); border-radius: 10px;
+    background: var(--pf-surface-alt, var(--pf-surface));
+    color: inherit; font-size: 13.5px; line-height: 1.35; text-decoration: none;
+    transition: background-color var(--pf-dur-fast) ease, border-color var(--pf-dur-fast) ease;
+    svg { flex: none; color: var(--pf-text-muted); }
+  }
+  a.painel__item:hover { background: var(--pf-surface-hover); border-color: var(--pf-border-strong); }
+  .painel__grupo[data-nivel='URGENTE'] .painel__item { border-color: rgba(194, 65, 65, .4); background: var(--pf-danger-soft); }
+  .painel__item--so-info { cursor: default; }
+  .painel__texto { flex: 1; min-width: 0; }
+  .painel__origem { display: block; margin-top: 2px; font-size: 11.5px; color: #55606b; /* 5,6:1 sobre o cartão cinza (AA) */ }
+  .painel__qtd {
+    flex: none; min-width: 24px; padding: 2px 7px; border-radius: 999px; text-align: center;
+    font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+    background: var(--pf-surface); color: var(--pf-text); box-shadow: inset 0 0 0 1px var(--pf-border);
+  }
+
+  .painel__rodape { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px solid var(--pf-border); .pf-btn { min-height: 44px; } }
+  .painel__nota { margin: -4px 0 0; font-size: 12px; color: var(--pf-text-muted); }
+}

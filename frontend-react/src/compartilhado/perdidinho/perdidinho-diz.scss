@@ -1,0 +1,123 @@
+/*
+ * PerdidinhoDiz: Perdidinho + balão de fala.
+ * O balão segue os cartões do sistema (branco, borda --pf-border, raio 14px, sombra suave).
+ * Texto em --pf-text sobre branco: 14:1 (AA folgado).
+ */
+pf-perdidinho-diz {
+  --pdiz-tamanho: 56px;
+  --pdiz-rabo: 10px;
+  --pdiz-fundo: var(--pf-surface, #fff);
+  --pdiz-borda: var(--pf-border, #e5e9ee);
+
+  display: block;
+  container-type: inline-size;
+  /* Com container-type, a largura não vem do conteúdo: sem isto, num pai flex centralizado
+     o componente encolhe até quase zero e o texto vira uma palavra por linha. */
+  width: 100%;
+  max-width: calc(52ch + var(--pdiz-tamanho) + 24px);
+
+  .pdiz__linha { display: flex; align-items: flex-end; gap: 12px; }
+  &[data-lado='direita'] .pdiz__linha { flex-direction: row-reverse; }
+
+  /* Espaço do mascote reservado mesmo enquanto o pedaço carrega (nada pula). */
+  .pdiz__mascote { flex: none; width: var(--pdiz-tamanho); height: var(--pdiz-tamanho); }
+
+  .pdiz__balao {
+    position: relative;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 52ch;
+    padding: 12px 14px;
+    border: 1px solid var(--pdiz-borda);
+    border-radius: 14px;
+    background: var(--pdiz-fundo);
+    box-shadow: var(--pf-shadow-md, 0 2px 4px rgba(16, 40, 63, .04), 0 8px 20px rgba(16, 40, 63, .07));
+    color: var(--pf-text, #10283f);
+    visibility: hidden;
+
+    /* Rabinho apontando para o rosto do Perdidinho (altura dos olhos). */
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: calc(var(--pdiz-tamanho) * .38);
+      left: calc(var(--pdiz-rabo) / -2 - 1px);
+      width: var(--pdiz-rabo);
+      height: var(--pdiz-rabo);
+      border: 1px solid var(--pdiz-borda);
+      border-top: 0;
+      border-right: 0;
+      border-bottom-left-radius: 3px;
+      background: var(--pdiz-fundo);
+      transform: rotate(45deg);
+    }
+  }
+  &[data-lado='direita'] .pdiz__balao::before {
+    left: auto;
+    right: calc(var(--pdiz-rabo) / -2 - 1px);
+    transform: rotate(225deg);
+  }
+  .pdiz__balao--fechavel { padding-right: 40px; }
+  &[data-pronto] .pdiz__balao { visibility: visible; }
+
+  .pdiz__titulo { margin: 0 0 2px; font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--pf-text, #10283f); }
+  .pdiz__texto { margin: 0; font-size: 14px; line-height: 1.45; color: var(--pf-text, #10283f); text-wrap: pretty; }
+  .pdiz__acao { margin-top: 10px; }
+
+  .pdiz__fechar {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--pf-text-muted, #69737e);
+    cursor: pointer;
+    transition: background-color var(--pf-dur-fast, 140ms) ease, color var(--pf-dur-fast, 140ms) ease;
+    &:hover { background: var(--pf-surface-hover, #eef3f7); color: var(--pf-text, #10283f); }
+  }
+
+  /* Espaço estreito: balão em cima, mascote embaixo no mesmo lado, rabinho para baixo. */
+  @container (max-width: 319px) {
+    .pdiz__linha { flex-direction: column-reverse; align-items: flex-start; gap: 8px; }
+    &[data-lado='direita'] .pdiz__linha { flex-direction: column-reverse; align-items: flex-end; }
+    .pdiz__balao { max-width: 100%; }
+    .pdiz__balao::before,
+    &[data-lado='direita'] .pdiz__balao::before {
+      top: auto;
+      bottom: calc(var(--pdiz-rabo) / -2 - 1px);
+      left: calc(var(--pdiz-tamanho) / 2 - var(--pdiz-rabo) / 2);
+      right: auto;
+      transform: rotate(-45deg);
+    }
+    &[data-lado='direita'] .pdiz__balao::before {
+      left: auto;
+      right: calc(var(--pdiz-tamanho) / 2 - var(--pdiz-rabo) / 2);
+    }
+  }
+
+  /*
+   * "Pop" do balão: cresce a partir do rabinho, depois que o Perdidinho começa a entrar.
+   * 240 ms com leve passada (~3%); saída mais curta (140 ms) e acelerando.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    &:not([data-parado])[data-pronto] .pdiz__balao {
+      transform-origin: 0% 100%;
+      animation: pdiz-pop 240ms cubic-bezier(.34, 1.3, .64, 1) 110ms both;
+    }
+    &[data-lado='direita']:not([data-parado])[data-pronto] .pdiz__balao { transform-origin: 100% 100%; --pdiz-de: 6px; }
+    &[data-saindo]:not([data-parado]) .pdiz__linha { animation: pdiz-sai 140ms cubic-bezier(.55, 0, 1, .45) both; }
+  }
+}
+
+@keyframes pdiz-pop {
+  from { opacity: 0; transform: translateX(var(--pdiz-de, -6px)) scale(.9); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pdiz-sai {
+  to { opacity: 0; transform: scale(.96); }
+}

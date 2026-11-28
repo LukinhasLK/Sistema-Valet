@@ -1,0 +1,48 @@
+# Padrão: H2 em arquivo (./data), sem instalar nada. Para PostgreSQL use o perfil "postgres".
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: parkflash-api
+  datasource:
+    url: jdbc:h2:file:./data/parkflash;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password: ""
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    # db/demo carrega os dados de demonstração (mesmos do front). Para começar vazio:
+    # FLYWAY_LOCATIONS=classpath:db/migration
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration,classpath:db/demo}
+  h2:
+    console:
+      enabled: false
+
+parkflash:
+  push:
+    chave-publica: ${PUSH_VAPID_PUBLICA:}
+    chave-privada: ${PUSH_VAPID_PRIVADA:}
+    contato: ${PUSH_VAPID_CONTATO:}
+    enviar: ${PUSH_ENVIAR:true}
+  pix-segredo: ${PIX_SEGREDO:parkflash-pix-exclusivo-para-desenvolvimento}
+  jwt:
+    # Troque em produção: JWT_SEGREDO com pelo menos 32 caracteres.
+    segredo: ${JWT_SEGREDO:parkflash-segredo-de-desenvolvimento-troque-em-producao}
+    expiracao: ${JWT_EXPIRACAO:8h}
+  cors-origens: ${CORS_ORIGENS:http://localhost:4200}
+  # Usado só se o banco começar sem usuários (ex.: FLYWAY_LOCATIONS sem db/demo).
+  admin-inicial:
+    nome: ${ADMIN_NOME:Administrador}
+    email: ${ADMIN_EMAIL:}
+    senha: ${ADMIN_SENHA:}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

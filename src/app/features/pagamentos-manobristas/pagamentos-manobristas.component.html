@@ -1,0 +1,431 @@
+<div class="pf-page pagamentos">
+  <pf-page-header title="Pagamentos de Manobristas" subtitle="Confira as diárias e registre os pagamentos da equipe.">
+    <a class="pf-btn pf-btn--ghost" routerLink="/app/manobristas">Cadastro de manobristas</a>
+  </pf-page-header>
+
+  <nav class="abas" aria-label="Áreas de pagamentos">
+    @for (item of abas; track item.id) {
+      <button type="button" class="pf-btn" [class.pf-btn--dark]="aba() === item.id"
+        [class.pf-btn--ghost]="aba() !== item.id" [attr.aria-pressed]="aba() === item.id" (click)="trocarAba(item.id)">
+        {{ item.nome }}
+      </button>
+    }
+  </nav>
+
+  <form class="pf-card filtros" (ngSubmit)="aplicar()" aria-label="Filtros de pagamentos">
+    <div class="pf-field busca">
+      <label for="pg-busca" class="pf-label">Buscar pelo nome</label>
+      <input id="pg-busca" name="busca" type="search" class="pf-input" [(ngModel)]="filtro.busca" maxlength="100" />
+    </div>
+    <div class="pf-field">
+      <label for="pg-manobrista" class="pf-label">Manobrista</label>
+      <select id="pg-manobrista" name="manobrista" class="pf-select" [(ngModel)]="filtro.manobristaId">
+        <option [ngValue]="0">Todos</option>
+        @for (m of manobristas(); track m.id) { <option [ngValue]="m.id">{{ m.nome }}</option> }
+      </select>
+    </div>
+    <div class="pf-field">
+      <label for="pg-unidade" class="pf-label">Unidade</label>
+      <select id="pg-unidade" name="unidade" class="pf-select" [(ngModel)]="filtro.unidadeId">
+        <option [ngValue]="0">Todas</option>
+        @for (u of unidades(); track u.id) { <option [ngValue]="u.id">{{ u.nome }}</option> }
+      </select>
+    </div>
+    <div class="pf-field">
+      <label for="pg-inicio" class="pf-label">Início</label>
+      <pf-calendario><input id="pg-inicio" name="inicio" type="date" class="pf-input" [(ngModel)]="filtro.inicio" /></pf-calendario>
+    </div>
+    <div class="pf-field">
+      <label for="pg-fim" class="pf-label">Fim</label>
+      <pf-calendario><input id="pg-fim" name="fim" type="date" class="pf-input" [(ngModel)]="filtro.fim" [min]="filtro.inicio" /></pf-calendario>
+    </div>
+    @if (aba() !== 'conferencia') {
+      <div class="pf-field">
+        <label for="pg-situacao" class="pf-label">Situação</label>
+        <select id="pg-situacao" name="situacao" class="pf-select" [(ngModel)]="filtro.situacao">
+          <option value="">Todas</option>
+          @if (aba() === 'diarias') { <option value="PENDENTE">Pendente</option> }
+          <option value="PAGO">Pago</option>
+          <option value="ESTORNADO">Estornado</option>
+        </select>
+      </div>
+    }
+    <div class="acoes">
+      <button type="submit" class="pf-btn pf-btn--dark">Aplicar filtros</button>
+      <button type="button" class="pf-btn pf-btn--ghost" (click)="limparFiltros()">Limpar</button>
+    </div>
+  </form>
+
+  @if (nomeFiltrado(); as nome) {
+    <div class="contexto acoes">
+      <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirPix(filtroAtual().manobristaId, nome)">Chave Pix de {{ nome }}</button>
+    </div>
+  }
+
+  <section aria-label="Resultados de pagamentos" [attr.aria-busy]="carregando()">
+    @if (carregando()) {
+      <div class="pf-card estado" role="status">Carregando pagamentos…</div>
+    } @else if (erro()) {
+      <div class="pf-card estado">
+        <p class="pf-error" role="alert">{{ erro() }}</p>
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="carregar()">Atualizar resultados</button>
+      </div>
+    } @else {
+      @if (aba() === 'diarias') {
+        @if (resumo(); as dados) {
+          <div class="pf-grid-kpi kpis" aria-label="Resumo financeiro">
+            <pf-kpi-card label="Total a pagar" [value]="dados.aPagar | currencyBr" tone="accent" hint="Por data de trabalho" />
+            <pf-kpi-card label="Total pago" [value]="dados.pago | currencyBr" tone="success" hint="Por data de pagamento" />
+            <pf-kpi-card label="Manobristas pendentes" [value]="'' + dados.manobristasPendentes" />
+            <pf-kpi-card label="Pagamentos realizados" [value]="'' + dados.pagamentos" />
+          </div>
+        }
+        <section class="pf-card saldos-pessoa" aria-label="Saldo a receber por manobrista">
+          <header class="pf-card__head"><h2 class="pf-card__title">Quem falta pagar</h2></header>
+          <div class="pf-card__body">
+            @for (p of saldosPorPessoa(); track p.id) {
+              <article>
+                <div class="linha-card__head"><strong>{{ p.nome }}</strong><strong>{{ p.centavos / 100 | currencyBr }}</strong></div>
+                @for (u of p.unidades; track u.unidadeId) {
+                  <div class="saldo-unidade">
+                    <span>{{ u.unidade }} · {{ u.diarias }} {{ u.diarias === 1 ? 'diária' : 'diárias' }}</span>
+                    <span>{{ u.saldo | currencyBr }}</span>
+                    <button type="button" class="pf-link-btn" (click)="verDiarias(p.id, u.unidadeId)"
+                      [attr.aria-label]="'Ver diárias de ' + p.nome + ' em ' + u.unidade">Ver diárias</button>
+                  </div>
+                }
+              </article>
+            } @empty { <p class="muted">Nenhum saldo pendente para os filtros aplicados.</p> }
+          </div>
+        </section>
+        <div class="pf-card selecao">
+          @if (selecao().length) {
+            <p aria-live="polite"><strong>{{ selecao()[0].manobrista }}</strong> · {{ selecao().length }} diária(s) · <strong>{{ soma() | currencyBr }}</strong></p>
+            <div class="acoes">
+              <button type="button" class="pf-btn pf-btn--ghost" (click)="selecao.set([])">Limpar seleção</button>
+              <button type="button" class="pf-btn pf-btn--primary" (click)="abrirPagamento()">Revisar pagamento</button>
+            </div>
+          } @else {
+            <p>Selecione as diárias de um manobrista para registrar o pagamento.</p>
+          }
+        </div>
+        @if (diarias().length) {
+          @if (mobile()) {
+            <div class="lista-cards">
+              @for (d of diarias(); track d.id) {
+                <article class="pf-card linha-card">
+                  <div class="linha-card__head">
+                    <label class="check">
+                      <input type="checkbox" [checked]="selecionada(d)" [disabled]="!podeSelecionar(d)" (change)="selecionar(d)"
+                        [attr.aria-label]="'Selecionar diária de ' + d.manobrista + ' em ' + (d.data | dataBr) + ', ficha ' + d.fichaId" />
+                      <strong>{{ d.manobrista }}</strong>
+                    </label>
+                    <span class="pf-badge" [class]="'pf-badge--' + situacoes[d.situacao].cor">{{ situacoes[d.situacao].nome }}</span>
+                  </div>
+                  <p class="muted">{{ d.unidade }} · {{ d.data | dataBr }} · Ficha #{{ d.fichaId }}</p>
+                  <dl class="valores-mobile">
+                    <div><dt>Devido</dt><dd>{{ d.devido | currencyBr }}</dd></div>
+                    <div><dt>Pago</dt><dd>{{ d.pago | currencyBr }}</dd></div>
+                    <div><dt>Saldo</dt><dd>{{ d.saldo | currencyBr }}</dd></div>
+                  </dl>
+                  @if (d.dataPagamento) { <p class="muted">Pagamento em {{ d.dataPagamento | dataBr }}</p> }
+                  <ng-container *ngTemplateOutlet="acoesDiaria; context: { $implicit: d }" />
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="pf-card tabela"><div class="pf-table-wrap" tabindex="0" role="region" aria-label="Tabela de diárias">
+              <table class="pf-table">
+                <thead><tr>
+                  <th scope="col">Seleção</th><th scope="col">Manobrista</th><th scope="col">Unidade e trabalho</th>
+                  <th scope="col" class="num">Devido</th><th scope="col" class="num">Pago</th><th scope="col" class="num">Saldo</th>
+                  <th scope="col">Situação</th><th scope="col">Ações</th>
+                </tr></thead>
+                <tbody>
+                  @for (d of diarias(); track d.id) {
+                    <tr>
+                      <td><input type="checkbox" [checked]="selecionada(d)" [disabled]="!podeSelecionar(d)" (change)="selecionar(d)"
+                        [attr.aria-label]="'Selecionar diária de ' + d.manobrista + ' em ' + (d.data | dataBr) + ', ficha ' + d.fichaId" /></td>
+                      <td><strong>{{ d.manobrista }}</strong></td>
+                      <td>{{ d.unidade }}<span class="subtexto">{{ d.data | dataBr }} · Ficha #{{ d.fichaId }}</span></td>
+                      <td class="num">{{ d.devido | currencyBr }}</td>
+                      <td class="num">{{ d.pago | currencyBr }}</td>
+                      <td class="num"><strong>{{ d.saldo | currencyBr }}</strong></td>
+                      <td>
+                        <span class="pf-badge" [class]="'pf-badge--' + situacoes[d.situacao].cor">{{ situacoes[d.situacao].nome }}</span>
+                        @if (d.dataPagamento) { <span class="subtexto">{{ d.dataPagamento | dataBr }}</span> }
+                      </td>
+                      <td><ng-container *ngTemplateOutlet="acoesDiaria; context: { $implicit: d }" /></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div></div>
+          }
+        } @else {
+          <div class="pf-card estado">
+            <strong>Nenhuma diária encontrada</strong>
+            <p class="muted">Ajuste os filtros ou confira as novas fichas para reconhecer um saldo.</p>
+            <button type="button" class="pf-btn pf-btn--ghost" (click)="trocarAba('conferencia')">Conferir fichas</button>
+          </div>
+        }
+      }
+
+      @if (aba() === 'conferencia') {
+        <p class="orientacao">Confira as diárias das fichas elegíveis antes de incluí-las no saldo a pagar. O custo registrado na ficha fica preservado.</p>
+        @if (candidatos().length && mobile()) {
+          <div class="lista-cards">
+            @for (c of candidatos(); track c.fichaId + '-' + c.manobristaId) {
+              <article class="pf-card linha-card">
+                <div class="linha-card__head"><strong>{{ c.manobrista }}</strong><strong>{{ c.custo | currencyBr }}</strong></div>
+                <p class="muted">{{ c.unidade }} · {{ c.data | dataBr }} · {{ c.turno === 'DIA' ? 'Dia' : 'Noite' }} · Ficha #{{ c.fichaId }}</p>
+                <div class="acoes">
+                  <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirConferencia(c)">Conferir</button>
+                </div>
+              </article>
+            }
+          </div>
+        } @else if (candidatos().length) {
+          <div class="pf-card tabela"><div class="pf-table-wrap" tabindex="0" role="region" aria-label="Fichas para conferência">
+            <table class="pf-table">
+              <thead><tr><th scope="col">Manobrista</th><th scope="col">Unidade e trabalho</th><th scope="col" class="num">Custo na ficha</th>
+                <th scope="col" class="actions">Ações</th></tr></thead>
+              <tbody>
+                @for (c of candidatos(); track c.fichaId + '-' + c.manobristaId) {
+                  <tr>
+                    <td><strong>{{ c.manobrista }}</strong></td>
+                    <td>{{ c.unidade }}<span class="subtexto">{{ c.data | dataBr }} · {{ c.turno === 'DIA' ? 'Dia' : 'Noite' }} · Ficha #{{ c.fichaId }}</span></td>
+                    <td class="num">{{ c.custo | currencyBr }}</td>
+                    <td class="actions"><button type="button" class="pf-btn pf-btn--ghost" (click)="abrirConferencia(c)">Conferir</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div></div>
+        } @else {
+          <div class="pf-card estado"><strong>Nenhuma ficha para conferir</strong>
+            <p class="muted">As novas fichas elegíveis com diárias lançadas aparecem aqui.</p>
+            <a class="pf-btn pf-btn--ghost" routerLink="/app/fichas">Ver fichas</a>
+          </div>
+        }
+      }
+
+      @if (aba() === 'historico') {
+        @if (historico().length && mobile()) {
+          <div class="lista-cards">
+            @for (p of historico(); track p.id) {
+              <article class="pf-card linha-card">
+                <div class="linha-card__head">
+                  <strong>{{ p.manobrista }}</strong>
+                  <span class="pf-badge" [class]="p.estornadoEm ? 'pf-badge--gray' : 'pf-badge--green'">{{ p.estornadoEm ? 'Estornado' : 'Pago' }}</span>
+                </div>
+                <p class="muted">{{ p.data | dataBr }} · {{ formas[p.forma] }} · Pagamento #{{ p.id }}</p>
+                <div class="linha-card__head">
+                  <strong>{{ p.valor | currencyBr }}</strong>
+                  <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirHistorico(p)">Detalhes</button>
+                </div>
+              </article>
+            }
+          </div>
+        } @else if (historico().length) {
+          <div class="pf-card tabela"><div class="pf-table-wrap" tabindex="0" role="region" aria-label="Histórico de pagamentos">
+            <table class="pf-table">
+              <thead><tr><th scope="col">Manobrista</th><th scope="col">Data</th><th scope="col">Forma</th><th scope="col" class="num">Valor</th>
+                <th scope="col">Situação</th><th scope="col" class="actions">Ações</th></tr></thead>
+              <tbody>
+                @for (p of historico(); track p.id) {
+                  <tr>
+                    <td><strong>{{ p.manobrista }}</strong><span class="subtexto">Pagamento #{{ p.id }} · {{ p.itens.length }} diária(s)</span></td>
+                    <td>{{ p.data | dataBr }}</td>
+                    <td>{{ formas[p.forma] }}</td>
+                    <td class="num">{{ p.valor | currencyBr }}</td>
+                    <td><span class="pf-badge" [class]="p.estornadoEm ? 'pf-badge--gray' : 'pf-badge--green'">{{ p.estornadoEm ? 'Estornado' : 'Pago' }}</span></td>
+                    <td class="actions"><button type="button" class="pf-btn pf-btn--ghost" (click)="abrirHistorico(p)">Detalhes</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div></div>
+        } @else {
+          <div class="pf-card estado"><strong>Nenhum pagamento encontrado</strong><p class="muted">Os pagamentos registrados aparecem aqui, inclusive os estornados.</p></div>
+        }
+      }
+
+      @if (ultimaPagina() > 1) {
+        <nav class="paginacao" aria-label="Páginas de resultados">
+          <button type="button" class="pf-btn pf-btn--ghost" [disabled]="pagina() === 0" (click)="irPara(pagina() - 1)">Anterior</button>
+          <span aria-live="polite">Página {{ pagina() + 1 }} de {{ ultimaPagina() }}</span>
+          <button type="button" class="pf-btn pf-btn--ghost" [disabled]="pagina() + 1 === ultimaPagina()" (click)="irPara(pagina() + 1)">Próxima</button>
+        </nav>
+      }
+
+      @if (aba() === 'diarias') {
+        @if (resumo(); as dados) {
+          <div class="detalhamento">
+            <section class="pf-card tabela">
+              <header class="pf-card__head"><h2 class="pf-card__title">Por unidade</h2></header>
+              @if (dados.unidades.length) {
+                <div class="pf-table-wrap"><table class="pf-table"><thead><tr>
+                  <th scope="col">Unidade</th><th scope="col" class="num">A pagar</th><th scope="col" class="num">Pago</th>
+                </tr></thead><tbody>
+                  @for (u of dados.unidades; track u.unidade) {
+                    <tr><td>{{ u.unidade }}</td><td class="num">{{ u.aPagar | currencyBr }}</td><td class="num">{{ u.pago | currencyBr }}</td></tr>
+                  }
+                </tbody></table></div>
+              } @else { <p class="pf-card__body muted">Sem valores para os filtros aplicados.</p> }
+            </section>
+            <section class="pf-card tabela">
+              <header class="pf-card__head"><h2 class="pf-card__title">Por mês</h2></header>
+              @if (dados.meses.length) {
+                <div class="pf-table-wrap"><table class="pf-table"><thead><tr>
+                  <th scope="col">Mês</th><th scope="col" class="num">A pagar</th><th scope="col" class="num">Pago</th>
+                </tr></thead><tbody>
+                  @for (m of dados.meses; track m.ano * 100 + m.mes) {
+                    <tr><td>{{ meses[m.mes - 1] }} {{ m.ano }}</td><td class="num">{{ m.aPagar | currencyBr }}</td><td class="num">{{ m.pago | currencyBr }}</td></tr>
+                  }
+                </tbody></table></div>
+              } @else { <p class="pf-card__body muted">Sem valores para o período.</p> }
+            </section>
+          </div>
+        }
+      }
+    }
+  </section>
+</div>
+
+<ng-template #acoesDiaria let-d>
+  <div class="acoes">
+    <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirPix(d.manobristaId, d.manobrista)" [attr.aria-label]="'Chave Pix de ' + d.manobrista">Pix</button>
+    @if (d.pagamentoId) {
+      <button type="button" class="pf-btn pf-btn--ghost" [disabled]="ocupado()" (click)="consultarPagamento(d.pagamentoId)">Pagamento</button>
+    } @else {
+      <button type="button" class="pf-btn pf-btn--ghost" (click)="verHistorico(d.manobristaId)">Histórico</button>
+    }
+  </div>
+</ng-template>
+
+@if (dialogo(); as dialogo) {
+  @switch (dialogo.tipo) {
+    @case ('pix') {
+      <pf-modal [title]="dialogo.nome" (fechar)="fechar()">
+        <pf-pix-manobrista [manobristaId]="dialogo.id" />
+      </pf-modal>
+    }
+    @case ('conferencia') {
+      <pf-modal title="Reconhecer diária" (fechar)="fechar()">
+        <form class="dialogo" (ngSubmit)="reconhecer(dialogo.candidato)">
+          <p><strong>{{ dialogo.candidato.manobrista }}</strong><br />
+            {{ dialogo.candidato.unidade }} · {{ dialogo.candidato.data | dataBr }} · Ficha #{{ dialogo.candidato.fichaId }}</p>
+          <p>Custo registrado na ficha <strong>{{ dialogo.candidato.custo | currencyBr }}</strong></p>
+          <div class="pf-field">
+            <label class="pf-label" for="valor-devido">Valor devido (R$)</label>
+            <input id="valor-devido" name="valor" class="pf-input" type="text" inputmode="decimal" maxlength="13"
+              [(ngModel)]="valor" [disabled]="ocupado()" required />
+          </div>
+          <p class="muted">Ao confirmar, a diária passa a compor o saldo a pagar.</p>
+          @if (erroDialogo()) { <p class="pf-error" role="alert">{{ erroDialogo() }}</p> }
+          <div class="acoes fim">
+            <button type="button" class="pf-btn pf-btn--ghost" (click)="fechar()" [disabled]="ocupado()">Cancelar</button>
+            <button type="submit" class="pf-btn pf-btn--primary" [disabled]="ocupado() || !decimal(valor)">{{ ocupado() ? 'Salvando…' : 'Reconhecer diária' }}</button>
+          </div>
+        </form>
+      </pf-modal>
+    }
+    @case ('pagamento') {
+      <pf-modal title="Registrar pagamento" (fechar)="fechar()">
+        <form class="dialogo" (ngSubmit)="confirmarPagamento(dialogo.diarias)">
+          <p><strong>{{ dialogo.diarias[0].manobrista }}</strong></p>
+          <ul class="itens" aria-label="Diárias selecionadas">
+            @for (d of dialogo.diarias; track d.id) {
+              <li><span>{{ d.unidade }} · {{ d.data | dataBr }} · Ficha #{{ d.fichaId }}</span><strong>{{ d.saldo | currencyBr }}</strong></li>
+            }
+          </ul>
+          <div class="total"><span>Total a pagar</span><strong>{{ soma() | currencyBr }}</strong></div>
+          @if (forma === 'PIX') {
+            <pf-pix-manobrista [manobristaId]="dialogo.diarias[0].manobristaId" />
+          }
+          <details>
+            <summary>Data, forma de pagamento e comprovante</summary>
+            <fieldset [disabled]="ocupado() || tentativa() !== null">
+            <div class="campos-pagamento">
+              <div class="pf-field">
+                <label class="pf-label" for="data-pg">Data do pagamento</label>
+                <pf-calendario><input class="pf-input" id="data-pg" name="data" type="date" [(ngModel)]="dataPagamento" [min]="dataMinima" [max]="hoje" required /></pf-calendario>
+              </div>
+              <div class="pf-field">
+                <label class="pf-label" for="forma-pg">Forma</label>
+                <select class="pf-select" id="forma-pg" name="forma" [(ngModel)]="forma">
+                  @for (f of opcoesForma; track f) { <option [value]="f">{{ formas[f] }}</option> }
+                </select>
+              </div>
+            </div>
+            <div class="pf-field">
+              <label class="pf-label" for="arquivo-pg">Comprovante opcional (PDF, até 2 MB)</label>
+              <input class="pf-input arquivo" #comprovante id="arquivo-pg" type="file" accept="application/pdf,.pdf" (change)="anexar(comprovante)" />
+            </div>
+            </fieldset>
+          </details>
+          <p class="muted">Pagamento em {{ dataPagamento | dataBr }} por {{ formas[forma] }}.</p>
+          @if (erroDialogo()) { <p class="pf-error" role="alert">{{ erroDialogo() }}</p> }
+          <div class="acoes fim">
+            <button type="button" class="pf-btn pf-btn--ghost" (click)="fechar()" [disabled]="ocupado()">Fechar</button>
+            <button type="submit" class="pf-btn pf-btn--primary"
+              [disabled]="ocupado() || (!tentativa() && (!dataPagamento || dataPagamento < dataMinima || dataPagamento > hoje))">
+              {{ ocupado() ? 'Registrando…' : tentativa() ? 'Reenviar confirmação' : 'Já paguei · confirmar' }}
+            </button>
+          </div>
+        </form>
+      </pf-modal>
+    }
+    @case ('historico') {
+      @let p = dialogo.pagamento;
+      <pf-modal [title]="'Pagamento #' + p.id" (fechar)="fechar()">
+        <div class="dialogo">
+          <div class="total"><strong>{{ p.manobrista }}</strong><strong>{{ p.valor | currencyBr }}</strong></div>
+          <p>{{ p.data | dataBr }} · {{ formas[p.forma] }}
+            <span class="pf-badge" [class]="p.estornadoEm ? 'pf-badge--gray' : 'pf-badge--green'">{{ p.estornadoEm ? 'Estornado' : 'Pago' }}</span>
+          </p>
+          <p class="muted">Confirmado por {{ p.confirmador }} em {{ p.confirmadoEm | date:'dd/MM/yyyy HH:mm':'-0300' }}</p>
+          <ul class="itens" aria-label="Diárias relacionadas">
+            @for (i of p.itens; track i.diariaId) {
+              <li><span>{{ i.unidade }} · {{ i.data | dataBr }} · Ficha #{{ i.fichaId }}</span><strong>{{ i.valor | currencyBr }}</strong></li>
+            }
+          </ul>
+          @if (p.estornadoEm) {
+            <div class="orientacao">
+              <strong>Estornado por {{ p.estornador }} em {{ p.estornadoEm | date:'dd/MM/yyyy HH:mm':'-0300' }}</strong>
+              <p>{{ p.motivoEstorno }}</p>
+            </div>
+          }
+          @if (erroDialogo()) { <p class="pf-error" role="alert">{{ erroDialogo() }}</p> }
+          <div class="acoes">
+            @if (p.temComprovante) {
+              <button type="button" class="pf-btn pf-btn--ghost" [disabled]="ocupado()" (click)="baixar(p)">Baixar comprovante</button>
+            }
+            <button type="button" class="pf-btn pf-btn--ghost" [disabled]="ocupado()" (click)="verHistorico(p.manobristaId)">Histórico do manobrista</button>
+            @if (!p.estornadoEm) {
+              <button type="button" class="pf-btn pf-btn--ghost perigo" [disabled]="ocupado()" (click)="abrirEstorno(p)">Estornar registro</button>
+            }
+          </div>
+        </div>
+      </pf-modal>
+    }
+    @case ('estorno') {
+      <pf-modal title="Estornar pagamento" (fechar)="fechar()">
+        <form class="dialogo" (ngSubmit)="estornar(dialogo.pagamento)">
+          <p>Pagamento #{{ dialogo.pagamento.id }} · <strong>{{ dialogo.pagamento.manobrista }}</strong> · {{ dialogo.pagamento.valor | currencyBr }}</p>
+          <p class="orientacao">As diárias voltarão ao saldo a pagar e o registro original ficará no histórico. Qualquer devolução de dinheiro deve ser feita externamente.</p>
+          <div class="pf-field">
+            <label class="pf-label" for="motivo-estorno">Motivo do estorno</label>
+            <textarea class="pf-input" id="motivo-estorno" name="motivo" rows="3" maxlength="500" [(ngModel)]="motivo" [disabled]="ocupado()" required></textarea>
+          </div>
+          @if (erroDialogo()) { <p class="pf-error" role="alert">{{ erroDialogo() }}</p> }
+          <div class="acoes fim">
+            <button type="button" class="pf-btn pf-btn--ghost" [disabled]="ocupado()" (click)="abrirHistorico(dialogo.pagamento)">Voltar</button>
+            <button type="submit" class="pf-btn pf-btn--dark" [disabled]="ocupado() || !motivo.trim()">{{ ocupado() ? 'Estornando…' : 'Confirmar estorno' }}</button>
+          </div>
+        </form>
+      </pf-modal>
+    }
+  }
+}

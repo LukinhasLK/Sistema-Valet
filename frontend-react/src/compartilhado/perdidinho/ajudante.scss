@@ -1,0 +1,115 @@
+/*
+ * Perdidinho ajudante.
+ * Desktop (`barra`): botão dentro da barra superior (48 px), com a fala à esquerda . Celular (`topo`): botão do topo, entre a busca e o perfil.
+ * Estado em data-* (no React 18, `className` em elemento customizado vira o atributo "classname").
+ *
+ * Camadas: conteúdo < sidebar (20) < barra/topbar (30) < gaveta (55) < modal (100) < convite do celular (800) < paleta (900)
+ * < tour (950) < toast (1000) < dica (1200).
+ */
+pf-ajudante-perdidinho {
+  display: block;
+  position: relative;
+
+  .ajud__botao {
+    position: relative;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--pf-border);
+    background: var(--pf-surface);
+    color: var(--pf-text);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color var(--pf-dur-fast) ease, border-color var(--pf-dur-fast) ease;
+  }
+
+  .ajud__mascote {
+    display: block;
+    flex: none;
+    width: var(--ajud-tamanho, 28px);
+    height: var(--ajud-tamanho, 28px);
+    pointer-events: none;
+  }
+
+  /* Selo do contador. Atenção: âmbar escuro; urgente: vermelho + ícone; só avisos: neutro. */
+  .ajud__selo {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 22px;
+    min-width: 22px;
+    padding: 0 7px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px var(--pf-surface);
+    &[data-nivel='info'] { background: var(--pf-surface-hover); color: var(--pf-text); box-shadow: 0 0 0 2px var(--pf-surface), inset 0 0 0 1px var(--pf-border-strong); }
+    &[data-nivel='atencao'] { background: var(--pf-warning-soft); color: var(--pf-warning-ink); box-shadow: 0 0 0 2px var(--pf-surface), inset 0 0 0 1px rgba(183, 121, 31, .45); }
+    &[data-nivel='urgente'] { background: var(--pf-danger); color: #fff; }
+  }
+
+  /* Só avisos de conexão: ponto neutro, sem número. */
+  .ajud__ponto { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--pf-text-muted); box-shadow: 0 0 0 2px var(--pf-surface); }
+
+  /* Avisos (notificações) não lidos: ponto neutro-azul de 8 px, só presença (o texto está no nome do botão). */
+  .ajud__aviso { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--pf-blue); box-shadow: 0 0 0 2px var(--pf-surface); }
+  .ajud__aviso[data-canto='selo'] { top: 3px; right: 3px; }
+  .ajud__aviso[data-canto='oposto'] { bottom: 5px; left: 5px; }
+
+  .ajud__anuncio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Desktop: na barra superior (BarraTopo), à direita da fala. O elemento some da árvore de caixas
+     (`contents`): a fala e o botão são itens flex da barra. Botão de 44 px com o mascote de 32 px; sem tooltip só no hover. */
+  &[data-variante='barra'] {
+    display: contents;
+
+    .ajud__botao {
+      flex: none;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      @media (hover: hover) { &:hover { background: var(--pf-surface-hover); } }
+      &:focus-visible { outline: none; box-shadow: var(--pf-focus); }
+      &:active { background: var(--pf-surface-hover); }
+    }
+    &[data-aberto] .ajud__botao { background: var(--pf-blue-soft); }
+    .ajud__selo, .ajud__ponto { top: 2px; right: 0; box-shadow: 0 0 0 2px var(--pf-bg); }
+    /* Selo pequeno (18 px) para fora do mascote de 32 px (de 6 a 38 px no alvo): não cobre olhos nem sobrancelhas. */
+    .ajud__selo { min-width: 18px; height: 18px; padding: 0 5px; font-size: 10.5px; }
+    .ajud__selo svg { display: none; }
+    .ajud__selo[data-nivel='info'] { box-shadow: 0 0 0 2px var(--pf-bg), inset 0 0 0 1px var(--pf-border-strong); }
+    .ajud__selo[data-nivel='atencao'] { box-shadow: 0 0 0 2px var(--pf-bg), inset 0 0 0 1px rgba(183, 121, 31, .45); }
+  }
+
+  /* Topo do celular: só o cubo (alvo de 44 px), entre a busca e o perfil. Nada flutua sobre a barra inferior ou o teclado. */
+  &[data-variante='topo'] {
+    display: contents;
+    .ajud__botao { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: transparent; }
+    .ajud__botao:active { background: var(--pf-surface-hover); }
+    &[data-aberto] .ajud__botao { background: var(--pf-blue-soft); }
+    .ajud__selo, .ajud__ponto { top: 3px; right: 1px; margin: 0; box-shadow: 0 0 0 2px #fff; }
+    /* Selo pequeno (14 px) e para fora do cubo: o mascote de 28 px fica no meio do alvo de 44 px
+       (de 8 a 36 px), então o selo só encosta no canto arredondado, sem cobrir olhos nem sobrancelhas.
+       Cores e contraste AA são os mesmos do selo grande (aviso ~6:1, urgente ~5,8:1). */
+    .ajud__selo { top: 0; right: -3px; min-width: 14px; height: 14px; padding: 0 3px; font-size: 9.5px; letter-spacing: -.01em; box-shadow: 0 0 0 1.5px #fff; }
+    .ajud__selo[data-nivel='info'] { box-shadow: 0 0 0 1.5px #fff, inset 0 0 0 1px var(--pf-border-strong); }
+    .ajud__selo[data-nivel='atencao'] { box-shadow: 0 0 0 1.5px #fff, inset 0 0 0 1px rgba(183, 121, 31, .45); }
+    .ajud__selo svg { display: none; }
+  }
+}

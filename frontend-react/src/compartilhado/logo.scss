@@ -1,0 +1,9 @@
+pf-logo {
+  display: inline-flex;
+  .logo { display: inline-flex; align-items: center; gap: .42em; font-family: var(--pf-font-display); font-weight: 800; letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
+  .logo__mark { display: block; width: 1.35em; height: 1.35em; flex: none; border-radius: .3em; }
+  .logo__park { color: var(--pf-navy); }
+  .logo--dark .logo__park { color: #fff; }
+  /* Âmbar: assinatura exclusiva da marca. */
+  .logo__flash { color: var(--pf-amber); }
+}

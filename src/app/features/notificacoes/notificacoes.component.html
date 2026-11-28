@@ -1,0 +1,142 @@
+<div class="pf-page central">
+  <pf-page-header title="Notificações">
+    @if (mostraPreferencias()) {
+      <button type="button" class="pf-btn pf-btn--ghost" (click)="sairDasPreferencias()">Voltar à central</button>
+    } @else {
+      <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirPreferencias()">Preferências</button>
+    }
+  </pf-page-header>
+
+  @if (mostraPreferencias()) {
+    @if (carregandoPreferencias()) {
+      <p class="pf-card aviso-central" role="status">Carregando preferências…</p>
+    } @else if (erroPreferencias()) {
+      <div class="pf-card aviso-central">
+        <p class="pf-error" role="alert">{{ erroPreferencias() }}</p>
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirPreferencias()">Tentar novamente</button>
+      </div>
+    } @else {
+      <div class="preferencias" [pfAppear]="4">
+        <section class="pf-card aviso-central">
+          <h2>Notificações no aparelho</h2>
+          <p class="apoio">O aviso na tela bloqueada é genérico. Os detalhes ficam na central.</p>
+          @if (!config()?.chavePublica) {
+            <p>O envio push ainda não foi configurado neste ambiente.</p>
+          } @else if (!suportaPush) {
+            <p>Este navegador não oferece push para o Park Flash. No iPhone, adicione o Park Flash à Tela de Início pelo menu Compartilhar e abra pelo ícone.</p>
+          } @else if (pushBloqueado()) {
+            <p>As notificações estão bloqueadas. Autorize-as nos ajustes do navegador ou do dispositivo.</p>
+          }
+          @if (config()?.chavePublica && !config()?.envioAtivo) {
+            <p>O envio ao celular está pausado. A central continua funcionando.</p>
+          }
+          @if (config()?.inscrito) {
+            <p>Ativo neste aparelho.</p>
+          } @else if (suportaPush && !pushBloqueado() && config()?.envioAtivo && !config()?.pronto) {
+            <p>O serviço de notificações está iniciando.</p>
+            <button type="button" class="pf-btn pf-btn--ghost" (click)="abrirPreferencias()">Atualizar estado</button>
+          }
+          <div class="acoes">
+            @if (config()?.inscrito) {
+              @if (config()?.envioAtivo) {
+                <button type="button" class="pf-btn pf-btn--primary" [disabled]="pushOcupado()" (click)="testarPush()">
+                  Enviar aviso de teste
+                </button>
+              }
+              <button type="button" class="pf-btn pf-btn--ghost" [disabled]="pushOcupado()" (click)="desativarPush()">Desativar neste dispositivo</button>
+            } @else if (podeAtivarPush()) {
+              <button type="button" class="pf-btn pf-btn--primary" [disabled]="pushOcupado()" (click)="ativarPush()">Ativar neste dispositivo</button>
+            }
+          </div>
+          @if (pushMensagem()) { <p role="status">{{ pushMensagem() }}</p> }
+
+          <div class="diagnostico">
+            <button type="button" class="pf-btn pf-btn--ghost" [disabled]="diagnosticoOcupado()" (click)="consultarDiagnostico()">Ver atividade de envio</button>
+            @if (diagnostico(); as registros) {
+              <p class="apoio">Aceita significa que o provedor recebeu o aviso. A exibição depende do dispositivo.</p>
+              <ul>
+                @for (r of registros; track $index) {
+                  <li>{{ r.atualizadoEm | date:'dd/MM HH:mm':'-0300' }} · {{ r.estado.toLowerCase() }}
+                    · {{ r.tentativas }} tentativa(s) @if (r.codigo) { · {{ r.codigo }} }
+                  </li>
+                } @empty { <li>Ainda não há envios para esta conta.</li> }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="pf-card aviso-central">
+          <h2>Alertas que você recebe</h2>
+          <p class="apoio">As preferências valem para novos alertas na central e no celular.</p>
+          <div class="categorias">
+            @for (item of preferencia(); track item.categoria) {
+              <label class="categoria">
+                <span>{{ categorias[item.categoria] }}</span>
+                <input type="checkbox" [checked]="item.ativa" [disabled]="salvandoCategoria() !== null"
+                  (change)="alterarCategoria($event, item)" />
+              </label>
+            }
+          </div>
+        </section>
+      </div>
+    }
+  } @else {
+    <div class="barra-central">
+      <div class="acoes" role="group" aria-label="Filtrar notificações">
+        <button type="button" class="pf-btn" [class.pf-btn--dark]="!soNaoLidas()" [class.pf-btn--ghost]="soNaoLidas()"
+          [attr.aria-pressed]="!soNaoLidas()" (click)="filtrar(false)">Todas</button>
+        <button type="button" class="pf-btn" [class.pf-btn--dark]="soNaoLidas()" [class.pf-btn--ghost]="!soNaoLidas()"
+          [attr.aria-pressed]="soNaoLidas()" (click)="filtrar(true)">Não lidas @if (total() !== null) { ({{ total() }}) }</button>
+      </div>
+      <div class="acoes">
+        <button type="button" class="pf-btn pf-btn--ghost" [disabled]="carregando()" (click)="carregar()">Atualizar</button>
+        @if (total()) {
+          <button type="button" class="pf-btn pf-btn--ghost" [disabled]="marcando()" (click)="marcar()">Marcar todas como lidas</button>
+        }
+      </div>
+    </div>
+    @if (erro()) {
+      <div class="pf-card aviso-central">
+        <p class="pf-error" role="alert">{{ erro() }}</p>
+        <button type="button" class="pf-btn pf-btn--ghost" (click)="carregar()">Tentar novamente</button>
+      </div>
+    } @else if (carregando() && !itens().length) {
+      <p class="pf-card aviso-central" role="status">Carregando notificações…</p>
+    } @else if (!itens().length) {
+      <div class="pf-card aviso-central">
+        <h2>{{ soNaoLidas() ? 'Você está em dia' : 'Nenhuma notificação por enquanto' }}</h2>
+        <p class="apoio">{{ soNaoLidas() ? 'Novos alertas aparecerão aqui.' : 'Os alertas das suas unidades aparecerão nesta central.' }}</p>
+      </div>
+    } @else {
+      <ul class="lista-central" [attr.aria-busy]="carregando()">
+        @for (item of itens(); track item.id) {
+          <li class="pf-card notificacao" [class.notificacao--nova]="!item.lida">
+            <div class="notificacao__info">
+              <time [attr.datetime]="item.criadoEm">{{ item.criadoEm | date:'dd/MM/yyyy HH:mm':'-0300' }}</time>
+              @if (!item.lida) { <span class="pf-badge pf-badge--blue">Não lida</span> }
+              <h2>{{ item.titulo }}</h2>
+            </div>
+            <div class="acoes">
+              @if (!item.lida) {
+                <button type="button" class="pf-btn pf-btn--ghost" [disabled]="marcando()" (click)="marcar(item.id)">Marcar como lida</button>
+              }
+              <button type="button" class="pf-btn pf-btn--ghost" [disabled]="marcando()" (click)="abrir(item)">
+                @switch (item.destino) {
+                  @case ('FICHA') { Abrir ficha }
+                  @case ('PAGAMENTO') { Abrir pagamento }
+                  @case ('EVENTO') { Abrir evento }
+                  @case ('ESCALA') { Abrir escala }
+                }
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+      @if (mais()) {
+        <button type="button" class="pf-btn pf-btn--ghost" [disabled]="carregando()" (click)="carregar(true)">
+          {{ carregando() ? 'Carregando…' : 'Carregar anteriores' }}
+        </button>
+      }
+    }
+  }
+</div>

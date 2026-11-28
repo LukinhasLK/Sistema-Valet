@@ -1,0 +1,105 @@
+pf-tour {
+  .tour { position: fixed; inset: 0; z-index: 950; }
+
+  .tour__veu { position: fixed; pointer-events: auto; }
+  .tour__anel {
+    position: fixed;
+    border-radius: 12px;
+    box-shadow: 0 0 0 2px var(--pf-blue), 0 0 0 6px rgba(24, 106, 157, .25);
+    pointer-events: none;
+  }
+
+  .tour__cartao {
+    position: fixed;
+    width: min(360px, calc(100vw - 20px));
+    padding: 16px 18px 14px;
+    border: 1px solid var(--pf-border);
+    border-radius: 14px;
+    background: var(--pf-surface);
+    box-shadow: 0 24px 60px rgba(16, 40, 63, .28);
+    outline: none;
+  }
+
+  .tour__cartao--mobile {
+    left: 10px !important;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    top: auto !important;
+    width: auto;
+  }
+
+  .tour__mascote {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin: -6px 2px -6px -4px;
+    pointer-events: none;
+    svg { width: 44px; height: 44px; }
+  }
+
+  .tour__topo { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .tour__topo .tour__fechar { margin-left: auto; }
+  .tour__passo { font-size: 12px; font-weight: 600; color: var(--pf-blue); }
+  .tour__fechar {
+    display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 7px;
+    background: transparent; color: var(--pf-text-muted); cursor: pointer;
+    &:hover { background: var(--pf-surface-hover); color: var(--pf-text); }
+  }
+
+  .tour__titulo { font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
+  .tour__texto { margin-top: 6px; font-size: 13.5px; color: #3c4a58; line-height: 1.55; }
+
+  .tour__progresso {
+    display: flex; gap: 4px; margin: 14px 0 12px;
+    span { flex: 1; height: 3px; border-radius: 2px; background: var(--pf-border); transition: background-color var(--pf-dur-base) ease; }
+    .feito { background: var(--pf-blue); }
+  }
+
+  .tour__acoes { display: flex; align-items: center; gap: 8px; }
+  .tour__espaco { flex: 1; }
+  .tour__pular { color: var(--pf-text-muted); font-weight: 500; }
+
+  /* Convite de primeiro acesso (celular; no desktop ele é uma fala na barra superior) ------------------ */
+  .convite {
+    position: fixed;
+    right: 10px;
+    left: 10px;
+    bottom: calc(var(--pf-bottomnav-h) + 10px + env(safe-area-inset-bottom));
+    z-index: 800;
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--pf-border);
+    border-radius: 14px;
+    background: var(--pf-surface);
+    box-shadow: var(--pf-shadow-lg);
+    transform-origin: 50% 100%;
+  }
+
+  .convite__titulo { font-family: var(--pf-font-display); font-weight: 700; font-size: 14.5px; }
+  .convite__texto { margin-top: 2px; font-size: 13px; color: var(--pf-text-muted); }
+  .convite__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+  .convite__nunca { margin-left: 4px; font-weight: 500; color: var(--pf-text-muted); font-size: 12.5px; }
+
+}
+
+.pf-dica-contextual { overflow: hidden; }
+.pf-dica-contextual__corpo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 9px 10px 9px 14px;
+  border: 1px solid rgba(24, 106, 157, .18);
+  border-radius: 10px;
+  background: var(--pf-blue-softer);
+  color: var(--pf-blue-press);
+  font-size: 13px;
+
+  p { flex: 1; color: #2b4a63; }
+  strong { color: var(--pf-blue-press); }
+  pf-icon { color: var(--pf-blue); }
+}
+
+/* O convite nunca disputa espaço com um diálogo aberto (modal, painel, "Mais", paleta). */
+body:has([aria-modal='true']) pf-tour .convite { display: none; }

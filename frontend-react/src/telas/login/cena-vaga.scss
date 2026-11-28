@@ -1,0 +1,46 @@
+/*
+ * Cena da vaga (login): ilustração estática sobre o painel azul-escuro, sem fundo próprio.
+ * Branco translúcido para o chão, azul da marca na placa; o âmbar fica só no raio do mascote.
+ */
+.cena-vaga {
+  --cena-vaga-linha: #ffffff;
+  --cena-vaga-placa: var(--pf-blue, #186a9d);
+  --cena-vaga-papel: #e9eff4;
+  --cena-vaga-fundo: var(--pf-navy, #10283f); /* furos e sombras: a cor do painel */
+
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  pointer-events: none;
+  user-select: none;
+
+  &__desenho { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+  &__faixa { stroke: var(--cena-vaga-linha); stroke-opacity: .13; }
+  &__faixa--vizinha { stroke-opacity: .08; }
+  &__faixa--horizonte { stroke-opacity: .05; }
+  &__batente { fill: var(--cena-vaga-linha); opacity: .1; }
+
+  &__sombra { fill: #000; opacity: .18; }
+  &__poste { fill: var(--cena-vaga-linha); opacity: .22; }
+  &__placa { fill: var(--cena-vaga-placa); }
+  &__placa-borda { stroke: var(--cena-vaga-linha); stroke-opacity: .35; }
+  &__letra { stroke: var(--cena-vaga-linha); }
+
+  &__ficha { opacity: .6; }
+  &__papel { fill: var(--cena-vaga-papel); }
+  &__furo { fill: var(--cena-vaga-fundo); }
+  &__picote, &__linhas { stroke: var(--cena-vaga-fundo); stroke-opacity: .45; fill: none; }
+  &__argola { stroke: var(--cena-vaga-papel); }
+  &__metal { fill: #cfdbe5; }
+
+  /* Slot do mascote: 132x132 reservados; a base (sombra do Perdidinho, ~96% da altura) pousa
+     no meio da vaga (y 146 de 180) e o corpo fica centrado em x 176 de 320 (55%). */
+  &__mascote {
+    position: absolute;
+    left: calc(55% - 59px);
+    top: calc(81% - 127px);
+    width: 132px;
+    height: 132px;
+  }
+}
